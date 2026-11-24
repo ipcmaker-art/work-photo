@@ -26,5 +26,11 @@
 
 ## 배포
 
-`main` 브랜치 루트를 GitHub Pages 로 게시합니다. 파일을 고친 뒤 `main` 에 올리면
-1~2분 안에 <https://ipcmaker-art.github.io/work-photo/> 에 반영됩니다.
+GitHub Pages 는 **`gh-pages` 브랜치 루트**에서 게시됩니다(같은 내용이 `main` 에도 들어 있습니다).
+파일을 고친 뒤 두 브랜치에 함께 올리면 1~2분 안에
+<https://ipcmaker-art.github.io/work-photo/> 에 반영됩니다.
+
+```
+git add -A && git commit -m "..."
+git push origin main main:gh-pages
+```
