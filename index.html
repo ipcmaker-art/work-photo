@@ -666,6 +666,7 @@
     loading: false,
     listLoaded: false,
     listDirty: true,
+    listSearched: false,  // 🔍 조회하기를 눌러 내역을 불러왔는지 (누르기 전에는 사진을 보여 주지 않는다)
     lightbox: { photos: [], index: 0, meta: '' },
     edit: null,          // 수정 중인 기록 { record, keep:[기존 사진], newPhotos:[], saving }
     cal: {
@@ -1449,7 +1450,12 @@
       btn.classList.toggle('active', tab === name);
       btn.setAttribute('aria-selected', tab === name ? 'true' : 'false');
     });
-    if (tab === 'list' && state.listDirty) loadList();
+    if (tab === 'list') {
+      // 📋 전체 내역 조회는 들어올 때마다 깨끗한 상태로 시작한다.
+      // '🔍 조회하기'를 누르기 전에는 내역·사진을 불러오지 않고 안내 문구만 보여 준다.
+      state.listSearched = false;
+      showListIdle();
+    }
     if (tab === 'calendar') openCalendar();
   }
 
@@ -1762,9 +1768,21 @@
     };
   }
 
+  var LIST_IDLE_HTML = '<div class="empty"><span class="icon">🔍</span>' +
+    '조회 조건을 선택하고 <b>‘조회하기’</b>를 눌러 주세요.<br>' +
+    '내역과 사진은 조회하기를 누른 뒤에 보입니다.</div>';
+
+  // 조회 전 화면 — 필터 카드만 두고 내역·사진은 감춘다.
+  function showListIdle() {
+    state.records = [];
+    $('listBody').innerHTML = LIST_IDLE_HTML;
+    $('listCount').textContent = '–';
+  }
+
   function loadList(force) {
     if (state.loading) return;
     if (!force && state.listLoaded && !state.listDirty) return;
+    state.listSearched = true;
 
     var body = $('listBody');
     body.innerHTML = '<div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>';
@@ -1859,11 +1877,15 @@
   function onExport() {
     if (state.loading) return;
     var records = state.records || [];
-    if (!records.length) { toast('출력할 내역이 없습니다.', 'err'); return; }
+    // 조회하기를 누르지 않아도 지금 필터 조건 그대로 출력할 수 있다.
+    // (조회한 결과가 0건일 때만 안내한다)
+    if (state.listSearched && !records.length) { toast('출력할 내역이 없습니다.', 'err'); return; }
 
     var btn = $('exportBtn');
     btn.disabled = true;
-    showLoading('워드 파일 만드는 중…', records.length + '건의 사진을 문서에 담고 있어요');
+    showLoading('워드 파일 만드는 중…',
+      records.length ? records.length + '건의 사진을 문서에 담고 있어요'
+                    : '조회 조건에 맞는 사진을 문서에 담고 있어요');
 
     API.exportDoc(currentFilters()).then(function (res) {
       if (!res || res.ok === false) throw new Error((res && res.error) || '워드 파일을 만들지 못했습니다.');
