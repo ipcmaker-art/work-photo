@@ -250,9 +250,12 @@
   .rec-actions{display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; margin-top:9px;}
   .rec-actions button{padding:7px 10px; border-radius:9px; font-size:12px; font-weight:700; background:#fff; border:1px solid var(--line); color:#344054;}
   .rec-actions button.danger{color:var(--danger); border-color:#fecdca;}
-  .record-actions{display:flex; justify-content:flex-end; margin-top:10px;}
+  .rec-actions button.edit{color:var(--brand); border-color:#c7d7fe;}
+  .record-actions{display:flex; gap:6px; justify-content:flex-end; margin-top:10px;}
   .record-actions .rec-del{padding:7px 11px; border-radius:9px; font-size:12px; font-weight:700; background:#fff; border:1px solid #fecdca; color:var(--danger);}
   .record-actions .rec-del:hover{background:#fef3f2;}
+  .record-actions .rec-edit{padding:7px 11px; border-radius:9px; font-size:12px; font-weight:700; background:#fff; border:1px solid #c7d7fe; color:var(--brand);}
+  .record-actions .rec-edit:hover{background:var(--brand-soft);}
   .plan-link{
     display:flex; align-items:center; gap:8px; justify-content:space-between;
     background:#fffbeb; border:1px solid #fde68a; color:#92400e; border-radius:10px;
@@ -261,9 +264,9 @@
   .plan-link[hidden]{display:none;}
   .plan-link .btn-link{flex:0 0 auto; font-size:12px; font-weight:800; color:#b45309; text-decoration:underline;}
 
-  /* 예정작업 등록 모달 */
-  #schedModal{position:fixed; inset:0; background:rgba(16,24,40,.5); z-index:110; display:flex; align-items:flex-end; justify-content:center;}
-  #schedModal[hidden]{display:none;}
+  /* 예정작업 등록 · 작업사진 수정 모달 */
+  #schedModal,#editModal{position:fixed; inset:0; background:rgba(16,24,40,.5); z-index:110; display:flex; align-items:flex-end; justify-content:center;}
+  #schedModal[hidden],#editModal[hidden]{display:none;}
   .modal-card{
     background:#fff; width:100%; max-width:520px; border-radius:18px 18px 0 0;
     padding:16px 16px calc(16px + env(safe-area-inset-bottom)); max-height:92vh; overflow:auto;
@@ -272,6 +275,11 @@
   .modal-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;}
   .modal-head h2{font-size:16px; margin:0;}
   .modal-close{width:34px; height:34px; border-radius:50%; background:#f2f4f7; font-size:16px; color:#344054; flex:0 0 auto;}
+  .edit-meta{font-size:12px; color:var(--muted); margin:-6px 0 12px; line-height:1.5;}
+  .edit-actions{display:flex; gap:8px; margin-top:16px;}
+  .edit-actions .btn-ghost{flex:0 0 auto; padding:13px 18px;}
+  .edit-actions .btn-primary{flex:1; padding:14px; font-size:15px;}
+  .photo-item.existing .badge-size{background:rgba(29,78,216,.82);}
 
   /* toast */
   #toast{
@@ -329,7 +337,7 @@
     .cal-cell{min-height:88px; padding:6px 5px;}
     .cal-num{font-size:12.5px;}
     .cal-badge{font-size:10.5px;}
-    #schedModal{align-items:center; padding:20px;}
+    #schedModal,#editModal{align-items:center; padding:20px;}
     .modal-card{border-radius:18px;}
   }
   @media (prefers-color-scheme: dark){
@@ -365,6 +373,8 @@
     .day-record .rec-memo{color:#d0d5dd;}
     .rec-actions button{background:#181b21; color:#e4e7ec;}
     .rec-actions button.danger{color:#fda29b; border-color:#7a271a;}
+    .rec-actions button.edit{color:#93b4ff; border-color:#2b4270;}
+    .record-actions .rec-edit{background:#181b21; color:#93b4ff; border-color:#2b4270;}
     .record-actions .rec-del{background:#181b21; color:#fda29b; border-color:#7a271a;}
     .record-actions .rec-del:hover{background:#2a1a1a;}
     .plan-link{background:#3b2a10; border-color:#4a3a12; color:#fcd34d;}
@@ -566,6 +576,48 @@
   </div>
 </div>
 
+<div id="editModal" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="editTitle">
+    <div class="modal-head">
+      <h2 id="editTitle">작업사진 기록 수정</h2>
+      <button type="button" class="modal-close" id="editClose" aria-label="닫기">✕</button>
+    </div>
+    <div class="edit-meta" id="editMeta"></div>
+    <div class="field">
+      <div class="label"><span>작업 날짜</span><span class="req">필수</span></div>
+      <input type="date" id="editDate" required>
+    </div>
+    <div class="field">
+      <div class="label"><span>지점명</span><span class="req">필수</span></div>
+      <div class="chips" id="editBranchChips"></div>
+      <input type="text" id="editBranch" list="branchList" placeholder="지점명을 선택하거나 직접 입력" required>
+      <div class="hint">새 지점은 그냥 입력하시면 다음부터 목록에 나옵니다.</div>
+    </div>
+    <div class="field">
+      <div class="label"><span>작성자</span><span class="req">필수</span></div>
+      <input type="text" id="editAuthor" list="authorList" placeholder="이름" required>
+    </div>
+    <div class="field">
+      <div class="label"><span>작업 내용</span><span class="optional">선택</span></div>
+      <textarea id="editMemo" rows="2" maxlength="1000" placeholder="예) 냉동고 2대 설치, 진열대 높이 조정"></textarea>
+    </div>
+    <div class="field">
+      <div class="label"><span>작업사진</span><span class="req">1장 이상</span></div>
+      <div class="photo-grid" id="editPhotoGrid"></div>
+      <div class="summary" id="editPhotoSummary">사진을 불러오는 중…</div>
+      <label class="picker" id="editPickLabel" style="margin-top:10px">
+        <span>📷 사진 추가</span>
+        <input type="file" id="editPhotoInput" accept="image/*" multiple hidden>
+      </label>
+      <div class="hint">사진의 ✕ 를 누르면 그 사진이 이 기록에서 빠집니다(드라이브 휴지통으로 이동). 새로 추가한 사진은 자동으로 <b>가로 600 × 세로 400픽셀</b> JPEG로 변환합니다.</div>
+    </div>
+    <div class="edit-actions">
+      <button type="button" class="btn-ghost" id="editCancel">취소</button>
+      <button type="button" class="btn-primary" id="editSave">💾 수정 저장</button>
+    </div>
+  </div>
+</div>
+
 <div id="lightbox" hidden>
   <div class="lb-top">
     <span class="title" id="lbTitle">사진</span>
@@ -615,6 +667,7 @@
     listLoaded: false,
     listDirty: true,
     lightbox: { photos: [], index: 0, meta: '' },
+    edit: null,          // 수정 중인 기록 { record, keep:[기존 사진], newPhotos:[], saving }
     cal: {
       month: '',          // 'YYYY-MM' (지금 보고 있는 달)
       branch: '',         // 지점 필터 ('' = 전체)
@@ -802,6 +855,12 @@
         return remotePost(body);
       }
       return Promise.resolve(mockDeleteRecord(id));
+    },
+    // 작업사진 기록 수정 (날짜·지점·작성자·작업내용·사진)
+    updateRecord: function (payload) {
+      if (IS_GAS) return gasCall('updateWorkLog', payload);
+      if (IS_REMOTE) return remotePost(withAction('updateRecord', payload), REMOTE_UPLOAD_TIMEOUT);
+      return Promise.resolve(mockUpdateRecord(payload));
     }
   };
 
@@ -1017,6 +1076,52 @@
     if (all.length === before) return { ok: false, error: '해당 작업사진 기록을 찾지 못했습니다.' };
     store.set(LS.mock, all);
     return { ok: true, deletedId: id, trashedFiles: 0, warnings: [] };
+  }
+
+  // 미리보기(로컬) 작업사진 기록 수정 — 이 브라우저 저장소에서 고친다(사진 파일은 원래 없다).
+  function mockUpdateRecord(payload) {
+    payload = payload || {};
+    var all = store.get(LS.mock, []);
+    var hit = null;
+    var at = -1;
+    all.forEach(function (r, i) { if (r.id === payload.id) { hit = r; at = i; } });
+    if (!hit) return { ok: false, error: '해당 작업사진 기록을 찾지 못했습니다. (이미 지워졌을 수 있습니다)' };
+
+    var expect = payload.expect || {};
+    var changed = '기록이 그 사이 바뀌었습니다. 새로고침한 뒤 다시 시도해 주세요.';
+    if (expect.date && expect.date !== hit.date) return { ok: false, error: changed };
+    if (expect.branch && expect.branch !== hit.branch) return { ok: false, error: changed };
+    if (expect.author && expect.author !== hit.author) return { ok: false, error: changed };
+    if (expect.registeredAt && expect.registeredAt !== hit.registeredAt) return { ok: false, error: changed };
+
+    var keep = payload.keepPhotoUrls || [];
+    var photos = (hit.photos || []).filter(function (p) {
+      return keep.indexOf(p.id) > -1 || keep.indexOf(p.original) > -1;
+    });
+    var added = (payload.newPhotos || []).map(function (img, i) {
+      var src = 'data:' + (img.mimeType || 'image/jpeg') + ';base64,' + img.base64;
+      return { thumb: src, original: src, view: src, download: src, id: 'local-' + Date.now() + '-' + i };
+    });
+    photos = photos.concat(added);
+    if (!photos.length) return { ok: false, error: '작업사진을 1장 이상 남겨 주세요.' };
+
+    var updated = {
+      id: hit.id,
+      registeredAt: hit.registeredAt,
+      date: payload.date,
+      branch: payload.branch,
+      author: payload.author,
+      memo: payload.memo != null ? payload.memo : (payload.content || ''),
+      photoCount: photos.length,
+      photos: photos
+    };
+    all[at] = updated;
+    store.set(LS.mock, all);
+    return {
+      ok: true, updatedId: hit.id, record: updated,
+      trashedFiles: (hit.photos || []).length - photos.length + added.length,
+      addedFiles: added.length, warnings: []
+    };
   }
 
   /* ---------- 미리보기/로컬용 워드(HTML .doc) 출력 ---------- */
@@ -1366,6 +1471,20 @@
       if (e && e.target === $('schedModal')) closeScheduleModal();
     });
 
+    // 작업사진 수정 창
+    $('editClose').addEventListener('click', closeEditModal);
+    $('editCancel').addEventListener('click', closeEditModal);
+    $('editSave').addEventListener('click', saveEditFromForm);
+    $('editBranch').addEventListener('input', renderEditBranchChips);
+    $('editPhotoInput').addEventListener('change', function (e) {
+      var files = Array.prototype.slice.call(e.target.files || []);
+      e.target.value = '';
+      if (files.length) addEditPhotos(files);
+    });
+    $('editModal').addEventListener('click', function (e) {
+      if (e && e.target === $('editModal')) closeEditModal();
+    });
+
     $('inputBranch').addEventListener('input', renderBranchChips);
 
     $('photoInput').addEventListener('change', function (e) {
@@ -1414,6 +1533,7 @@
     $('lbPrev').addEventListener('click', function () { stepLightbox(-1); });
     $('lbNext').addEventListener('click', function () { stepLightbox(1); });
     document.addEventListener('keydown', function (e) {
+      if (!$('editModal').hidden && e.key === 'Escape') { closeEditModal(); return; }
       if (!$('schedModal').hidden && e.key === 'Escape') { closeScheduleModal(); return; }
       if ($('lightbox').hidden) return;
       if (e.key === 'Escape') closeLightbox();
@@ -1706,6 +1826,7 @@
         (r.memo ? '<p class="record-memo">' + esc(r.memo) + '</p>' : '') +
         (thumbs ? '<div class="thumbs">' + thumbs + '</div>' : '') +
         '<div class="record-actions">' +
+          '<button type="button" class="rec-edit" data-record="' + ri + '" aria-label="이 작업사진 기록 수정">✏️ 수정</button>' +
           '<button type="button" class="rec-del" data-record="' + ri + '" aria-label="이 작업사진 기록 삭제">🗑️ 삭제</button>' +
         '</div>' +
       '</article>';
@@ -1722,6 +1843,12 @@
       btn.addEventListener('click', function () {
         var r = state.records[Number(btn.getAttribute('data-record'))];
         if (r) removeWorkRecord(r);
+      });
+    });
+    body.querySelectorAll('.rec-edit').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var r = state.records[Number(btn.getAttribute('data-record'))];
+        if (r) openEditModal(r);
       });
     });
   }
@@ -2019,6 +2146,11 @@
     }
 
     var actions = el('div', 'rec-actions');
+    var editBtn = el('button', 'edit do-rec-edit', '✏️ 수정');
+    editBtn.setAttribute('type', 'button');
+    editBtn.setAttribute('aria-label', '이 작업사진 기록 수정');
+    editBtn.addEventListener('click', function () { openEditModal(record); });
+    actions.appendChild(editBtn);
     var del = el('button', 'danger do-rec-delete', '🗑️ 삭제');
     del.setAttribute('type', 'button');
     del.setAttribute('aria-label', '이 작업사진 기록 삭제');
@@ -2180,6 +2312,207 @@
       }
     }).catch(function (err) {
       toast((err && err.message) || '기록을 지우지 못했습니다.', 'err');
+    });
+  }
+
+  /* ================================================================
+   * 7-3. 작업사진 기록 수정 (✏️ 수정)
+   * ============================================================== */
+  function openEditModal(record) {
+    if (!record) return;
+    state.edit = {
+      record: record,
+      keep: (record.photos || []).slice(),
+      newPhotos: [],
+      saving: false
+    };
+    $('editDate').value = record.date || todayStr();
+    $('editBranch').value = record.branch || '';
+    $('editAuthor').value = record.author || '';
+    $('editMemo').value = record.memo || '';
+    $('editMeta').textContent = formatDateLabel(record.date) + ' ' + (record.branch || '') +
+      (record.author ? ' · ' + record.author + ' 님이 등록한 기록' : '') +
+      ' · 사진 ' + (record.photos || []).length + '장';
+    $('editSave').disabled = false;
+    renderEditBranchChips();
+    renderEditPhotos();
+    $('editModal').hidden = false;
+  }
+
+  function closeEditModal() {
+    $('editModal').hidden = true;
+    state.edit = null;
+    clearNode($('editPhotoGrid'));
+  }
+
+  function renderEditBranchChips() {
+    var box = $('editBranchChips');
+    if (!box) return;
+    clearNode(box);
+    var current = $('editBranch').value.trim();
+    var names = state.branches.slice();
+    if (current && names.indexOf(current) === -1) names.unshift(current);
+    names.slice(0, 9).forEach(function (name) {
+      var chip = el('button', 'chip' + (name === current ? ' active' : ''), name);
+      chip.setAttribute('type', 'button');
+      chip.addEventListener('click', function () {
+        $('editBranch').value = name;
+        renderEditBranchChips();
+      });
+      box.appendChild(chip);
+    });
+  }
+
+  // 수정 창의 사진 칸 — 기존 사진(✕ 로 빼기) + 새로 추가한 사진
+  function renderEditPhotos() {
+    var grid = $('editPhotoGrid');
+    if (!grid) return;
+    var edit = state.edit;
+    clearNode(grid);
+    if (!edit) return;
+
+    edit.keep.forEach(function (p) {
+      grid.appendChild(editPhotoItem_(p.thumb || p.original || '', '기존', 'existing', function () {
+        edit.keep = edit.keep.filter(function (x) { return x !== p; });
+        renderEditPhotos();
+      }));
+    });
+    edit.newPhotos.forEach(function (p) {
+      grid.appendChild(editPhotoItem_(p.dataUrl || '', bytesLabel(p.bytes), 'added', function () {
+        edit.newPhotos = edit.newPhotos.filter(function (x) { return x !== p; });
+        renderEditPhotos();
+      }));
+    });
+    updateEditSummary();
+  }
+
+  function editPhotoItem_(src, badgeText, kind, onRemove) {
+    var box = el('div', 'photo-item ' + kind);
+    var img = document.createElement('img');
+    img.setAttribute('alt', '작업사진');
+    img.setAttribute('loading', 'lazy');
+    img.src = src;
+    box.appendChild(img);
+    box.appendChild(el('span', 'badge-size', badgeText));
+    var btn = el('button', 'del', '✕');
+    btn.setAttribute('type', 'button');
+    btn.setAttribute('aria-label', '사진 빼기');
+    btn.addEventListener('click', onRemove);
+    box.appendChild(btn);
+    return box;
+  }
+
+  function updateEditSummary() {
+    var edit = state.edit;
+    if (!edit) return;
+    var kept = edit.keep.length;
+    var added = edit.newPhotos.length;
+    var total = kept + added;
+    $('editPhotoSummary').textContent = total
+      ? '사진 ' + total + '장 (기존 ' + kept + '장' +
+        (added ? ' · 새로 추가 ' + added + '장 · ' + PHOTO_W + '×' + PHOTO_H + ' 변환됨' : '') + ')'
+      : '사진이 하나도 없습니다. 1장 이상 남겨 주세요.';
+    $('editSave').textContent = total ? '💾 수정 저장 (사진 ' + total + '장)' : '💾 수정 저장';
+  }
+
+  function addEditPhotos(files) {
+    var edit = state.edit;
+    if (!edit) return;
+    var room = MAX_PHOTOS - (edit.keep.length + edit.newPhotos.length);
+    if (room <= 0) { toast('사진은 ' + MAX_PHOTOS + '장까지입니다.', 'err'); return; }
+    var accepted = files.slice(0, room);
+    if (files.length > room) toast('사진은 최대 ' + MAX_PHOTOS + '장까지라 ' + room + '장만 추가했어요.', 'err');
+    accepted = accepted.filter(function (f) { return !f.size || f.size <= MAX_FILE_MB * 1024 * 1024; });
+    if (!accepted.length) return;
+
+    showLoading('사진 준비 중…', '0 / ' + accepted.length);
+    var done = 0;
+    var failed = 0;
+    var chain = Promise.resolve();
+    accepted.forEach(function (file) {
+      chain = chain.then(function () {
+        return compressImage(file).then(function (photo) {
+          photo.key = 'e' + Date.now() + Math.random().toString(36).slice(2, 7);
+          if (state.edit) state.edit.newPhotos.push(photo);
+          renderEditPhotos();
+          done++;
+          $('loadingSub').textContent = done + ' / ' + accepted.length;
+        }).catch(function (err) {
+          failed++;
+          console.warn('edit photo failed', err);
+        });
+      });
+    });
+    chain.then(function () {
+      hideLoading();
+      if (failed) toast(failed + '장은 사진을 읽지 못해 제외했어요.', 'err');
+      else toast(accepted.length + '장 준비 완료', 'ok');
+    });
+  }
+
+  function saveEditFromForm() {
+    var edit = state.edit;
+    if (!edit || edit.saving) return;
+
+    var date = $('editDate').value;
+    var branch = $('editBranch').value.trim();
+    var author = $('editAuthor').value.trim();
+    var memo = $('editMemo').value.trim();
+
+    if (!date) { toast('작업 날짜를 선택해 주세요.', 'err'); return; }
+    if (!branch) { toast('지점명을 입력해 주세요.', 'err'); return; }
+    if (!author) { toast('작성자 이름을 입력해 주세요.', 'err'); return; }
+    if (!edit.keep.length && !edit.newPhotos.length) {
+      toast('작업사진을 1장 이상 남겨 주세요.', 'err'); return;
+    }
+
+    var record = edit.record;
+    var photoTotal = edit.keep.length + edit.newPhotos.length;
+    var payload = {
+      id: record.id,
+      expect: { date: record.date, branch: record.branch, author: record.author, registeredAt: record.registeredAt },
+      date: date,
+      branch: branch,
+      author: author,
+      memo: memo,
+      keepPhotoUrls: edit.keep.map(function (p) { return p.id || p.original || ''; }),
+      newPhotos: edit.newPhotos.map(function (p) {
+        return { name: p.name, mimeType: p.mimeType, base64: p.base64 };
+      })
+    };
+
+    edit.saving = true;
+    $('editSave').disabled = true;
+    showLoading('수정 저장 중…', '사진 ' + photoTotal + '장을 맞추고 있어요');
+
+    API.updateRecord(payload).then(function (res) {
+      var err = apiError(res);
+      if (err) throw new Error(err);
+
+      hideLoading();
+      closeEditModal();
+      rememberBranch(branch);
+      if (author) rememberAuthor(author);
+
+      var warnings = (res && res.warnings) || [];
+      var savedCount = (res && res.record && res.record.photoCount) || photoTotal;
+      toast('수정했습니다. (' + formatDateLabel(date) + ' · 사진 ' + savedCount + '장)', 'ok');
+      if (warnings.length) setTimeout(function () { toast(warnings[0], 'err'); }, 1800);
+
+      state.listDirty = true;
+      state.listLoaded = false;
+      // 보던 화면을 유지한다 — 캘린더는 수정한 날짜로, 조회는 그대로 다시 불러온다.
+      state.cal.month = String(date || todayStr()).substring(0, 7);
+      state.cal.selected = date || todayStr();
+      state.cal.loaded = false;
+      state.cal.loadedMonth = '';
+      if (state.tab === 'list') loadList(true);
+      else loadCalendar(true);
+    }).catch(function (err) {
+      hideLoading();
+      if (state.edit) state.edit.saving = false;
+      $('editSave').disabled = false;
+      toast(apiError({ ok: false, error: (err && err.message) || String(err) }) || '수정하지 못했습니다.', 'err');
     });
   }
 
