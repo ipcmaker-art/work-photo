@@ -214,6 +214,15 @@
   .day-head{display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:12px;}
   .day-head h2{font-size:16px; margin:0; letter-spacing:-.3px;}
   .day-sub{font-size:12px; color:var(--muted); margin-top:3px;}
+  .day-head-actions{display:flex; flex-direction:column; gap:6px; flex:0 0 auto; align-items:stretch;}
+  @media (min-width:440px){ .day-head-actions{flex-direction:row; align-items:center;} }
+  .btn-day-photo{
+    flex:0 0 auto; padding:9px 12px; border-radius:11px; color:#fff; white-space:nowrap;
+    background:linear-gradient(135deg,#1d4ed8,#3b82f6); font-weight:800; font-size:12.5px;
+    box-shadow:0 4px 12px rgba(29,78,216,.24); transition:filter .15s, transform .08s;
+  }
+  .btn-day-photo:hover{filter:brightness(1.05);}
+  .btn-day-photo:active{transform:translateY(1px);}
   .btn-add-plan{
     flex:0 0 auto; padding:9px 12px; border-radius:11px; background:#b45309; color:#fff;
     font-weight:800; font-size:12.5px; box-shadow:0 4px 12px rgba(180,83,9,.22);
@@ -238,6 +247,12 @@
   .day-record .rec-thumbs{display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;}
   .day-record .rec-thumb{width:64px; height:64px; border-radius:8px; overflow:hidden; padding:0; background:#eef1f5; flex:0 0 auto;}
   .day-record .rec-thumb img{width:100%; height:100%; object-fit:cover; display:block;}
+  .rec-actions{display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; margin-top:9px;}
+  .rec-actions button{padding:7px 10px; border-radius:9px; font-size:12px; font-weight:700; background:#fff; border:1px solid var(--line); color:#344054;}
+  .rec-actions button.danger{color:var(--danger); border-color:#fecdca;}
+  .record-actions{display:flex; justify-content:flex-end; margin-top:10px;}
+  .record-actions .rec-del{padding:7px 11px; border-radius:9px; font-size:12px; font-weight:700; background:#fff; border:1px solid #fecdca; color:var(--danger);}
+  .record-actions .rec-del:hover{background:#fef3f2;}
   .plan-link{
     display:flex; align-items:center; gap:8px; justify-content:space-between;
     background:#fffbeb; border:1px solid #fde68a; color:#92400e; border-radius:10px;
@@ -348,6 +363,10 @@
     .sched-actions button.primary{background:var(--brand); color:#fff;}
     .day-record{background:#181b21;}
     .day-record .rec-memo{color:#d0d5dd;}
+    .rec-actions button{background:#181b21; color:#e4e7ec;}
+    .rec-actions button.danger{color:#fda29b; border-color:#7a271a;}
+    .record-actions .rec-del{background:#181b21; color:#fda29b; border-color:#7a271a;}
+    .record-actions .rec-del:hover{background:#2a1a1a;}
     .plan-link{background:#3b2a10; border-color:#4a3a12; color:#fcd34d;}
     .modal-card{background:#181b21;}
     .modal-close{background:#232833; color:#e4e7ec;}
@@ -368,14 +387,14 @@
   </header>
 
   <nav class="tabs" role="tablist" aria-label="화면 전환">
-    <button class="tab active" id="tab-write" role="tab" aria-selected="true" data-tab="write">📷 사진 등록</button>
-    <button class="tab" id="tab-calendar" role="tab" aria-selected="false" data-tab="calendar">📅 캘린더</button>
+    <button class="tab active" id="tab-calendar" role="tab" aria-selected="true" data-tab="calendar">📅 캘린더</button>
+    <button class="tab" id="tab-write" role="tab" aria-selected="false" data-tab="write">📷 사진 등록</button>
     <button class="tab" id="tab-list" role="tab" aria-selected="false" data-tab="list">📋 전체 내역 조회</button>
   </nav>
 
   <main>
     <!-- ============================ 등록 ============================ -->
-    <section id="panel-write" role="tabpanel" aria-labelledby="tab-write">
+    <section id="panel-write" role="tabpanel" aria-labelledby="tab-write" hidden>
       <form id="writeForm" autocomplete="off">
         <div class="card">
           <div class="plan-link" id="planLink" hidden></div>
@@ -425,7 +444,7 @@
     </section>
 
     <!-- ============================ 캘린더 ============================ -->
-    <section id="panel-calendar" role="tabpanel" aria-labelledby="tab-calendar" hidden>
+    <section id="panel-calendar" role="tabpanel" aria-labelledby="tab-calendar">
       <div class="card cal-toolbar">
         <div class="cal-nav">
           <button type="button" class="btn-ghost" id="calPrev" aria-label="이전 달">‹ 이전 달</button>
@@ -456,7 +475,10 @@
             <h2 id="dayTitle">오늘</h2>
             <div class="day-sub" id="daySub"></div>
           </div>
-          <button type="button" class="btn-add-plan" id="dayAddBtn">+ 예정작업 등록</button>
+          <div class="day-head-actions">
+            <button type="button" class="btn-day-photo" id="dayPhotoBtn">📷 이 날 사진 등록</button>
+            <button type="button" class="btn-add-plan" id="dayAddBtn">+ 예정작업 등록</button>
+          </div>
         </div>
         <div id="dayDetail"></div>
       </div>
@@ -585,7 +607,7 @@
 
   var $ = function (id) { return document.getElementById(id); };
   var state = {
-    tab: 'write',
+    tab: 'calendar',
     photos: [],          // { key, dataUrl, base64, mimeType, name, bytes, width, height }
     records: [],
     branches: DEFAULT_BRANCHES.slice(),
@@ -770,6 +792,16 @@
       if (IS_GAS) return gasCall('deleteSchedule', id);
       if (IS_REMOTE) return remotePost({ action: 'deleteSchedule', id: id });
       return Promise.resolve(mockDeleteSchedule(id));
+    },
+    // 작업사진 기록 삭제 (시트 행 + 드라이브 사진 파일)
+    deleteRecord: function (id, expect) {
+      if (IS_GAS) return gasCall('deleteWorkLog', id, expect || {});
+      if (IS_REMOTE) {
+        var body = withAction('deleteRecord', expect || {});
+        body.id = id;
+        return remotePost(body);
+      }
+      return Promise.resolve(mockDeleteRecord(id));
     }
   };
 
@@ -975,6 +1007,16 @@
     if (all.length === before) return { ok: false, error: '해당 예정작업을 찾지 못했습니다.' };
     store.set(LS.schedules, all);
     return { ok: true, id: id };
+  }
+
+  // 미리보기(로컬) 작업사진 기록 삭제 — 이 브라우저 저장소에서 지운다(사진 파일은 원래 없다).
+  function mockDeleteRecord(id) {
+    var all = store.get(LS.mock, []);
+    var before = all.length;
+    all = all.filter(function (r) { return r.id !== id; });
+    if (all.length === before) return { ok: false, error: '해당 작업사진 기록을 찾지 못했습니다.' };
+    store.set(LS.mock, all);
+    return { ok: true, deletedId: id, trashedFiles: 0, warnings: [] };
   }
 
   /* ---------- 미리보기/로컬용 워드(HTML .doc) 출력 ---------- */
@@ -1197,6 +1239,8 @@
     setQuickRange('30');
 
     bindEvents();
+    // 첫 화면은 📅 캘린더 — 이번 달 달력과 오늘 상세를 바로 보여 준다.
+    switchTab(state.tab || 'calendar');
     refreshBranchListFromServer();
   }
 
@@ -1314,6 +1358,7 @@
     $('calNext').addEventListener('click', function () { goToMonth(shiftMonth(state.cal.month, 1)); });
     $('calToday').addEventListener('click', function () { goToMonth(nowMonth(), todayStr()); });
     $('dayAddBtn').addEventListener('click', function () { openScheduleModal(state.cal.selected); });
+    $('dayPhotoBtn').addEventListener('click', registerPhotoForSelectedDate);
     $('schedClose').addEventListener('click', closeScheduleModal);
     $('schedSave').addEventListener('click', saveScheduleFromForm);
     $('schedBranch').addEventListener('input', renderScheduleBranchChips);
@@ -1568,13 +1613,15 @@
       $('inputMemo').value = '';
       state.listDirty = true;
       state.listLoaded = false;
-      // 캘린더는 다음에 열 때 새로 불러오고, 예정작업 연결은 풀어 둔다
-      state.cal.loaded = false;
+      // 예정작업 연결은 풀고, 등록한 날짜가 보이는 📅 캘린더로 돌아가 새 기록을 바로 보여 준다
       state.cal.prefillId = '';
       renderPlanLink();
+      state.cal.month = String(date || todayStr()).substring(0, 7);
+      state.cal.selected = date || todayStr();
+      state.cal.loaded = false;
+      state.cal.loadedMonth = '';
 
-      // 즉시 확인할 수 있게 조회 화면으로 이동
-      setTimeout(function () { switchTab('list'); }, 650);
+      setTimeout(function () { switchTab('calendar'); }, 650);
     }).catch(function (err) {
       hideLoading();
       state.loading = false;
@@ -1658,6 +1705,9 @@
         '</div>' +
         (r.memo ? '<p class="record-memo">' + esc(r.memo) + '</p>' : '') +
         (thumbs ? '<div class="thumbs">' + thumbs + '</div>' : '') +
+        '<div class="record-actions">' +
+          '<button type="button" class="rec-del" data-record="' + ri + '" aria-label="이 작업사진 기록 삭제">🗑️ 삭제</button>' +
+        '</div>' +
       '</article>';
     }).join('');
 
@@ -1666,6 +1716,12 @@
         var r = state.records[Number(btn.getAttribute('data-record'))];
         var pi = Number(btn.getAttribute('data-photo'));
         openLightbox(r, pi);
+      });
+    });
+    body.querySelectorAll('.rec-del').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var r = state.records[Number(btn.getAttribute('data-record'))];
+        if (r) removeWorkRecord(r);
       });
     });
   }
@@ -1865,6 +1921,17 @@
     renderCalendar();
   }
 
+  // 캘린더에서 고른 날짜로 바로 사진 등록 — 날짜를 채우고 등록 탭으로 넘어간다.
+  function registerPhotoForSelectedDate() {
+    var date = state.cal.selected || todayStr();
+    state.cal.prefillId = '';          // 예정작업 연결은 풀고 일반 등록으로 시작
+    $('inputDate').value = date;
+    renderBranchChips();
+    renderPlanLink();
+    switchTab('write');
+    toast(formatDateLabel(date) + ' 사진을 등록합니다. 사진을 올리고 [등록하기]를 눌러 주세요.', 'ok');
+  }
+
   function renderDayDetail() {
     var cal = state.cal;
     var date = cal.selected || todayStr();
@@ -1950,6 +2017,14 @@
       });
       card.appendChild(thumbs);
     }
+
+    var actions = el('div', 'rec-actions');
+    var del = el('button', 'danger do-rec-delete', '🗑️ 삭제');
+    del.setAttribute('type', 'button');
+    del.setAttribute('aria-label', '이 작업사진 기록 삭제');
+    del.addEventListener('click', function () { removeWorkRecord(record); });
+    actions.appendChild(del);
+    card.appendChild(actions);
     return card;
   }
 
@@ -2074,6 +2149,37 @@
       loadCalendar(true);
     }).catch(function (err) {
       toast((err && err.message) || '예정작업을 지우지 못했습니다.', 'err');
+    });
+  }
+
+  function removeWorkRecord(record) {
+    if (!record) return;
+    var ask = '이 작업사진 기록을 삭제할까요? (시트와 사진 파일이 함께 삭제됩니다)';
+    if (typeof confirm === 'function' && !confirm(ask)) return;
+
+    API.deleteRecord(record.id, {
+      date: record.date,
+      branch: record.branch,
+      author: record.author,
+      registeredAt: record.registeredAt
+    }).then(function (res) {
+      if (!res || res.ok === false) throw new Error((res && res.error) || '기록을 지우지 못했습니다.');
+
+      // 화면에서 바로 빼고, 건수·행 번호가 바뀌므로 지금 보는 화면을 다시 불러온다.
+      state.cal.records = (state.cal.records || []).filter(function (r) { return r.id !== record.id; });
+      state.records = (state.records || []).filter(function (r) { return r.id !== record.id; });
+      state.listDirty = true;
+      state.listLoaded = false;
+      toast('작업사진 기록을 삭제했습니다.', 'ok');
+
+      if (state.tab === 'list') {
+        loadList(true);
+      } else {
+        state.cal.loaded = false;
+        loadCalendar(true);
+      }
+    }).catch(function (err) {
+      toast((err && err.message) || '기록을 지우지 못했습니다.', 'err');
     });
   }
 
