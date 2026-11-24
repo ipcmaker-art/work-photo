@@ -1,0 +1,2143 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1d4ed8">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="작업사진">
+<meta name="description" content="지점 작업사진을 등록하고 캘린더·내역으로 확인하는 웹앱">
+<title>작업사진 등록</title>
+<style>
+  :root{
+    --bg:#f2f4f7;
+    --card:#ffffff;
+    --line:#e4e7ec;
+    --text:#101828;
+    --muted:#667085;
+    --brand:#1d4ed8;
+    --brand-2:#3b82f6;
+    --brand-soft:#eef4ff;
+    --ok:#059669;
+    --danger:#d92d20;
+    --radius:16px;
+    --shadow:0 1px 2px rgba(16,24,40,.06), 0 8px 24px rgba(16,24,40,.05);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","맑은 고딕","Noto Sans KR",system-ui,sans-serif;
+    background:var(--bg); color:var(--text); font-size:15px; line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  button,input,textarea,select{font:inherit; color:inherit;}
+  button{cursor:pointer; border:0; background:none;}
+  .app{max-width:760px; margin:0 auto; padding-bottom:48px;}
+
+  /* header */
+  .app-header{
+    background:linear-gradient(135deg,#1d4ed8 0%,#3b82f6 100%);
+    color:#fff; padding:20px 20px 18px;
+    border-radius:0 0 22px 22px;
+    box-shadow:0 6px 20px rgba(29,78,216,.18);
+  }
+  .brand{display:flex; align-items:center; gap:12px;}
+  .logo{
+    width:44px; height:44px; border-radius:14px; background:rgba(255,255,255,.18);
+    display:flex; align-items:center; justify-content:center; font-size:22px; flex:0 0 auto;
+  }
+  .app-header h1{font-size:19px; margin:0; letter-spacing:-.3px;}
+  .app-header .sub{margin:2px 0 0; font-size:12.5px; opacity:.85;}
+  .mode-pill{
+    margin-top:12px; display:none; align-items:center; gap:6px;
+    font-size:12px; background:rgba(255,255,255,.16); padding:5px 10px; border-radius:999px; width:fit-content;
+  }
+  .mode-pill.show{display:inline-flex;}
+
+  /* tabs */
+  .tabs{
+    display:flex; gap:6px; padding:6px; margin:14px 14px 0;
+    background:#fff; border-radius:14px; box-shadow:var(--shadow); position:sticky; top:8px; z-index:20;
+  }
+  .tab{
+    flex:1; padding:11px 4px; border-radius:10px; font-weight:700; font-size:13.5px; color:var(--muted);
+    transition:background .15s,color .15s; white-space:nowrap; letter-spacing:-.3px;
+  }
+  @media (min-width:420px){ .tab{font-size:14.5px; padding:11px 8px;} }
+  .tab.active{background:var(--brand); color:#fff; box-shadow:0 2px 8px rgba(29,78,216,.25);}
+  main{padding:14px;}
+
+  .card{
+    background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow);
+    padding:16px; margin-bottom:14px;
+  }
+  .field{margin-bottom:16px;}
+  .field:last-child{margin-bottom:0;}
+  .label{display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:13px; font-weight:700; color:#344054; margin-bottom:7px;}
+  .label .req{color:var(--brand); font-size:11px; font-weight:700; background:var(--brand-soft); padding:2px 7px; border-radius:999px;}
+  .optional{color:var(--muted); font-weight:500; font-size:12px;}
+  input[type="date"],input[type="text"],textarea{
+    width:100%; border:1px solid var(--line); background:#fbfcfd; border-radius:12px;
+    padding:12px 13px; font-size:15px; outline:none; transition:border .15s, box-shadow .15s, background .15s;
+    appearance:none; -webkit-appearance:none;
+  }
+  input[type="date"]{min-height:46px;}
+  input:focus,textarea:focus{border-color:var(--brand); background:#fff; box-shadow:0 0 0 3px rgba(29,78,216,.12);}
+  textarea{resize:vertical; min-height:76px; line-height:1.45;}
+  .hint{font-size:12px; color:var(--muted); margin-top:6px;}
+
+  .chips{display:flex; gap:7px; overflow-x:auto; padding:2px 2px 6px; margin:0 -2px; scrollbar-width:none;}
+  .chips::-webkit-scrollbar{display:none;}
+  .chip{
+    flex:0 0 auto; padding:8px 13px; border-radius:999px; background:#f2f4f7; color:#475467;
+    font-size:13.5px; font-weight:600; border:1px solid transparent; transition:all .12s; white-space:nowrap;
+  }
+  .chip.active{background:var(--brand-soft); color:var(--brand); border-color:#c7d7fe;}
+
+  .photo-actions{display:flex; gap:8px; flex-wrap:wrap;}
+  .picker{
+    flex:1 1 190px; display:flex; align-items:center; justify-content:center; gap:8px;
+    border:1.5px dashed #b8c6e6; background:#f8faff; color:var(--brand);
+    padding:14px 12px; border-radius:12px; font-weight:700; font-size:14px; cursor:pointer;
+    transition:background .15s, border-color .15s;
+  }
+  .picker:hover{background:#eef4ff; border-color:var(--brand);}
+  .picker.small{flex:0 0 auto; padding:14px 16px;}
+  .photo-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(92px,1fr)); gap:8px; margin-top:12px;}
+  .photo-item{position:relative; border-radius:11px; overflow:hidden; background:#eef1f5; aspect-ratio:1/1; min-height:88px;}
+  .photo-item img{width:100%; height:100%; object-fit:cover; display:block;}
+  .photo-item .del{
+    position:absolute; top:4px; right:4px; width:24px; height:24px; border-radius:50%;
+    background:rgba(17,24,39,.72); color:#fff; font-size:14px; line-height:24px; text-align:center; padding:0;
+  }
+  .photo-item .badge-size{
+    position:absolute; left:4px; bottom:4px; background:rgba(17,24,39,.66); color:#fff;
+    font-size:10px; padding:2px 5px; border-radius:5px;
+  }
+  .summary{font-size:12.5px; color:var(--muted); margin-top:10px;}
+
+  .btn-primary{
+    width:100%; padding:15px; border-radius:14px; font-size:16px; font-weight:800; color:#fff;
+    background:linear-gradient(135deg,#1d4ed8,#3b82f6); box-shadow:0 6px 16px rgba(29,78,216,.28);
+    transition:transform .08s, filter .15s;
+  }
+  .btn-primary:active{transform:translateY(1px);}
+  .btn-primary:disabled{opacity:.55; box-shadow:none; cursor:default;}
+  .btn-ghost{
+    padding:11px 14px; border-radius:11px; background:#f2f4f7; color:#344054; font-weight:700; font-size:14px;
+  }
+  .btn-ghost:hover{background:#e9edf3;}
+
+  /* list */
+  .filter-card{padding:14px;}
+  .filter-row{display:flex; gap:8px;}
+  .filter-row > *{min-width:0;}
+  .filter-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+  .filter-actions{display:flex; gap:8px; margin-top:10px;}
+  .filter-actions .btn-primary{flex:1; padding:12px; font-size:15px; box-shadow:none;}
+  .quick{display:flex; gap:6px; flex-wrap:wrap; margin-top:10px;}
+  .quick .chip{padding:6px 11px; font-size:12.5px;}
+  .list-head{display:flex; align-items:center; justify-content:space-between; margin:2px 4px 10px;}
+  .list-head h2{font-size:15px; margin:0;}
+  .list-head .count{font-size:13px; color:var(--muted);}
+  .list-head .count b{color:var(--brand);}
+  .list-tools{display:flex; align-items:center; gap:10px;}
+  .btn-export{
+    flex:0 0 auto; padding:9px 13px; border-radius:11px; font-weight:800; font-size:13px; color:#fff;
+    background:linear-gradient(135deg,#0f766e,#0d9488); box-shadow:0 4px 12px rgba(13,148,136,.24);
+    transition:filter .15s, transform .08s;
+  }
+  .btn-export:hover{filter:brightness(1.05);}
+  .btn-export:active{transform:translateY(1px);}
+  .btn-export:disabled{opacity:.55; box-shadow:none; cursor:default;}
+
+  .record{background:#fff; border-radius:var(--radius); box-shadow:var(--shadow); padding:14px 15px; margin-bottom:12px;}
+  .record-top{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+  .record-date{font-weight:800; font-size:14.5px;}
+  .badge-branch{background:var(--brand-soft); color:var(--brand); font-weight:700; font-size:12px; padding:3px 9px; border-radius:999px;}
+  .record-author{font-size:13px; color:#344054; font-weight:600;}
+  .record-time{margin-left:auto; font-size:11.5px; color:#98a2b3;}
+  .record-memo{margin:8px 0 0; font-size:14px; color:#344054; white-space:pre-wrap; word-break:break-word;}
+  .thumbs{display:grid; grid-template-columns:repeat(auto-fill,minmax(86px,1fr)); gap:6px; margin-top:10px;}
+  .thumb{
+    position:relative; padding:0; border-radius:10px; overflow:hidden; background:#eef1f5; aspect-ratio:1/1; min-height:84px;
+  }
+  .thumb img{width:100%; height:100%; object-fit:cover; display:block; transition:transform .2s;}
+  .thumb:hover img{transform:scale(1.04);}
+  .thumb .more{
+    position:absolute; inset:0; background:rgba(17,24,39,.55); color:#fff; font-weight:800; font-size:16px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .empty{text-align:center; padding:40px 16px; color:var(--muted);}
+  .empty .icon{font-size:38px; display:block; margin-bottom:8px; opacity:.65;}
+  .skeleton{height:92px; border-radius:var(--radius); background:linear-gradient(90deg,#eef1f5 25%,#f7f9fb 37%,#eef1f5 63%); background-size:400% 100%; animation:sk 1.2s infinite; margin-bottom:12px;}
+  @keyframes sk{0%{background-position:100% 50%}100%{background-position:0 50%}}
+
+  /* calendar */
+  .cal-nav{display:flex; align-items:center; gap:6px;}
+  .cal-nav .btn-ghost{padding:9px 11px; font-size:13px; white-space:nowrap;}
+  .cal-month{flex:1; text-align:center; font-weight:800; font-size:15.5px; letter-spacing:-.3px;}
+  .cal-tools{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:10px; flex-wrap:wrap;}
+  .cal-legend{display:flex; gap:10px; flex-wrap:wrap; font-size:11.5px; color:var(--muted);}
+  #calBranchFilter{margin-top:10px; margin-bottom:0;}
+  .cal-card{padding:10px 8px 12px;}
+  .cal-week{display:grid; grid-template-columns:repeat(7,1fr); gap:4px; padding:0 0 6px;}
+  .cal-week span{text-align:center; font-size:11.5px; font-weight:700; color:var(--muted);}
+  .cal-week span.sun{color:#d92d20;} .cal-week span.sat{color:var(--brand);}
+  .cal-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:4px;}
+  .cal-cell{
+    min-height:62px; border-radius:10px; background:#fbfcfd; border:1px solid var(--line);
+    padding:4px 3px; text-align:left; display:flex; flex-direction:column; gap:3px; overflow:hidden;
+    transition:background .12s, border-color .12s;
+  }
+  .cal-cell.out{background:transparent; border-color:transparent; min-height:0;}
+  .cal-cell.today{border-color:var(--brand); box-shadow:inset 0 0 0 1px var(--brand);}
+  .cal-cell.selected{background:var(--brand-soft); border-color:var(--brand);}
+  .cal-num{font-size:12px; font-weight:800; color:#344054; line-height:1.2;}
+  .cal-cell.sun .cal-num{color:#d92d20;} .cal-cell.sat .cal-num{color:var(--brand);}
+  .cal-cell.today .cal-num{color:var(--brand);}
+  .cal-badge{
+    display:block; font-size:9.5px; line-height:1.35; padding:1px 4px; border-radius:5px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%;
+  }
+  .cal-badge.photo{background:#e7f6ef; color:#067647;}
+  .cal-badge.plan{background:#fef3c7; color:#92400e; font-weight:700;}
+  .cal-badge.plan.done{background:#f2f4f7; color:#98a2b3; text-decoration:line-through;}
+  .cal-summary{font-size:11.5px; color:var(--muted); padding:10px 4px 0; line-height:1.5;}
+  .cal-summary.err{color:var(--danger);}
+
+  .day-head{display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:12px;}
+  .day-head h2{font-size:16px; margin:0; letter-spacing:-.3px;}
+  .day-sub{font-size:12px; color:var(--muted); margin-top:3px;}
+  .btn-add-plan{
+    flex:0 0 auto; padding:9px 12px; border-radius:11px; background:#b45309; color:#fff;
+    font-weight:800; font-size:12.5px; box-shadow:0 4px 12px rgba(180,83,9,.22);
+  }
+  .day-section-title{font-size:12.5px; font-weight:800; color:#475467; margin:14px 0 8px;}
+  .day-section-title:first-child{margin-top:0;}
+  .day-empty{font-size:12.5px; color:var(--muted); padding:4px 0 2px; line-height:1.55;}
+  .sched-item{border:1px solid #fde68a; background:#fffbeb; border-radius:12px; padding:10px 11px; margin-bottom:8px;}
+  .sched-top{display:flex; align-items:center; gap:6px; flex-wrap:wrap;}
+  .sched-branch{background:#fef3c7; color:#92400e; font-weight:800; font-size:11.5px; padding:2px 8px; border-radius:999px;}
+  .sched-status{font-size:11px; font-weight:800; padding:2px 7px; border-radius:999px; background:#fff7ed; color:#b45309; border:1px solid #fcd34d;}
+  .sched-status.done{background:#ecfdf3; color:#067647; border-color:#a6f4c5;}
+  .sched-task{margin:6px 0 0; font-size:14px; color:#344054; white-space:pre-wrap; word-break:break-word;}
+  .sched-meta{font-size:11.5px; color:#98a2b3; margin-top:4px;}
+  .sched-actions{display:flex; gap:6px; flex-wrap:wrap; margin-top:9px;}
+  .sched-actions button{padding:7px 10px; border-radius:9px; font-size:12px; font-weight:700; background:#fff; border:1px solid var(--line); color:#344054;}
+  .sched-actions button.primary{background:var(--brand); border-color:var(--brand); color:#fff;}
+  .sched-actions button.danger{color:var(--danger); border-color:#fecdca;}
+  .day-record{border:1px solid var(--line); border-radius:12px; padding:10px 11px; margin-bottom:8px;}
+  .day-record .rec-top{display:flex; align-items:center; gap:6px; flex-wrap:wrap;}
+  .day-record .rec-memo{margin:6px 0 0; font-size:13.5px; color:#344054; white-space:pre-wrap; word-break:break-word;}
+  .day-record .rec-thumbs{display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;}
+  .day-record .rec-thumb{width:64px; height:64px; border-radius:8px; overflow:hidden; padding:0; background:#eef1f5; flex:0 0 auto;}
+  .day-record .rec-thumb img{width:100%; height:100%; object-fit:cover; display:block;}
+  .plan-link{
+    display:flex; align-items:center; gap:8px; justify-content:space-between;
+    background:#fffbeb; border:1px solid #fde68a; color:#92400e; border-radius:10px;
+    padding:9px 11px; font-size:12.5px; font-weight:600; margin-bottom:14px; line-height:1.45;
+  }
+  .plan-link[hidden]{display:none;}
+  .plan-link .btn-link{flex:0 0 auto; font-size:12px; font-weight:800; color:#b45309; text-decoration:underline;}
+
+  /* 예정작업 등록 모달 */
+  #schedModal{position:fixed; inset:0; background:rgba(16,24,40,.5); z-index:110; display:flex; align-items:flex-end; justify-content:center;}
+  #schedModal[hidden]{display:none;}
+  .modal-card{
+    background:#fff; width:100%; max-width:520px; border-radius:18px 18px 0 0;
+    padding:16px 16px calc(16px + env(safe-area-inset-bottom)); max-height:92vh; overflow:auto;
+    box-shadow:0 -8px 30px rgba(16,24,40,.2);
+  }
+  .modal-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;}
+  .modal-head h2{font-size:16px; margin:0;}
+  .modal-close{width:34px; height:34px; border-radius:50%; background:#f2f4f7; font-size:16px; color:#344054; flex:0 0 auto;}
+
+  /* toast */
+  #toast{
+    position:fixed; left:50%; bottom:24px; transform:translate(-50%,20px); z-index:100;
+    background:rgba(16,24,40,.94); color:#fff; padding:12px 18px; border-radius:12px; font-size:14px;
+    opacity:0; pointer-events:none; transition:opacity .2s, transform .2s; max-width:calc(100vw - 40px);
+    box-shadow:0 8px 24px rgba(0,0,0,.22); text-align:center;
+  }
+  #toast.show{opacity:1; transform:translate(-50%,0);}
+  #toast.ok{background:#065f46;}
+  #toast.err{background:#b42318;}
+
+  /* loading */
+  #loading{position:fixed; inset:0; background:rgba(16,24,40,.45); z-index:90; display:flex; align-items:center; justify-content:center; backdrop-filter:blur(2px);}
+  #loading[hidden]{display:none;}
+  .loading-box{background:#fff; border-radius:16px; padding:22px 26px; text-align:center; min-width:210px; box-shadow:0 20px 50px rgba(0,0,0,.25);}
+  .spinner{
+    width:34px; height:34px; margin:0 auto 12px; border:3px solid #dbe5ff; border-top-color:var(--brand);
+    border-radius:50%; animation:spin .8s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .loading-box p{margin:0; font-size:14px; font-weight:700;}
+  .loading-box .sub{margin-top:4px; font-size:12px; color:var(--muted); font-weight:500;}
+
+  /* lightbox */
+  #lightbox{position:fixed; inset:0; background:rgba(9,12,20,.95); z-index:120; display:flex; flex-direction:column;}
+  #lightbox[hidden]{display:none;}
+  .lb-top{display:flex; align-items:center; gap:10px; padding:14px 16px; color:#fff; padding-top:calc(14px + env(safe-area-inset-top));}
+  .lb-top .title{font-size:14px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .lb-close{margin-left:auto; width:36px; height:36px; border-radius:50%; background:rgba(255,255,255,.14); color:#fff; font-size:20px; flex:0 0 auto;}
+  .lb-body{flex:1; display:flex; align-items:center; justify-content:center; position:relative; min-height:0; padding:0 6px;}
+  .lb-body img{max-width:100%; max-height:100%; object-fit:contain; border-radius:6px;}
+  .lb-nav{
+    position:absolute; top:50%; transform:translateY(-50%); width:44px; height:64px; border-radius:10px;
+    background:rgba(255,255,255,.12); color:#fff; font-size:22px;
+  }
+  .lb-nav.prev{left:6px;} .lb-nav.next{right:6px;}
+  .lb-nav[hidden]{display:none;}
+  .lb-caption{color:#c9d2e3; font-size:12.5px; text-align:center; padding:6px 16px 0;}
+  .lb-actions{display:flex; gap:8px; padding:12px 16px calc(18px + env(safe-area-inset-bottom));}
+  .lb-actions a,.lb-actions button{
+    flex:1; text-align:center; text-decoration:none; padding:12px; border-radius:11px; font-weight:700; font-size:14px;
+    background:rgba(255,255,255,.14); color:#fff;
+  }
+  .lb-actions a.primary{background:var(--brand);}
+  .lb-expand{position:absolute; inset:0; background:transparent;}
+
+  .footer-note{text-align:center; font-size:11.5px; color:#98a2b3; padding:6px 20px 0; line-height:1.6;}
+
+  @media (min-width:640px){
+    .app-header{padding:24px 24px 22px;}
+    main{padding:16px 18px;}
+    .photo-grid{grid-template-columns:repeat(auto-fill,minmax(108px,1fr));}
+    .thumbs{grid-template-columns:repeat(auto-fill,minmax(104px,1fr));}
+    .cal-cell{min-height:88px; padding:6px 5px;}
+    .cal-num{font-size:12.5px;}
+    .cal-badge{font-size:10.5px;}
+    #schedModal{align-items:center; padding:20px;}
+    .modal-card{border-radius:18px;}
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0f1115; --card:#181b21; --line:#2a2f3a; --text:#f2f4f7; --muted:#98a2b3;
+      --brand-soft:#17233f;
+    }
+    input[type="date"],input[type="text"],textarea{background:#12151b; border-color:#2a2f3a;}
+    input:focus,textarea:focus{background:#151922;}
+    .chip{background:#232833; color:#c9d2e3;}
+    .chip.active{background:#17233f; color:#93b4ff; border-color:#2b4270;}
+    .picker{background:#131a29; border-color:#2f4370; color:#93b4ff;}
+    .btn-ghost{background:#232833; color:#e4e7ec;}
+    .record,.card{background:var(--card);}
+    .label{color:#c9d2e3;}
+    .record-memo{color:#d0d5dd;}
+    .record-author{color:#d0d5dd;}
+    .loading-box{background:#181b21;}
+    .skeleton{background:linear-gradient(90deg,#1c2028 25%,#232833 37%,#1c2028 63%); background-size:400% 100%;}
+    #toast{background:#2a2f3a;}
+    .cal-cell{background:#12151b;}
+    .cal-cell.selected{background:#17233f;}
+    .cal-num{color:#c9d2e3;}
+    .cal-badge.photo{background:#12312a; color:#6ee7b7;}
+    .cal-badge.plan{background:#3b2a10; color:#fcd34d;}
+    .cal-badge.plan.done{background:#232833; color:#98a2b3;}
+    .sched-item{background:#1d1a12; border-color:#4a3a12;}
+    .sched-branch{background:#3b2a10; color:#fcd34d;}
+    .sched-task{color:#e4e7ec;}
+    .sched-actions button{background:#181b21; color:#e4e7ec;}
+    .sched-actions button.primary{background:var(--brand); color:#fff;}
+    .day-record{background:#181b21;}
+    .day-record .rec-memo{color:#d0d5dd;}
+    .plan-link{background:#3b2a10; border-color:#4a3a12; color:#fcd34d;}
+    .modal-card{background:#181b21;}
+    .modal-close{background:#232833; color:#e4e7ec;}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="app-header">
+    <div class="brand">
+      <div class="logo">📷</div>
+      <div>
+        <h1>작업사진 등록</h1>
+        <p class="sub">장보고식자재마트 · 현장 작업 기록</p>
+      </div>
+    </div>
+    <div class="mode-pill" id="modePill">🧪 미리보기 모드 · 이 브라우저에만 저장됩니다</div>
+  </header>
+
+  <nav class="tabs" role="tablist" aria-label="화면 전환">
+    <button class="tab active" id="tab-write" role="tab" aria-selected="true" data-tab="write">📷 사진 등록</button>
+    <button class="tab" id="tab-calendar" role="tab" aria-selected="false" data-tab="calendar">📅 캘린더</button>
+    <button class="tab" id="tab-list" role="tab" aria-selected="false" data-tab="list">📋 전체 내역 조회</button>
+  </nav>
+
+  <main>
+    <!-- ============================ 등록 ============================ -->
+    <section id="panel-write" role="tabpanel" aria-labelledby="tab-write">
+      <form id="writeForm" autocomplete="off">
+        <div class="card">
+          <div class="plan-link" id="planLink" hidden></div>
+          <div class="field">
+            <div class="label"><span>작업 날짜</span><span class="req">필수</span></div>
+            <input type="date" id="inputDate" required>
+          </div>
+
+          <div class="field">
+            <div class="label"><span>지점명</span><span class="req">필수</span></div>
+            <div class="chips" id="branchChips"></div>
+            <input type="text" id="inputBranch" list="branchList" placeholder="지점명을 선택하거나 직접 입력" required>
+            <datalist id="branchList"></datalist>
+            <div class="hint">새 지점은 그냥 입력하시면 다음부터 목록에 나옵니다.</div>
+          </div>
+
+          <div class="field">
+            <div class="label"><span>작성자</span><span class="req">필수</span></div>
+            <input type="text" id="inputAuthor" list="authorList" placeholder="이름" required>
+            <datalist id="authorList"></datalist>
+          </div>
+
+          <div class="field">
+            <div class="label"><span>작업 내용</span><span class="optional">선택</span></div>
+            <textarea id="inputMemo" rows="2" maxlength="1000" placeholder="예) 냉동고 2대 설치, 진열대 높이 조정"></textarea>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="field">
+            <div class="label"><span>작업사진</span><span class="req">필수 · 여러 장 가능</span></div>
+            <div class="photo-actions">
+              <label class="picker" id="pickLabel">
+                <span>📷 사진 찍기 / 앨범</span>
+                <input type="file" id="photoInput" accept="image/*" multiple hidden>
+              </label>
+            </div>
+            <div class="photo-grid" id="photoGrid"></div>
+            <div class="summary" id="photoSummary">아직 선택한 사진이 없습니다.</div>
+            <div class="hint">올릴 때 자동으로 <b>가로 600 × 세로 400픽셀</b> JPEG로 변환해 저장합니다 (출력 시 6×4cm).</div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-primary" id="submitBtn">등록하기</button>
+        <p class="footer-note">사진은 회사 구글 드라이브 ‘작업사진_등록시스템’ 폴더에 저장되고,<br>등록 내용은 ‘작업사진_등록기록’ 시트에 함께 기록됩니다.</p>
+      </form>
+    </section>
+
+    <!-- ============================ 캘린더 ============================ -->
+    <section id="panel-calendar" role="tabpanel" aria-labelledby="tab-calendar" hidden>
+      <div class="card cal-toolbar">
+        <div class="cal-nav">
+          <button type="button" class="btn-ghost" id="calPrev" aria-label="이전 달">‹ 이전 달</button>
+          <div class="cal-month" id="calMonth">–</div>
+          <button type="button" class="btn-ghost" id="calNext" aria-label="다음 달">다음 달 ›</button>
+        </div>
+        <div class="cal-tools">
+          <div class="cal-legend">
+            <span>📷 작업사진(자동)</span>
+            <span>📌 예정작업</span>
+          </div>
+          <button type="button" class="btn-ghost" id="calToday">오늘</button>
+        </div>
+        <div class="chips" id="calBranchFilter"></div>
+      </div>
+
+      <div class="card cal-card">
+        <div class="cal-week">
+          <span class="sun">일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span class="sat">토</span>
+        </div>
+        <div class="cal-grid" id="calGrid"></div>
+        <div class="cal-summary" id="calSummary"></div>
+      </div>
+
+      <div class="card">
+        <div class="day-head">
+          <div>
+            <h2 id="dayTitle">오늘</h2>
+            <div class="day-sub" id="daySub"></div>
+          </div>
+          <button type="button" class="btn-add-plan" id="dayAddBtn">+ 예정작업 등록</button>
+        </div>
+        <div id="dayDetail"></div>
+      </div>
+    </section>
+
+    <!-- ============================ 조회 ============================ -->
+    <section id="panel-list" role="tabpanel" aria-labelledby="tab-list" hidden>
+      <div class="card filter-card">
+        <div class="field" style="margin-bottom:10px">
+          <div class="label"><span>기간</span><span class="optional">같은 날짜를 넣으면 그날만</span></div>
+          <div class="filter-grid">
+            <input type="date" id="filterFrom" aria-label="시작 날짜">
+            <input type="date" id="filterTo" aria-label="끝 날짜">
+          </div>
+        </div>
+        <div class="filter-grid">
+          <div class="field" style="margin:0">
+            <div class="label"><span>지점명</span></div>
+            <input type="text" id="filterBranch" list="branchList" placeholder="전체 지점">
+          </div>
+          <div class="field" style="margin:0">
+            <div class="label"><span>작성자</span></div>
+            <input type="text" id="filterAuthor" placeholder="전체">
+          </div>
+        </div>
+        <div class="quick" id="quickRanges">
+          <button type="button" class="chip" data-range="today">오늘</button>
+          <button type="button" class="chip" data-range="7">최근 7일</button>
+          <button type="button" class="chip active" data-range="30">최근 30일</button>
+          <button type="button" class="chip" data-range="all">전체</button>
+        </div>
+        <div class="filter-actions">
+          <button type="button" class="btn-primary" id="searchBtn">조회하기</button>
+          <button type="button" class="btn-ghost" id="resetBtn">초기화</button>
+        </div>
+      </div>
+
+      <div class="list-head">
+        <h2>등록 내역</h2>
+        <div class="list-tools">
+          <span class="count" id="listCount">–</span>
+          <button type="button" class="btn-export" id="exportBtn" title="지금 조회된 내역을 날짜·작업내용·사진 순서의 워드 파일로 내려받습니다 (여백 10mm, 사진 한 줄에 세 장, 작업내용은 쉼표로 이어 한 줄)">📄 출력(워드)</button>
+        </div>
+      </div>
+      <div id="listBody"></div>
+    </section>
+  </main>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<div id="loading" hidden>
+  <div class="loading-box">
+    <div class="spinner"></div>
+    <p id="loadingTitle">저장하는 중…</p>
+    <div class="sub" id="loadingSub">잠시만 기다려 주세요</div>
+  </div>
+</div>
+
+<div id="schedModal" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="schedTitle">
+    <div class="modal-head">
+      <h2 id="schedTitle">예정작업 등록</h2>
+      <button type="button" class="modal-close" id="schedClose" aria-label="닫기">✕</button>
+    </div>
+    <div class="field">
+      <div class="label"><span>예정일</span><span class="req">필수</span></div>
+      <input type="date" id="schedDate" required>
+    </div>
+    <div class="field">
+      <div class="label"><span>지점명</span><span class="req">필수</span></div>
+      <div class="chips" id="schedBranchChips"></div>
+      <input type="text" id="schedBranch" list="branchList" placeholder="지점명을 선택하거나 직접 입력" required>
+      <div class="hint">새 지점은 그냥 입력하시면 다음부터 목록에 나옵니다.</div>
+    </div>
+    <div class="field">
+      <div class="label"><span>예정 작업내용</span><span class="req">필수</span></div>
+      <textarea id="schedTask" rows="2" maxlength="500" placeholder="예) 냉동고 2대 설치, 진열대 높이 조정"></textarea>
+    </div>
+    <div class="field">
+      <div class="label"><span>등록자</span><span class="optional">선택</span></div>
+      <input type="text" id="schedAuthor" list="authorList" placeholder="이름">
+    </div>
+    <button type="button" class="btn-primary" id="schedSave">예정작업 등록</button>
+  </div>
+</div>
+
+<div id="lightbox" hidden>
+  <div class="lb-top">
+    <span class="title" id="lbTitle">사진</span>
+    <button type="button" class="lb-close" id="lbClose" aria-label="닫기">✕</button>
+  </div>
+  <div class="lb-body">
+    <button type="button" class="lb-nav prev" id="lbPrev" aria-label="이전 사진">‹</button>
+    <img id="lbImage" alt="작업사진 크게 보기">
+    <button type="button" class="lb-nav next" id="lbNext" aria-label="다음 사진">›</button>
+  </div>
+  <div class="lb-caption" id="lbCaption"></div>
+  <div class="lb-actions">
+    <a href="#" id="lbOpen" target="_blank" rel="noopener">원본 열기</a>
+    <a href="#" id="lbDownload" class="primary" download>다운로드</a>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ================================================================
+   * 0. 환경 준비
+   * ============================================================== */
+  var IS_GAS = typeof google !== 'undefined' && google.script && google.script.run;
+  var IS_PREVIEW = !!window.__PREVIEW_MODE__;
+  // GitHub Pages 등 외부 주소에서 열면 아래 Apps Script API 로 직접 통신한다.
+  var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzK8wDACvACdG-Pvbanuuf3Gt2Egw4qxqCz-yTq_mkQHzdBHKX68sQiFKG-O_DGUwbi/exec';
+  var IS_REMOTE = !IS_GAS && !IS_PREVIEW && !!APPS_SCRIPT_URL;
+  var REMOTE_TIMEOUT = 90000;          // 조회 응답 대기 (ms)
+  var REMOTE_UPLOAD_TIMEOUT = 240000;  // 사진 등록·워드 출력 대기 (ms)
+  var MAX_PHOTOS = 15;
+  var MAX_FILE_MB = 25;
+  var PHOTO_W = 600;        // 저장할 사진 가로(픽셀)
+  var PHOTO_H = 400;        // 저장할 사진 세로(픽셀)
+  var PHOTO_QUALITY = 0.82; // JPEG 품질(선명하면서 용량은 작게)
+  var DEFAULT_BRANCHES = ['진천점', '월성점', '본리점', '중리점', '봉무점'];
+  var WEEKDAY = ['일', '월', '화', '수', '목', '금', '토'];
+
+  var $ = function (id) { return document.getElementById(id); };
+  var state = {
+    tab: 'write',
+    photos: [],          // { key, dataUrl, base64, mimeType, name, bytes, width, height }
+    records: [],
+    branches: DEFAULT_BRANCHES.slice(),
+    loading: false,
+    listLoaded: false,
+    listDirty: true,
+    lightbox: { photos: [], index: 0, meta: '' },
+    cal: {
+      month: '',          // 'YYYY-MM' (지금 보고 있는 달)
+      branch: '',         // 지점 필터 ('' = 전체)
+      selected: '',       // 선택한 날짜 'YYYY-MM-DD'
+      records: [],        // 그 달 작업기록
+      schedules: [],      // 그 달 예정작업
+      loaded: false,
+      loadedMonth: '',
+      loading: false,
+      error: '',
+      prefillId: ''       // 예정작업에서 '사진 등록하기'로 넘어온 일정ID
+    }
+  };
+
+  /* ================================================================
+   * 1. 저장소 / API (GAS ↔ Mock)
+   * ============================================================== */
+  var store = (function () {
+    var mem = {};
+    function get(key, fallback) {
+      try {
+        var v = localStorage.getItem(key);
+        return v === null ? fallback : JSON.parse(v);
+      } catch (e) { return key in mem ? mem[key] : fallback; }
+    }
+    function set(key, value) {
+      mem[key] = value;
+      try { localStorage.setItem(key, JSON.stringify(value)); return true; }
+      catch (e) { return false; }
+    }
+    return { get: get, set: set };
+  })();
+
+  var LS = {
+    author: 'workphoto.author',
+    branches: 'workphoto.branches',
+    authors: 'workphoto.authors',
+    mock: 'workphoto.mock.records.v1',
+    schedules: 'workphoto.mock.schedules.v1',
+    seeded: 'workphoto.mock.seeded.v1'
+  };
+
+  // google.script.run 은 인자를 여러 개 받을 수 있다 (updateScheduleStatus(id, status) 등)
+  function gasCall(fn) {
+    var args = Array.prototype.slice.call(arguments, 1);
+    return new Promise(function (resolve, reject) {
+      var runner = google.script.run
+        .withSuccessHandler(function (res) { resolve(res); })
+        .withFailureHandler(function (err) { reject(err || new Error('서버 오류')); });
+      runner[fn].apply(runner, args);
+    });
+  }
+
+  /* ----------------------------------------------------------------
+   * 1-1. 외부(GitHub Pages) ↔ Apps Script 통신
+   *   조회 : GET  ?action=list / calendar / export
+   *   저장 : POST (Content-Type: text/plain 으로 보내 preflight 를 피한다)
+   *   Apps Script 는 302 로 한 번 넘긴 뒤 결과를 주므로 redirect: 'follow'.
+   * -------------------------------------------------------------- */
+  function remoteQuery(params) {
+    var parts = [];
+    Object.keys(params || {}).forEach(function (key) {
+      var value = params[key];
+      if (value === undefined || value === null || value === '') return;
+      parts.push(encodeURIComponent(key) + '=' + encodeURIComponent(value));
+    });
+    return parts.length ? '?' + parts.join('&') : '';
+  }
+
+  function remoteFetch(url, init, timeoutMs) {
+    var ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+    var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, timeoutMs || REMOTE_TIMEOUT) : null;
+    function clear() { if (timer) { clearTimeout(timer); timer = null; } }
+
+    init = init || {};
+    init.redirect = 'follow';
+    init.cache = 'no-store';
+    init.credentials = 'omit';
+    if (ctrl) init.signal = ctrl.signal;
+
+    return fetch(url, init).then(function (res) {
+      if (!res.ok) {
+        var e = new Error('서버 응답 오류 (' + res.status + ')');
+        e.status = res.status;
+        throw e;
+      }
+      return res.text();
+    }).then(function (text) {
+      clear();
+      try {
+        return JSON.parse(text);
+      } catch (e) {
+        throw new Error('서버 응답을 읽지 못했습니다. 잠시 후 다시 시도해 주세요.');
+      }
+    }, function (err) {
+      clear();
+      if (err && err.name === 'AbortError') {
+        throw new Error('서버 응답이 늦어 요청을 멈췄습니다. 잠시 후 다시 시도해 주세요.');
+      }
+      if (err && err.name === 'TypeError') {
+        throw new Error('서버에 연결하지 못했습니다. 인터넷 연결을 확인해 주세요.');
+      }
+      throw err;
+    });
+  }
+
+  function remoteGet(params, timeoutMs) {
+    return remoteFetch(APPS_SCRIPT_URL + remoteQuery(params), { method: 'GET' }, timeoutMs);
+  }
+
+  function remotePost(payload, timeoutMs) {
+    return remoteFetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload || {})
+    }, timeoutMs);
+  }
+
+  function withAction(action, payload) {
+    var body = { action: action };
+    Object.keys(payload || {}).forEach(function (key) { body[key] = payload[key]; });
+    return body;
+  }
+
+  var API = {
+    save: function (payload) {
+      if (IS_GAS) return gasCall('saveWorkLog', payload);
+      if (IS_REMOTE) return remotePost(withAction('save', payload), REMOTE_UPLOAD_TIMEOUT);
+      return mockSave(payload);
+    },
+    list: function (filters) {
+      if (IS_GAS) return gasCall('getWorkLogs', filters);
+      if (IS_REMOTE) {
+        filters = filters || {};
+        return remoteGet({
+          action: 'list',
+          from: filters.from, to: filters.to,
+          branch: filters.branch, author: filters.author, limit: filters.limit
+        });
+      }
+      return Promise.resolve(mockList(filters));
+    },
+    exportDoc: function (filters) {
+      if (IS_GAS) return gasCall('exportWorkLogsDoc', filters);
+      if (IS_REMOTE) {
+        filters = filters || {};
+        return remoteGet({
+          action: 'export',
+          date: filters.date,
+          from: filters.from, to: filters.to,
+          branch: filters.branch, author: filters.author
+        }, REMOTE_UPLOAD_TIMEOUT);
+      }
+      return Promise.resolve(mockExport(filters));
+    },
+    calendar: function (filters) {
+      if (IS_GAS) return gasCall('getCalendarData', filters);
+      if (IS_REMOTE) {
+        filters = filters || {};
+        return remoteGet({ action: 'calendar', yearMonth: filters.yearMonth, branch: filters.branch });
+      }
+      return Promise.resolve(mockCalendar(filters));
+    },
+    saveSchedule: function (payload) {
+      if (IS_GAS) return gasCall('saveSchedule', payload);
+      if (IS_REMOTE) return remotePost(withAction('saveSchedule', payload));
+      return Promise.resolve(mockSaveSchedule(payload));
+    },
+    updateScheduleStatus: function (id, status) {
+      if (IS_GAS) return gasCall('updateScheduleStatus', id, status);
+      if (IS_REMOTE) return remotePost({ action: 'updateScheduleStatus', id: id, status: status });
+      return Promise.resolve(mockUpdateScheduleStatus(id, status));
+    },
+    deleteSchedule: function (id) {
+      if (IS_GAS) return gasCall('deleteSchedule', id);
+      if (IS_REMOTE) return remotePost({ action: 'deleteSchedule', id: id });
+      return Promise.resolve(mockDeleteSchedule(id));
+    }
+  };
+
+  /* ---------- 미리보기/로컬용 모의 저장소 ---------- */
+  function seedMockData() {
+    if (!IS_PREVIEW) return;
+    if (!store.get(LS.seeded, false)) {
+      var samples = window.__PREVIEW_SAMPLES__ || [];
+      var records = samples.map(function (s, i) {
+        var photos = (s.photos || []).map(function (src, j) {
+          return { thumb: src, original: src, view: src, download: src, id: 'sample-' + i + '-' + j };
+        });
+        return {
+          id: 'sample-' + i,
+          registeredAt: s.registeredAt,
+          date: s.date,
+          branch: s.branch,
+          author: s.author,
+          memo: s.memo,
+          photoCount: photos.length,
+          photos: photos
+        };
+      });
+      store.set(LS.mock, records);
+      store.set(LS.seeded, true);
+    }
+    // 예정작업 샘플은 따로 한 번만 채운다(이미 쓰던 미리보기 저장소에도 추가)
+    if (store.get(LS.schedules, null) === null) {
+      var plans = (window.__PREVIEW_SCHEDULES__ || []).map(function (s, i) {
+        return {
+          id: 'SCH-' + ('0000000' + (i + 1)).slice(-8) + '-' + ('00' + (i + 1)).slice(-3),
+          date: s.date, branch: s.branch, task: s.task, author: s.author || '',
+          status: s.status === '완료' ? '완료' : '예정',
+          createdAt: s.createdAt || (s.date + ' 09:00:00')
+        };
+      });
+      store.set(LS.schedules, plans);
+    }
+  }
+
+  function mockSave(payload) {
+    return Promise.all((payload.images || []).map(function (img) {
+      return shrinkForLocal('data:' + (img.mimeType || 'image/jpeg') + ';base64,' + img.base64);
+    })).then(function (locals) {
+      var now = new Date();
+      var stamp = ymd(now) + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
+      var photos = locals.map(function (src, i) {
+        return { thumb: src, original: src, view: src, download: src, id: 'local-' + Date.now() + '-' + i };
+      });
+      var record = {
+        id: 'local-' + Date.now(),
+        registeredAt: stamp,
+        date: payload.date,
+        branch: payload.branch,
+        author: payload.author,
+        memo: payload.memo || '',
+        photoCount: photos.length,
+        photos: photos
+      };
+      // 예정작업에서 넘어와 등록한 경우 그 예정작업을 완료로 바꾼다
+      if (payload.scheduleId) {
+        var plans = store.get(LS.schedules, []);
+        plans = plans.map(function (p) {
+          if (p.id === payload.scheduleId) p.status = '완료';
+          return p;
+        });
+        store.set(LS.schedules, plans);
+        record.scheduleId = payload.scheduleId;
+      }
+      var all = store.get(LS.mock, []);
+      all.unshift(record);
+      var ok = store.set(LS.mock, all);
+      return {
+        ok: true,
+        record: record,
+        warnings: ok ? [] : ['브라우저 저장 공간이 부족해 이번 기록은 새로고침하면 사라집니다.']
+      };
+    });
+  }
+
+  // 미리보기(로컬) 저장용: 브라우저 저장 공간을 아끼려고 한 번 더 줄인다.
+  function shrinkForLocal(dataUrl) {
+    return loadImageElement(dataUrl).then(function (img) {
+      var max = 900;
+      var scale = Math.min(1, max / Math.max(img.width, img.height));
+      var canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      var ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      return canvas.toDataURL('image/jpeg', 0.62);
+    }).catch(function () { return dataUrl; });
+  }
+
+  function mockList(filters) {
+    filters = filters || {};
+    var all = store.get(LS.mock, []);
+    var out = all.filter(function (r) {
+      if (filters.date && r.date !== filters.date) return false;
+      if (filters.from && r.date < filters.from) return false;
+      if (filters.to && r.date > filters.to) return false;
+      if (filters.branch && String(r.branch).trim().indexOf(String(filters.branch).trim()) === -1) return false;
+      if (filters.author && String(r.author).toLowerCase().indexOf(String(filters.author).toLowerCase()) === -1) return false;
+      return true;
+    });
+    out.sort(function (a, b) {
+      if (a.date !== b.date) return a.date < b.date ? 1 : -1;
+      return String(a.registeredAt) < String(b.registeredAt) ? 1 : -1;
+    });
+    var branches = [];
+    all.forEach(function (r) { if (branches.indexOf(r.branch) === -1) branches.push(r.branch); });
+    DEFAULT_BRANCHES.forEach(function (b) { if (branches.indexOf(b) === -1) branches.push(b); });
+    return { ok: true, count: out.length, total: out.length, records: out, branches: branches };
+  }
+
+  /* ---------- 미리보기/로컬용 캘린더·예정작업 ---------- */
+  function mockMonthRange(filters) {
+    filters = filters || {};
+    var month = String(filters.yearMonth || '').trim();
+    if (!/^\d{4}-\d{2}$/.test(month)) month = todayStr().substring(0, 7);
+    var p = month.split('-');
+    var last = new Date(Number(p[0]), Number(p[1]), 0).getDate();
+    return { month: month, from: month + '-01', to: month + '-' + pad(last) };
+  }
+
+  function mockCalendar(filters) {
+    filters = filters || {};
+    var range = mockMonthRange(filters);
+    var branch = String(filters.branch || '').trim();
+    var records = mockList({ from: range.from, to: range.to, branch: branch }).records;
+    var schedules = store.get(LS.schedules, []).filter(function (s) {
+      if (s.date < range.from || s.date > range.to) return false;
+      if (branch && String(s.branch).trim().indexOf(branch) === -1) return false;
+      return true;
+    }).sort(function (a, b) {
+      if (a.date !== b.date) return a.date < b.date ? -1 : 1;
+      return String(a.createdAt) < String(b.createdAt) ? -1 : 1;
+    });
+    return {
+      ok: true, yearMonth: range.month, from: range.from, to: range.to,
+      records: records, schedules: schedules, branches: mockBranchNames()
+    };
+  }
+
+  function mockBranchNames() {
+    var out = [];
+    store.get(LS.mock, []).forEach(function (r) {
+      if (r.branch && out.indexOf(r.branch) === -1) out.push(r.branch);
+    });
+    store.get(LS.schedules, []).forEach(function (s) {
+      if (s.branch && out.indexOf(s.branch) === -1) out.push(s.branch);
+    });
+    DEFAULT_BRANCHES.forEach(function (b) { if (out.indexOf(b) === -1) out.push(b); });
+    return out;
+  }
+
+  function mockSaveSchedule(payload) {
+    payload = payload || {};
+    var date = String(payload.date || '').trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return { ok: false, error: '예정일을 YYYY-MM-DD 형식으로 넣어 주세요.' };
+    var branch = String(payload.branch || '').trim();
+    if (!branch) return { ok: false, error: '지점명을 입력해 주세요.' };
+    var task = String(payload.task || '').trim();
+    if (!task) return { ok: false, error: '예정 작업내용을 입력해 주세요.' };
+
+    var all = store.get(LS.schedules, []);
+    var maxSeq = 0;
+    all.forEach(function (s) {
+      var m = String(s.id || '').match(/-(\d{3})$/);
+      if (m) maxSeq = Math.max(maxSeq, Number(m[1]));
+    });
+    var now = new Date();
+    var stamp = ymd(now) + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
+    var schedule = {
+      id: 'SCH-' + ymd(now).replace(/-/g, '') + '-' + ('00' + (maxSeq + 1)).slice(-3),
+      date: date, branch: branch, task: task,
+      author: String(payload.author || '').trim(),
+      status: '예정', createdAt: stamp
+    };
+    all.push(schedule);
+    store.set(LS.schedules, all);
+    return { ok: true, schedule: schedule };
+  }
+
+  function mockUpdateScheduleStatus(id, status) {
+    if (status !== '예정' && status !== '완료') {
+      return { ok: false, error: "상태는 '예정' 또는 '완료'만 바꿀 수 있습니다." };
+    }
+    var all = store.get(LS.schedules, []);
+    var hit = null;
+    all.forEach(function (s) { if (s.id === id) { s.status = status; hit = s; } });
+    if (!hit) return { ok: false, error: '해당 예정작업을 찾지 못했습니다.' };
+    store.set(LS.schedules, all);
+    return { ok: true, id: id, status: status };
+  }
+
+  function mockDeleteSchedule(id) {
+    var all = store.get(LS.schedules, []);
+    var before = all.length;
+    all = all.filter(function (s) { return s.id !== id; });
+    if (all.length === before) return { ok: false, error: '해당 예정작업을 찾지 못했습니다.' };
+    store.set(LS.schedules, all);
+    return { ok: true, id: id };
+  }
+
+  /* ---------- 미리보기/로컬용 워드(HTML .doc) 출력 ---------- */
+  function mockExport(filters) {
+    var list = mockList(filters || {}).records;
+    if (!list.length) return { ok: false, error: '출력할 내역이 없습니다.' };
+    return {
+      ok: true,
+      filename: exportName(filters || {}, list),
+      mimeType: 'application/msword',
+      html: mockDocHtml(list, filters || {}),
+      count: list.length
+    };
+  }
+
+  // 출력 문서는 날짜 오름차순(오래된 날 -> 최근 날), 같은 날은 등록 순서대로.
+  function sortChronologically(records) {
+    return (records || []).slice().sort(function (a, b) {
+      var ad = String((a && a.date) || ''), bd = String((b && b.date) || '');
+      if (ad !== bd) return ad < bd ? -1 : 1;
+      var ar = String((a && a.registeredAt) || ''), br = String((b && b.registeredAt) || '');
+      if (ar !== br) return ar < br ? -1 : 1;
+      return 0;
+    });
+  }
+
+  function exportName(filters, records) {
+    var branch = String(filters.branch || '').trim() || '전체';
+    var period = filters.date || (filters.from && filters.to
+      ? (filters.from === filters.to ? filters.from : filters.from + '~' + filters.to)
+      : (filters.from || filters.to || ''));
+    if (!period) {
+      var dates = records.map(function (r) { return r.date; }).sort();
+      period = dates.length ? dates[0] + '~' + dates[dates.length - 1] : todayStr();
+    }
+    return ('작업사진_' + branch + '_' + period).replace(/[\\\/:*?"<>|]/g, '') + '.doc';
+  }
+
+  // 같은 날짜 + 같은 지점의 기록을 한 묶음으로 합친다 (작성자가 달라도)
+  // memos 에는 작성자 표시 없이 한 줄로 정리한 작업내용만 담는다(같은 내용은 한 번만).
+  function mockGroupRecords(records) {
+    var groups = [];
+    var byKey = {};
+    records.forEach(function (r) {
+      var key = String(r.date || '') + '|' + String(r.branch || '');
+      var g = byKey[key];
+      if (!g) {
+        g = { date: r.date || '', branch: r.branch || '', authors: [], memos: [], photos: [], count: 0 };
+        byKey[key] = g;
+        groups.push(g);
+      }
+      g.count++;
+      var author = String(r.author || '').trim();
+      if (author && g.authors.indexOf(author) === -1) g.authors.push(author);
+      var memo = singleLineMemo(r.memo);
+      if (memo && g.memos.indexOf(memo) === -1) g.memos.push(memo);
+      (r.photos || []).forEach(function (p) { g.photos.push(p); });
+    });
+    return groups;
+  }
+
+  // 작업내용을 출력 문서용 한 줄로 정리한다 (줄바꿈 -> ', ', 빈 줄 제거, 겹친 쉼표 정리)
+  function singleLineMemo(text) {
+    var parts = String(text == null ? '' : text)
+      .replace(/\r\n?/g, '\n')
+      .split('\n')
+      .map(function (line) { return line.replace(/\s+/g, ' ').trim(); })
+      .filter(function (line) { return line; });
+    return parts.join(', ')
+      .replace(/\s*,\s*(?:,\s*)+/g, ', ')
+      .replace(/^\s*,\s*/, '')
+      .replace(/\s*,\s*$/, '')
+      .trim();
+  }
+
+  function mockDocHtml(records, filters) {
+    var groups = mockGroupRecords(sortChronologically(records));
+    var title = (String(filters.branch || '').trim() || '전체') + ' 작업사진';
+
+    var rows = groups.map(function (g) {
+      var imgs = g.photos.map(function (p) {
+        return '<img src="' + esc(p.original || p.thumb) + '" style="width:6cm;height:4cm;margin:0 1.5mm 1.5mm 0" alt="작업사진">';
+      }).join('');
+      var memoText = !g.memos.length ? '(작업내용 없음)' : g.memos.join(', ');
+      return '<div style="margin:0 0 14px 0">' +
+        '<p style="font-size:10pt; font-weight:700; margin:0 0 2pt 0">' + esc(koreanDate(g.date)) + '</p>' +
+        '<p style="font-size:10pt; margin:0 0 6pt 0">' +
+          esc(memoText) + '</p>' +
+        '<p style="margin:0; font-size:0">' + (imgs || '<span style="font-size:10pt">(사진 없음)</span>') + '</p>' +
+      '</div>';
+    }).join('');
+
+    return '<html><head><meta charset="utf-8"><title>' + esc(title) + '</title>' +
+      '<style>@page{size:A4;margin:10mm}</style></head><body>' +
+      '<h1 style="font-size:20pt; margin:0 0 14pt 0">' + esc(title) + '</h1>' + rows + '</body></html>';
+  }
+
+
+  /* ================================================================
+   * 2. 작은 도우미
+   * ============================================================== */
+  function pad(n) { return ('0' + n).slice(-2); }
+  function ymd(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function todayStr() { return ymd(new Date()); }
+  function addDays(base, days) {
+    var d = new Date(base.getFullYear(), base.getMonth(), base.getDate());
+    d.setDate(d.getDate() + days);
+    return d;
+  }
+  function formatDateLabel(s) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return s || '';
+    var p = s.split('-');
+    var d = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+    return s + ' (' + WEEKDAY[d.getDay()] + ')';
+  }
+  // 출력 문서에 쓰는 날짜 표기: '2026년 11월 24일'
+  function koreanDate(s) {
+    var m = String(s || '').match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if (!m) return String(s || '');
+    return Number(m[1]) + '년 ' + Number(m[2]) + '월 ' + Number(m[3]) + '일';
+  }
+  function timeLabel(stamp) {
+    var m = String(stamp || '').match(/(\d{1,2}):(\d{2})/);
+    return m ? pad(Number(m[1])) + ':' + m[2] : '';
+  }
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+  function bytesLabel(bytes) {
+    if (!bytes) return '';
+    if (bytes < 1024) return bytes + 'B';
+    if (bytes < 1024 * 1024) return Math.round(bytes / 1024) + 'KB';
+    return (bytes / 1024 / 1024).toFixed(1) + 'MB';
+  }
+  function approxBytes(base64) { return Math.round(String(base64 || '').length * 0.75); }
+
+  // 요소 만들기 / 비우기 (캘린더·예정작업 화면에서 사용)
+  function el(tag, className, text) {
+    var node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text != null) node.textContent = String(text);
+    return node;
+  }
+  function clearNode(node) {
+    if (!node) return;
+    node.innerHTML = '';
+    if (Array.isArray(node.children)) node.children.length = 0;   // 테스트용 가짜 DOM
+  }
+  function monthLabel(month) {
+    var p = String(month || '').split('-');
+    if (p.length < 2) return month || '';
+    return Number(p[0]) + '년 ' + Number(p[1]) + '월';
+  }
+  function shiftMonth(month, delta) {
+    var p = String(month || nowMonth()).split('-');
+    var d = new Date(Number(p[0]), Number(p[1]) - 1 + delta, 1);
+    return d.getFullYear() + '-' + pad(d.getMonth() + 1);
+  }
+  function daysInMonth(month) {
+    var p = String(month || '').split('-');
+    return new Date(Number(p[0]), Number(p[1]), 0).getDate();
+  }
+  function firstWeekdayOfMonth(month) {
+    var p = String(month || '').split('-');
+    return new Date(Number(p[0]), Number(p[1]) - 1, 1).getDay();
+  }
+  function weekdayOf(dateStr) {
+    var p = String(dateStr || '').split('-');
+    if (p.length < 3) return 0;
+    return new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2])).getDay();
+  }
+  function nowMonth() { return todayStr().substring(0, 7); }
+
+  var toastTimer = null;
+  function toast(message, type) {
+    var el = $('toast');
+    el.textContent = message;
+    el.className = 'show' + (type ? ' ' + type : '');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { el.className = ''; }, 3200);
+  }
+
+  function showLoading(title, sub) {
+    $('loadingTitle').textContent = title || '처리 중…';
+    $('loadingSub').textContent = sub || '';
+    $('loading').hidden = false;
+  }
+  function hideLoading() { $('loading').hidden = true; }
+  function hideLoadingSoon() { setTimeout(hideLoading, 120); }
+
+  function apiError(result) {
+    if (!result) return '응답이 없습니다. 잠시 후 다시 시도해 주세요.';
+    if (result.ok === false) return result.error || '저장에 실패했습니다.';
+    return '';
+  }
+
+  /* ================================================================
+   * 3. 초기화
+   * ============================================================== */
+  function init() {
+    seedMockData();
+    if (IS_PREVIEW) $('modePill').classList.add('show');
+
+    var today = todayStr();
+    $('inputDate').value = today;
+
+    var savedAuthor = store.get(LS.author, '');
+    if (savedAuthor) $('inputAuthor').value = savedAuthor;
+
+    state.cal.month = nowMonth();
+    state.cal.selected = today;
+
+    state.branches = mergeBranches(store.get(LS.branches, []), DEFAULT_BRANCHES);
+    renderBranchChips();
+    renderDatalists();
+    renderPlanLink();
+
+    setQuickRange('30');
+
+    bindEvents();
+    refreshBranchListFromServer();
+  }
+
+  function mergeBranches(a, b) {
+    var out = [];
+    [].concat(a || [], b || []).forEach(function (v) {
+      v = String(v || '').trim();
+      if (v && out.indexOf(v) === -1) out.push(v);
+    });
+    return out.slice(0, 20);
+  }
+
+  function rememberBranch(name) {
+    name = String(name || '').trim();
+    if (!name) return;
+    var list = store.get(LS.branches, []);
+    list = list.filter(function (v) { return v !== name; });
+    list.unshift(name);
+    store.set(LS.branches, list.slice(0, 12));
+    state.branches = mergeBranches(list, DEFAULT_BRANCHES);
+    renderBranchChips();
+    renderDatalists();
+  }
+
+  function rememberAuthor(name) {
+    name = String(name || '').trim();
+    if (!name) return;
+    store.set(LS.author, name);
+    var list = store.get(LS.authors, []);
+    list = list.filter(function (v) { return v !== name; });
+    list.unshift(name);
+    store.set(LS.authors, list.slice(0, 8));
+    renderDatalists();
+  }
+
+  function refreshBranchListFromServer() {
+    if (!IS_GAS) return;
+    gasCall('getBranchList', null).then(function (res) {
+      if (!res) return;
+      var list = Array.isArray(res) ? res : (res.branches || []);
+      if (list.length) {
+        state.branches = mergeBranches(store.get(LS.branches, []).concat(list), DEFAULT_BRANCHES);
+        renderBranchChips();
+        renderDatalists();
+      }
+    }).catch(function () { /* 조회 실패는 조용히 무시 */ });
+  }
+
+  function renderBranchChips() {
+    var box = $('branchChips');
+    var current = $('inputBranch').value.trim();
+    box.innerHTML = '';
+    state.branches.slice(0, 9).forEach(function (name) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'chip' + (name === current ? ' active' : '');
+      b.textContent = name;
+      b.addEventListener('click', function () {
+        $('inputBranch').value = name;
+        renderBranchChips();
+      });
+      box.appendChild(b);
+    });
+  }
+
+  function renderDatalists() {
+    var branchDl = $('branchList');
+    branchDl.innerHTML = state.branches.map(function (b) {
+      return '<option value="' + esc(b) + '"></option>';
+    }).join('');
+    var authors = store.get(LS.authors, []);
+    $('authorList').innerHTML = authors.map(function (a) {
+      return '<option value="' + esc(a) + '"></option>';
+    }).join('');
+  }
+
+  function setQuickRange(kind) {
+    var today = new Date();
+    var from = '', to = '';
+    if (kind === 'today') { from = to = ymd(today); }
+    else if (kind === '7') { from = ymd(addDays(today, -6)); to = ymd(today); }
+    else if (kind === '30') { from = ymd(addDays(today, -29)); to = ymd(today); }
+    $('filterFrom').value = from;
+    $('filterTo').value = to;
+    Array.prototype.forEach.call($('quickRanges').querySelectorAll('.chip'), function (c) {
+      c.classList.toggle('active', c.getAttribute('data-range') === kind);
+    });
+  }
+
+  /* ================================================================
+   * 4. 화면 전환
+   * ============================================================== */
+  function switchTab(tab) {
+    state.tab = tab;
+    $('panel-write').hidden = tab !== 'write';
+    $('panel-calendar').hidden = tab !== 'calendar';
+    $('panel-list').hidden = tab !== 'list';
+    ['write', 'calendar', 'list'].forEach(function (name) {
+      var btn = $('tab-' + name);
+      if (!btn) return;
+      btn.classList.toggle('active', tab === name);
+      btn.setAttribute('aria-selected', tab === name ? 'true' : 'false');
+    });
+    if (tab === 'list' && state.listDirty) loadList();
+    if (tab === 'calendar') openCalendar();
+  }
+
+  function bindEvents() {
+    $('tab-write').addEventListener('click', function () { switchTab('write'); });
+    $('tab-calendar').addEventListener('click', function () { switchTab('calendar'); });
+    $('tab-list').addEventListener('click', function () { switchTab('list'); });
+
+    // 캘린더 달 이동 / 오늘 / 예정작업 등록
+    $('calPrev').addEventListener('click', function () { goToMonth(shiftMonth(state.cal.month, -1)); });
+    $('calNext').addEventListener('click', function () { goToMonth(shiftMonth(state.cal.month, 1)); });
+    $('calToday').addEventListener('click', function () { goToMonth(nowMonth(), todayStr()); });
+    $('dayAddBtn').addEventListener('click', function () { openScheduleModal(state.cal.selected); });
+    $('schedClose').addEventListener('click', closeScheduleModal);
+    $('schedSave').addEventListener('click', saveScheduleFromForm);
+    $('schedBranch').addEventListener('input', renderScheduleBranchChips);
+    $('schedModal').addEventListener('click', function (e) {
+      if (e && e.target === $('schedModal')) closeScheduleModal();
+    });
+
+    $('inputBranch').addEventListener('input', renderBranchChips);
+
+    $('photoInput').addEventListener('change', function (e) {
+      var files = Array.prototype.slice.call(e.target.files || []);
+      e.target.value = '';
+      if (files.length) addPhotos(files);
+    });
+
+    // 데스크톱 끌어다 놓기
+    var dz = $('pickLabel');
+    ['dragenter', 'dragover'].forEach(function (ev) {
+      dz.addEventListener(ev, function (e) { e.preventDefault(); dz.style.background = '#e8f0ff'; });
+    });
+    ['dragleave', 'drop'].forEach(function (ev) {
+      dz.addEventListener(ev, function (e) { e.preventDefault(); dz.style.background = ''; });
+    });
+    dz.addEventListener('drop', function (e) {
+      var files = Array.prototype.slice.call((e.dataTransfer && e.dataTransfer.files) || [])
+        .filter(function (f) { return /^image\//.test(f.type); });
+      if (files.length) addPhotos(files);
+    });
+
+    $('writeForm').addEventListener('submit', onSubmit);
+
+    $('searchBtn').addEventListener('click', function () { loadList(true); });
+    $('exportBtn').addEventListener('click', onExport);
+    $('resetBtn').addEventListener('click', function () {
+      $('filterBranch').value = '';
+      $('filterAuthor').value = '';
+      setQuickRange('30');
+      loadList(true);
+    });
+    $('quickRanges').addEventListener('click', function (e) {
+      var btn = e.target.closest('.chip');
+      if (!btn) return;
+      setQuickRange(btn.getAttribute('data-range'));
+      loadList(true);
+    });
+    ['filterBranch', 'filterAuthor'].forEach(function (id) {
+      $(id).addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); loadList(true); }
+      });
+    });
+
+    $('lbClose').addEventListener('click', closeLightbox);
+    $('lbPrev').addEventListener('click', function () { stepLightbox(-1); });
+    $('lbNext').addEventListener('click', function () { stepLightbox(1); });
+    document.addEventListener('keydown', function (e) {
+      if (!$('schedModal').hidden && e.key === 'Escape') { closeScheduleModal(); return; }
+      if ($('lightbox').hidden) return;
+      if (e.key === 'Escape') closeLightbox();
+      if (e.key === 'ArrowLeft') stepLightbox(-1);
+      if (e.key === 'ArrowRight') stepLightbox(1);
+    });
+
+    // 스와이프로 사진 넘기기
+    var startX = null;
+    var lbBody = document.querySelector('.lb-body');
+    lbBody.addEventListener('touchstart', function (e) { startX = e.touches[0].clientX; }, { passive: true });
+    lbBody.addEventListener('touchend', function (e) {
+      if (startX === null) return;
+      var dx = e.changedTouches[0].clientX - startX;
+      if (Math.abs(dx) > 45) stepLightbox(dx > 0 ? -1 : 1);
+      startX = null;
+    }, { passive: true });
+  }
+
+  /* ================================================================
+   * 5. 사진 선택 · 압축
+   * ============================================================== */
+  function addPhotos(files) {
+    var room = MAX_PHOTOS - state.photos.length;
+    if (room <= 0) { toast('사진은 한 번에 ' + MAX_PHOTOS + '장까지 올릴 수 있어요.', 'err'); return; }
+
+    var accepted = files.slice(0, room);
+    if (files.length > room) toast('사진은 최대 ' + MAX_PHOTOS + '장까지라 ' + room + '장만 추가했어요.', 'err');
+
+    var tooBig = accepted.filter(function (f) { return f.size > MAX_FILE_MB * 1024 * 1024; });
+    accepted = accepted.filter(function (f) { return f.size <= MAX_FILE_MB * 1024 * 1024; });
+    if (tooBig.length) toast(MAX_FILE_MB + 'MB가 넘는 사진은 올릴 수 없어요.', 'err');
+    if (!accepted.length) return;
+
+    showLoading('사진 준비 중…', '0 / ' + accepted.length);
+    var done = 0;
+    var failed = 0;
+
+    var chain = Promise.resolve();
+    accepted.forEach(function (file) {
+      chain = chain.then(function () {
+        return compressImage(file).then(function (photo) {
+          photo.key = 'p' + Date.now() + Math.random().toString(36).slice(2, 7);
+          state.photos.push(photo);
+          renderPhotos();
+          done++;
+          $('loadingSub').textContent = done + ' / ' + accepted.length;
+        }).catch(function (err) {
+          failed++;
+          console.warn('photo failed', err);
+        });
+      });
+    });
+
+    chain.then(function () {
+      hideLoading();
+      if (failed) toast(failed + '장은 사진을 읽지 못해 제외했어요. (HEIC 사진은 JPEG로 변환해 주세요)', 'err');
+      else toast(accepted.length + '장 준비 완료', 'ok');
+    });
+  }
+
+  function loadImageElement(fileOrUrl) {
+    return new Promise(function (resolve, reject) {
+      var isUrl = typeof fileOrUrl === 'string';
+      var url = isUrl ? fileOrUrl : URL.createObjectURL(fileOrUrl);
+      var img = new Image();
+      img.onload = function () { if (!isUrl) URL.revokeObjectURL(url); resolve(img); };
+      img.onerror = function () { if (!isUrl) URL.revokeObjectURL(url); reject(new Error('이미지를 읽을 수 없습니다.')); };
+      img.src = url;
+    });
+  }
+
+  // 올린 사진을 가로 600 × 세로 400 픽셀 JPEG로 바꾼다. (비율은 유지하고 남는 곳은 흰색)
+  function compressImage(file, width, height) {
+    width = width || PHOTO_W;
+    height = height || PHOTO_H;
+    var sourcePromise;
+    if (window.createImageBitmap) {
+      sourcePromise = createImageBitmap(file, { imageOrientation: 'from-image' })
+        .catch(function () { return loadImageElement(file); });
+    } else {
+      sourcePromise = loadImageElement(file);
+    }
+
+    return sourcePromise.then(function (source) {
+      var w = source.width, h = source.height;
+      if (!w || !h) throw new Error('사진 크기를 알 수 없습니다.');
+
+      var canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      var ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, width, height);
+
+      var scale = Math.min(width / w, height / h);
+      var dw = Math.max(1, Math.round(w * scale));
+      var dh = Math.max(1, Math.round(h * scale));
+      if ('imageSmoothingEnabled' in ctx) ctx.imageSmoothingEnabled = true;
+      if ('imageSmoothingQuality' in ctx) ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(source, Math.round((width - dw) / 2), Math.round((height - dh) / 2), dw, dh);
+      if (source.close) { try { source.close(); } catch (e) {} }
+
+      var dataUrl = canvas.toDataURL('image/jpeg', PHOTO_QUALITY);
+      var base64 = dataUrl.split(',')[1] || '';
+      return {
+        dataUrl: dataUrl,
+        base64: base64,
+        mimeType: 'image/jpeg',
+        name: (file.name || 'photo').replace(/\.[^.]+$/, '') + '.jpg',
+        bytes: approxBytes(base64),
+        width: canvas.width,
+        height: canvas.height
+      };
+    });
+  }
+
+  function renderPhotos() {
+    var grid = $('photoGrid');
+    grid.innerHTML = '';
+    state.photos.forEach(function (p) {
+      var d = document.createElement('div');
+      d.className = 'photo-item';
+      d.innerHTML =
+        '<img src="' + p.dataUrl + '" alt="첨부 사진">' +
+        '<button type="button" class="del" aria-label="사진 삭제">✕</button>' +
+        '<span class="badge-size">' + esc(bytesLabel(p.bytes)) + '</span>';
+      d.querySelector('.del').addEventListener('click', function () {
+        state.photos = state.photos.filter(function (x) { return x.key !== p.key; });
+        renderPhotos();
+      });
+      grid.appendChild(d);
+    });
+
+    var total = state.photos.reduce(function (s, p) { return s + (p.bytes || 0); }, 0);
+    if (!state.photos.length) {
+      $('photoSummary').textContent = '아직 선택한 사진이 없습니다.';
+    } else {
+      $('photoSummary').textContent = '사진 ' + state.photos.length + '장 · 약 ' + bytesLabel(total) +
+        ' (' + PHOTO_W + '×' + PHOTO_H + ' 변환됨)';
+    }
+    $('submitBtn').textContent = state.photos.length
+      ? '사진 ' + state.photos.length + '장 등록하기'
+      : '등록하기';
+  }
+
+  /* ================================================================
+   * 6. 등록
+   * ============================================================== */
+  function onSubmit(e) {
+    e.preventDefault();
+    if (state.loading) return;
+
+    var date = $('inputDate').value;
+    var branch = $('inputBranch').value.trim();
+    var author = $('inputAuthor').value.trim();
+    var memo = $('inputMemo').value.trim();
+
+    if (!date) { toast('작업 날짜를 선택해 주세요.', 'err'); $('inputDate').focus(); return; }
+    if (!branch) { toast('지점명을 입력해 주세요.', 'err'); $('inputBranch').focus(); return; }
+    if (!author) { toast('작성자 이름을 입력해 주세요.', 'err'); $('inputAuthor').focus(); return; }
+    if (!state.photos.length) { toast('작업사진을 1장 이상 올려 주세요.', 'err'); return; }
+
+    rememberAuthor(author);
+    rememberBranch(branch);
+
+    var payload = {
+      date: date,
+      branch: branch,
+      author: author,
+      memo: memo,
+      scheduleId: state.cal.prefillId || '',
+      images: state.photos.map(function (p) {
+        return { name: p.name, mimeType: p.mimeType, base64: p.base64 };
+      })
+    };
+
+    state.loading = true;
+    $('submitBtn').disabled = true;
+    showLoading('등록하는 중…', '사진 ' + state.photos.length + '장을 저장하고 있어요');
+
+    API.save(payload).then(function (res) {
+      var err = apiError(res);
+      if (err) throw new Error(err);
+
+      var warnings = (res && res.warnings) || [];
+      hideLoading();
+      state.loading = false;
+      $('submitBtn').disabled = false;
+
+      var saved = (res && res.record && res.record.photoCount) || state.photos.length;
+      toast('등록 완료! 사진 ' + saved + '장이 저장되었습니다.', 'ok');
+      if (warnings.length) setTimeout(function () { toast(warnings[0], 'err'); }, 1800);
+
+      state.photos = [];
+      renderPhotos();
+      $('inputMemo').value = '';
+      state.listDirty = true;
+      state.listLoaded = false;
+      // 캘린더는 다음에 열 때 새로 불러오고, 예정작업 연결은 풀어 둔다
+      state.cal.loaded = false;
+      state.cal.prefillId = '';
+      renderPlanLink();
+
+      // 즉시 확인할 수 있게 조회 화면으로 이동
+      setTimeout(function () { switchTab('list'); }, 650);
+    }).catch(function (err) {
+      hideLoading();
+      state.loading = false;
+      $('submitBtn').disabled = false;
+      toast(apiError({ ok: false, error: (err && err.message) || String(err) }) || '저장에 실패했어요.', 'err');
+    });
+  }
+
+  /* ================================================================
+   * 7. 내역 조회
+   * ============================================================== */
+  function currentFilters() {
+    return {
+      from: $('filterFrom').value || '',
+      to: $('filterTo').value || '',
+      branch: $('filterBranch').value.trim(),
+      author: $('filterAuthor').value.trim()
+    };
+  }
+
+  function loadList(force) {
+    if (state.loading) return;
+    if (!force && state.listLoaded && !state.listDirty) return;
+
+    var body = $('listBody');
+    body.innerHTML = '<div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>';
+    $('listCount').textContent = '불러오는 중…';
+    state.loading = true;
+
+    API.list(currentFilters()).then(function (res) {
+      state.loading = false;
+      if (!res || res.ok === false) throw new Error((res && res.error) || '목록을 불러오지 못했습니다.');
+      state.records = res.records || [];
+      state.listLoaded = true;
+      state.listDirty = false;
+      if (res.branches && res.branches.length) {
+        state.branches = mergeBranches(state.branches, res.branches);
+        renderBranchChips();
+        renderDatalists();
+      }
+      renderList();
+    }).catch(function (err) {
+      state.loading = false;
+      $('listCount').textContent = '–';
+      body.innerHTML = '<div class="empty"><span class="icon">⚠️</span>' +
+        esc((err && err.message) || '목록을 불러오지 못했습니다.') +
+        '<br><button type="button" class="btn-ghost" id="retryBtn" style="margin-top:14px">다시 불러오기</button></div>';
+      var retry = $('retryBtn');
+      if (retry) retry.addEventListener('click', function () { loadList(true); });
+    });
+  }
+
+  function renderList() {
+    var body = $('listBody');
+    var records = state.records;
+
+    if (!records.length) {
+      $('listCount').innerHTML = '총 <b>0</b>건';
+      body.innerHTML = '<div class="empty"><span class="icon">📭</span>' +
+        '조건에 맞는 등록 내역이 없습니다.<br>기간을 넓혀서 다시 조회해 보세요.</div>';
+      return;
+    }
+
+    var photoTotal = records.reduce(function (s, r) { return s + (r.photoCount || (r.photos || []).length); }, 0);
+    $('listCount').innerHTML = '총 <b>' + records.length + '</b>건 · 사진 ' + photoTotal + '장';
+
+    body.innerHTML = records.map(function (r, ri) {
+      var photos = r.photos || [];
+      var thumbs = photos.slice(0, 6).map(function (p, pi) {
+        var more = (pi === 5 && photos.length > 6) ? '<span class="more">+' + (photos.length - 5) + '</span>' : '';
+        return '<button type="button" class="thumb" data-record="' + ri + '" data-photo="' + pi + '" aria-label="사진 크게 보기">' +
+          '<img loading="lazy" src="' + esc(p.thumb) + '" alt="작업사진" onerror="this.style.opacity=.15">' + more + '</button>';
+      }).join('');
+
+      return '<article class="record">' +
+        '<div class="record-top">' +
+          '<span class="record-date">' + esc(formatDateLabel(r.date)) + '</span>' +
+          '<span class="badge-branch">' + esc(r.branch) + '</span>' +
+          '<span class="record-author">' + esc(r.author) + '</span>' +
+          '<span class="record-time">' + esc(timeLabel(r.registeredAt)) + '</span>' +
+        '</div>' +
+        (r.memo ? '<p class="record-memo">' + esc(r.memo) + '</p>' : '') +
+        (thumbs ? '<div class="thumbs">' + thumbs + '</div>' : '') +
+      '</article>';
+    }).join('');
+
+    body.querySelectorAll('.thumb').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var r = state.records[Number(btn.getAttribute('data-record'))];
+        var pi = Number(btn.getAttribute('data-photo'));
+        openLightbox(r, pi);
+      });
+    });
+  }
+
+  /* ================================================================
+   * 7-1. 워드 파일 출력
+   * ============================================================== */
+  function onExport() {
+    if (state.loading) return;
+    var records = state.records || [];
+    if (!records.length) { toast('출력할 내역이 없습니다.', 'err'); return; }
+
+    var btn = $('exportBtn');
+    btn.disabled = true;
+    showLoading('워드 파일 만드는 중…', records.length + '건의 사진을 문서에 담고 있어요');
+
+    API.exportDoc(currentFilters()).then(function (res) {
+      if (!res || res.ok === false) throw new Error((res && res.error) || '워드 파일을 만들지 못했습니다.');
+      saveFile(res);
+      hideLoading();
+      btn.disabled = false;
+      toast('워드 파일을 내려받았습니다. (' + (res.count || records.length) + '건)', 'ok');
+    }).catch(function (err) {
+      hideLoading();
+      btn.disabled = false;
+      toast((err && err.message) || '워드 파일을 만들지 못했습니다.', 'err');
+    });
+  }
+
+  function base64ToBytes(base64) {
+    var bin = atob(String(base64 || ''));
+    var bytes = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return bytes;
+  }
+
+  function saveFile(res) {
+    var blob;
+    if (res.base64) {
+      blob = new Blob([base64ToBytes(res.base64)], { type: res.mimeType || 'application/octet-stream' });
+    } else {
+      blob = new Blob(['\ufeff' + (res.html || '')], { type: res.mimeType || 'application/msword;charset=utf-8' });
+    }
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = res.filename || '작업사진.docx';
+    a.rel = 'noopener';
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () {
+      try { document.body.removeChild(a); URL.revokeObjectURL(url); } catch (e) {}
+    }, 1500);
+  }
+
+  /* ================================================================
+   * 7-2. 캘린더 · 예정작업
+   * ============================================================== */
+  function openCalendar() {
+    var cal = state.cal;
+    if (!cal.month) cal.month = nowMonth();
+    if (!cal.selected) cal.selected = todayStr();
+    loadCalendar(false);
+  }
+
+  function goToMonth(month, dateStr) {
+    var cal = state.cal;
+    cal.month = month;
+    cal.selected = dateStr || (month === nowMonth() ? todayStr() : month + '-01');
+    cal.loaded = false;
+    loadCalendar(true);
+  }
+
+  function loadCalendar(force) {
+    var cal = state.cal;
+    if (!force && cal.loaded && cal.loadedMonth === cal.month) { renderCalendar(); return; }
+    var want = cal.month;
+    cal.loading = true;
+    cal.error = '';
+    renderCalendar();
+    API.calendar({ yearMonth: want, branch: cal.branch }).then(function (res) {
+      if (want !== cal.month) return;          // 그 사이 달을 바꿨으면 이 응답은 버린다
+      cal.loading = false;
+      if (!res || res.ok === false) throw new Error((res && res.error) || '캘린더를 불러오지 못했습니다.');
+      cal.records = res.records || [];
+      cal.schedules = res.schedules || [];
+      if (res.branches && res.branches.length) {
+        state.branches = mergeBranches(state.branches, res.branches);
+        renderBranchChips();
+        renderDatalists();
+      }
+      cal.loaded = true;
+      cal.loadedMonth = want;
+      renderCalendar();
+    }).catch(function (err) {
+      if (want !== cal.month) return;
+      cal.loading = false;
+      cal.error = (err && err.message) || '캘린더를 불러오지 못했습니다.';
+      renderCalendar();
+    });
+  }
+
+  function recordsOn(dateStr) {
+    return (state.cal.records || []).filter(function (r) { return r.date === dateStr; });
+  }
+  function schedulesOn(dateStr) {
+    return (state.cal.schedules || []).filter(function (s) { return s.date === dateStr; });
+  }
+
+  function renderCalendar() {
+    var cal = state.cal;
+    $('calMonth').textContent = monthLabel(cal.month);
+    renderCalBranchFilter();
+
+    var grid = $('calGrid');
+    clearNode(grid);
+    var blanks = firstWeekdayOfMonth(cal.month);
+    var total = daysInMonth(cal.month);
+    var today = todayStr();
+
+    for (var b = 0; b < blanks; b++) {
+      var empty = el('div', 'cal-cell out');
+      empty.setAttribute('aria-hidden', 'true');
+      grid.appendChild(empty);
+    }
+
+    for (var d = 1; d <= total; d++) {
+      var dateStr = cal.month + '-' + pad(d);
+      var dow = weekdayOf(dateStr);
+      var cls = 'cal-cell' + (dow === 0 ? ' sun' : (dow === 6 ? ' sat' : ''));
+      if (dateStr === today) cls += ' today';
+      if (dateStr === cal.selected) cls += ' selected';
+      var cell = el('button', cls);
+      cell.setAttribute('type', 'button');
+      cell.setAttribute('data-date', dateStr);
+      cell.setAttribute('aria-label', formatDateLabel(dateStr));
+      cell.appendChild(el('span', 'cal-num', String(d)));
+
+      var recs = recordsOn(dateStr);
+      if (recs.length) {
+        var photos = recs.reduce(function (n, r) { return n + (r.photoCount || (r.photos || []).length); }, 0);
+        var photoLabel = recs.length === 1 ? recs[0].branch : recs.length + '건';
+        cell.appendChild(el('span', 'cal-badge photo', '📷 ' + photoLabel));
+        if (photos > 1 && recs.length === 1) cell.appendChild(el('span', 'cal-badge photo', '사진 ' + photos + '장'));
+      }
+
+      var plans = schedulesOn(dateStr);
+      if (plans.length) {
+        var allDone = plans.every(function (p) { return p.status === '완료'; });
+        var planLabel = plans.length === 1 ? plans[0].branch : plans.length + '건';
+        cell.appendChild(el('span', 'cal-badge plan' + (allDone ? ' done' : ''), '📌 ' + planLabel));
+      }
+
+      (function (ds) {
+        cell.addEventListener('click', function () { selectDay(ds); });
+      })(dateStr);
+      grid.appendChild(cell);
+    }
+
+    var open = (cal.schedules || []).filter(function (s) { return s.status !== '완료'; }).length;
+    var summary = $('calSummary');
+    summary.className = 'cal-summary' + (cal.error ? ' err' : '');
+    if (cal.loading) {
+      summary.textContent = '불러오는 중…';
+    } else if (cal.error) {
+      summary.textContent = cal.error;
+    } else {
+      summary.textContent = '이 달 작업사진 ' + (cal.records || []).length + '건 · 예정작업 ' +
+        (cal.schedules || []).length + '건 (남은 예정 ' + open + ')' +
+        (cal.branch ? ' · ' + cal.branch : '');
+    }
+
+    renderDayDetail();
+  }
+
+  function renderCalBranchFilter() {
+    var cal = state.cal;
+    var box = $('calBranchFilter');
+    clearNode(box);
+    var names = [''].concat(state.branches.slice(0, 8));
+    names.forEach(function (value) {
+      var chip = el('button', 'chip' + (value === cal.branch ? ' active' : ''), value || '전체');
+      chip.setAttribute('type', 'button');
+      chip.addEventListener('click', function () {
+        if (cal.branch === value) return;
+        cal.branch = value;
+        cal.loaded = false;
+        loadCalendar(true);
+      });
+      box.appendChild(chip);
+    });
+  }
+
+  function selectDay(dateStr) {
+    state.cal.selected = dateStr;
+    renderCalendar();
+  }
+
+  function renderDayDetail() {
+    var cal = state.cal;
+    var date = cal.selected || todayStr();
+    var recs = recordsOn(date);
+    var plans = schedulesOn(date);
+    var photos = recs.reduce(function (n, r) { return n + (r.photoCount || (r.photos || []).length); }, 0);
+
+    $('dayTitle').textContent = koreanDate(date) + ' (' + WEEKDAY[weekdayOf(date)] + ')';
+    $('daySub').textContent = '예정작업 ' + plans.length + '건 · 작업사진 ' + recs.length + '건(사진 ' + photos + '장)';
+
+    var box = $('dayDetail');
+    clearNode(box);
+
+    box.appendChild(el('div', 'day-section-title', '📌 예정작업 ' + plans.length + '건'));
+    if (!plans.length) {
+      box.appendChild(el('div', 'day-empty', '이 날은 예정작업이 없습니다. [+ 예정작업 등록]으로 미리 잡아 두면 그 날짜 칸에 표시됩니다.'));
+    } else {
+      plans.forEach(function (p) { box.appendChild(scheduleItemEl(p)); });
+    }
+
+    box.appendChild(el('div', 'day-section-title', '📷 등록된 작업사진 ' + recs.length + '건'));
+    if (!recs.length) {
+      box.appendChild(el('div', 'day-empty', '이 날 등록된 작업사진이 없습니다. 사진을 등록하면 이 날짜 칸에 저절로 나타납니다.'));
+    } else {
+      recs.forEach(function (r) { box.appendChild(dayRecordEl(r)); });
+    }
+  }
+
+  function scheduleItemEl(plan) {
+    var item = el('div', 'sched-item');
+    var top = el('div', 'sched-top');
+    top.appendChild(el('span', 'sched-branch', plan.branch));
+    top.appendChild(el('span', 'sched-status' + (plan.status === '완료' ? ' done' : ''),
+      plan.status === '완료' ? '✓ 완료' : '예정'));
+    item.appendChild(top);
+    if (plan.task) item.appendChild(el('p', 'sched-task', plan.task));
+    var meta = [];
+    if (plan.author) meta.push(plan.author);
+    if (plan.createdAt) meta.push(timeLabel(plan.createdAt) + ' 등록');
+    if (meta.length) item.appendChild(el('div', 'sched-meta', meta.join(' · ')));
+
+    var actions = el('div', 'sched-actions');
+    var photoBtn = el('button', 'primary do-photo', '📷 사진 등록하기');
+    photoBtn.setAttribute('type', 'button');
+    photoBtn.addEventListener('click', function () { startPhotoFromSchedule(plan); });
+    actions.appendChild(photoBtn);
+
+    var toggle = el('button', 'do-toggle', plan.status === '완료' ? '↩ 되돌리기' : '✓ 완료');
+    toggle.setAttribute('type', 'button');
+    toggle.addEventListener('click', function () {
+      setScheduleStatus(plan, plan.status === '완료' ? '예정' : '완료');
+    });
+    actions.appendChild(toggle);
+
+    var del = el('button', 'danger do-delete', '🗑️ 삭제');
+    del.setAttribute('type', 'button');
+    del.addEventListener('click', function () { removeSchedule(plan); });
+    actions.appendChild(del);
+
+    item.appendChild(actions);
+    return item;
+  }
+
+  function dayRecordEl(record) {
+    var card = el('div', 'day-record');
+    var top = el('div', 'rec-top');
+    top.appendChild(el('span', 'badge-branch', record.branch));
+    if (record.author) top.appendChild(el('span', 'record-author', record.author));
+    top.appendChild(el('span', 'record-time', timeLabel(record.registeredAt)));
+    card.appendChild(top);
+    if (record.memo) card.appendChild(el('p', 'rec-memo', record.memo));
+
+    var photos = record.photos || [];
+    if (photos.length) {
+      var thumbs = el('div', 'rec-thumbs');
+      photos.slice(0, 8).forEach(function (p, i) {
+        var btn = el('button', 'rec-thumb');
+        btn.setAttribute('type', 'button');
+        btn.setAttribute('aria-label', '사진 크게 보기');
+        btn.innerHTML = '<img loading="lazy" src="' + esc(p.thumb) + '" alt="작업사진" onerror="this.style.opacity=.15">';
+        btn.addEventListener('click', function () { openLightbox(record, i); });
+        thumbs.appendChild(btn);
+      });
+      card.appendChild(thumbs);
+    }
+    return card;
+  }
+
+  function findScheduleById(id) {
+    var hit = null;
+    (state.cal.schedules || []).forEach(function (s) { if (s.id === id) hit = s; });
+    return hit;
+  }
+
+  // 예정작업 → 사진 등록 탭으로 날짜·지점·작업내용을 채워 넘어간다
+  function startPhotoFromSchedule(plan) {
+    state.cal.prefillId = plan.id || '';
+    $('inputDate').value = plan.date;
+    $('inputBranch').value = plan.branch;
+    if (plan.task) $('inputMemo').value = plan.task;
+    if (!$('inputAuthor').value.trim()) $('inputAuthor').value = store.get(LS.author, '') || plan.author || '';
+    renderBranchChips();
+    renderPlanLink();
+    switchTab('write');
+    toast('예정작업 내용을 채웠습니다. 사진을 올려 등록해 주세요.', 'ok');
+  }
+
+  function renderPlanLink() {
+    var box = $('planLink');
+    var plan = state.cal.prefillId ? findScheduleById(state.cal.prefillId) : null;
+    if (!plan) {
+      box.hidden = true;
+      box.textContent = '';
+      return;
+    }
+    box.hidden = false;
+    clearNode(box);
+    box.appendChild(el('span', '', '📌 ' + plan.branch + ' 예정작업과 연결됨 — 등록하면 이 예정작업이 [완료]로 바뀝니다.'));
+    var clear = el('button', 'btn-link', '연결 해제');
+    clear.setAttribute('type', 'button');
+    clear.addEventListener('click', function () {
+      state.cal.prefillId = '';
+      renderPlanLink();
+    });
+    box.appendChild(clear);
+  }
+
+  function openScheduleModal(dateStr) {
+    var cal = state.cal;
+    $('schedDate').value = dateStr || cal.selected || todayStr();
+    $('schedTask').value = '';
+    $('schedAuthor').value = store.get(LS.author, '') || $('inputAuthor').value.trim();
+    $('schedBranch').value = $('inputBranch').value.trim() || state.branches[0] || '';
+    renderScheduleBranchChips();
+    $('schedModal').hidden = false;
+  }
+
+  function closeScheduleModal() {
+    $('schedModal').hidden = true;
+  }
+
+  function renderScheduleBranchChips() {
+    var box = $('schedBranchChips');
+    clearNode(box);
+    var current = $('schedBranch').value.trim();
+    state.branches.slice(0, 9).forEach(function (name) {
+      var chip = el('button', 'chip' + (name === current ? ' active' : ''), name);
+      chip.setAttribute('type', 'button');
+      chip.addEventListener('click', function () {
+        $('schedBranch').value = name;
+        renderScheduleBranchChips();
+      });
+      box.appendChild(chip);
+    });
+  }
+
+  function saveScheduleFromForm() {
+    var payload = {
+      date: $('schedDate').value,
+      branch: $('schedBranch').value.trim(),
+      task: $('schedTask').value.trim(),
+      author: $('schedAuthor').value.trim()
+    };
+    if (!payload.date) { toast('예정일을 선택해 주세요.', 'err'); return; }
+    if (!payload.branch) { toast('지점명을 입력해 주세요.', 'err'); return; }
+    if (!payload.task) { toast('예정 작업내용을 입력해 주세요.', 'err'); return; }
+
+    var btn = $('schedSave');
+    if (btn.disabled) return;
+    btn.disabled = true;
+    API.saveSchedule(payload).then(function (res) {
+      btn.disabled = false;
+      if (!res || res.ok === false) throw new Error((res && res.error) || '예정작업을 등록하지 못했습니다.');
+      closeScheduleModal();
+      rememberBranch(payload.branch);
+      if (payload.author) rememberAuthor(payload.author);
+      state.cal.month = payload.date.substring(0, 7);
+      state.cal.selected = payload.date;
+      state.cal.loaded = false;
+      toast('예정작업을 등록했습니다. (' + formatDateLabel(payload.date) + ')', 'ok');
+      if (state.tab === 'calendar') loadCalendar(true);
+    }).catch(function (err) {
+      btn.disabled = false;
+      toast((err && err.message) || '예정작업을 등록하지 못했습니다.', 'err');
+    });
+  }
+
+  function setScheduleStatus(plan, status) {
+    API.updateScheduleStatus(plan.id, status).then(function (res) {
+      if (!res || res.ok === false) throw new Error((res && res.error) || '상태를 바꾸지 못했습니다.');
+      plan.status = status;
+      toast(status === '완료' ? '완료로 표시했습니다.' : '다시 예정으로 되돌렸습니다.', 'ok');
+      renderCalendar();
+    }).catch(function (err) {
+      toast((err && err.message) || '상태를 바꾸지 못했습니다.', 'err');
+    });
+  }
+
+  function removeSchedule(plan) {
+    var ask = '이 예정작업을 지울까요?\n\n' + plan.branch + ' · ' + formatDateLabel(plan.date) +
+      (plan.task ? '\n' + plan.task : '');
+    if (typeof confirm === 'function' && !confirm(ask)) return;
+    API.deleteSchedule(plan.id).then(function (res) {
+      if (!res || res.ok === false) throw new Error((res && res.error) || '예정작업을 지우지 못했습니다.');
+      toast('예정작업을 지웠습니다.', 'ok');
+      state.cal.loaded = false;
+      loadCalendar(true);
+    }).catch(function (err) {
+      toast((err && err.message) || '예정작업을 지우지 못했습니다.', 'err');
+    });
+  }
+
+  /* ================================================================
+   * 8. 라이트박스
+   * ============================================================== */
+  function openLightbox(record, index) {
+    var photos = record.photos || [];
+    if (!photos.length) return;
+    state.lightbox = { photos: photos, index: index || 0, meta: record };
+    $('lightbox').hidden = false;
+    document.body.style.overflow = 'hidden';
+    renderLightbox();
+  }
+
+  function renderLightbox() {
+    var lb = state.lightbox;
+    var p = lb.photos[lb.index];
+    if (!p) return;
+    var img = $('lbImage');
+    img.onerror = null;
+    img.src = p.original || p.thumb;
+    img.onerror = function () {
+      if (img.src === p.thumb) return;
+      img.src = p.thumb;
+    };
+    $('lbTitle').textContent = (lb.meta.branch || '') + ' · ' + formatDateLabel(lb.meta.date);
+    $('lbCaption').textContent = (lb.meta.author ? lb.meta.author + ' · ' : '') +
+      (lb.index + 1) + ' / ' + lb.photos.length;
+    $('lbPrev').hidden = lb.photos.length < 2;
+    $('lbNext').hidden = lb.photos.length < 2;
+
+    var open = $('lbOpen');
+    var dl = $('lbDownload');
+    if (/^data:/.test(p.original || '')) {
+      open.href = p.original;
+      dl.href = p.original;
+      dl.setAttribute('download', [lb.meta.date, lb.meta.branch, lb.meta.author, (lb.index + 1)].join('_') + '.jpg');
+    } else {
+      open.href = p.view || p.original;
+      dl.href = p.download || p.original;
+      dl.removeAttribute('download');
+    }
+  }
+
+  function stepLightbox(dir) {
+    var lb = state.lightbox;
+    if (lb.photos.length < 2) return;
+    lb.index = (lb.index + dir + lb.photos.length) % lb.photos.length;
+    renderLightbox();
+  }
+
+  function closeLightbox() {
+    $('lightbox').hidden = true;
+    document.body.style.overflow = '';
+    $('lbImage').removeAttribute('src');
+  }
+
+  /* ================================================================
+   * 시작
+   * ============================================================== */
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="작업사진 등록">
+  <rect width="512" height="512" rx="112" fill="#1d4ed8"/>
+  <rect x="96" y="164" width="320" height="224" rx="40" fill="#ffffff"/>
+  <path d="M184 164l22-38h100l22 38z" fill="#ffffff"/>
+  <circle cx="256" cy="276" r="70" fill="#1d4ed8"/>
+  <circle cx="256" cy="276" r="46" fill="#93c5fd"/>
+  <circle cx="352" cy="212" r="14" fill="#1d4ed8" opacity="0.45"/>
+</svg>
