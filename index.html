@@ -65,10 +65,11 @@
     background:#fff; border-radius:14px; box-shadow:var(--shadow); position:sticky; top:8px; z-index:20;
   }
   .tab{
-    flex:1; padding:11px 4px; border-radius:10px; font-weight:700; font-size:13.5px; color:var(--muted);
-    transition:background .15s,color .15s; white-space:nowrap; letter-spacing:-.3px;
+    flex:1; padding:11px 3px; border-radius:10px; font-weight:700; font-size:12.5px; color:var(--muted);
+    transition:background .15s,color .15s; white-space:nowrap; letter-spacing:-.4px;
+    overflow:hidden; text-overflow:ellipsis;
   }
-  @media (min-width:420px){ .tab{font-size:14.5px; padding:11px 8px;} }
+  @media (min-width:420px){ .tab{font-size:14px; padding:11px 8px;} }
   .tab.active{background:var(--brand); color:#fff; box-shadow:0 2px 8px rgba(29,78,216,.25);}
   main{padding:14px;}
 
@@ -231,15 +232,20 @@
   .day-section-title:first-child{margin-top:0;}
   .day-empty{font-size:12.5px; color:var(--muted); padding:4px 0 2px; line-height:1.55;}
   .sched-item{border:1px solid #fde68a; background:#fffbeb; border-radius:12px; padding:10px 11px; margin-bottom:8px;}
+  .sched-item.done{border-color:var(--line); background:#f8fafc;}
   .sched-top{display:flex; align-items:center; gap:6px; flex-wrap:wrap;}
   .sched-branch{background:#fef3c7; color:#92400e; font-weight:800; font-size:11.5px; padding:2px 8px; border-radius:999px;}
+  .sched-item.done .sched-branch{background:#f2f4f7; color:#667085;}
   .sched-status{font-size:11px; font-weight:800; padding:2px 7px; border-radius:999px; background:#fff7ed; color:#b45309; border:1px solid #fcd34d;}
   .sched-status.done{background:#ecfdf3; color:#067647; border-color:#a6f4c5;}
   .sched-task{margin:6px 0 0; font-size:14px; color:#344054; white-space:pre-wrap; word-break:break-word;}
+  .sched-item.done .sched-task{color:#667085;}
+  .sched-memo{margin:5px 0 0; font-size:12.5px; color:#667085; white-space:pre-wrap; word-break:break-word;}
   .sched-meta{font-size:11.5px; color:#98a2b3; margin-top:4px;}
   .sched-actions{display:flex; gap:6px; flex-wrap:wrap; margin-top:9px;}
   .sched-actions button{padding:7px 10px; border-radius:9px; font-size:12px; font-weight:700; background:#fff; border:1px solid var(--line); color:#344054;}
   .sched-actions button.primary{background:var(--brand); border-color:var(--brand); color:#fff;}
+  .sched-actions button.edit{color:var(--brand); border-color:#c7d7fe;}
   .sched-actions button.danger{color:var(--danger); border-color:#fecdca;}
   .day-record{border:1px solid var(--line); border-radius:12px; padding:10px 11px; margin-bottom:8px;}
   .day-record .rec-top{display:flex; align-items:center; gap:6px; flex-wrap:wrap;}
@@ -263,6 +269,14 @@
   }
   .plan-link[hidden]{display:none;}
   .plan-link .btn-link{flex:0 0 auto; font-size:12px; font-weight:800; color:#b45309; text-decoration:underline;}
+
+  /* 작업사진 등록 (📅 작업 캘린더 안에서 열리는 등록 칸) */
+  .write-card[hidden]{display:none;}
+  .write-head{display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:12px;}
+  .write-head h2{font-size:16px; margin:0; letter-spacing:-.3px;}
+  .write-sub{font-size:12px; color:var(--muted); margin-top:3px;}
+  .write-head .btn-ghost{flex:0 0 auto; padding:9px 12px; font-size:12.5px;}
+  .cal-hint{font-size:12px; color:var(--muted); padding:0 4px 10px; line-height:1.5;}
 
   /* 예정작업 등록 · 작업사진 수정 모달 */
   #schedModal,#editModal{position:fixed; inset:0; background:rgba(16,24,40,.5); z-index:110; display:flex; align-items:flex-end; justify-content:center;}
@@ -365,8 +379,11 @@
     .cal-badge.plan{background:#3b2a10; color:#fcd34d;}
     .cal-badge.plan.done{background:#232833; color:#98a2b3;}
     .sched-item{background:#1d1a12; border-color:#4a3a12;}
+    .sched-item.done{background:#181b21; border-color:#2a2f3a;}
     .sched-branch{background:#3b2a10; color:#fcd34d;}
+    .sched-item.done .sched-branch{background:#232833; color:#98a2b3;}
     .sched-task{color:#e4e7ec;}
+    .sched-memo{color:#98a2b3;}
     .sched-actions button{background:#181b21; color:#e4e7ec;}
     .sched-actions button.primary{background:var(--brand); color:#fff;}
     .day-record{background:#181b21;}
@@ -397,64 +414,71 @@
   </header>
 
   <nav class="tabs" role="tablist" aria-label="화면 전환">
-    <button class="tab active" id="tab-calendar" role="tab" aria-selected="true" data-tab="calendar">📅 캘린더</button>
-    <button class="tab" id="tab-write" role="tab" aria-selected="false" data-tab="write">📷 사진 등록</button>
+    <button class="tab active" id="tab-calendar" role="tab" aria-selected="true" data-tab="calendar">📅 작업 캘린더</button>
+    <button class="tab" id="tab-requests" role="tab" aria-selected="false" data-tab="requests">📝 매장 요청</button>
     <button class="tab" id="tab-list" role="tab" aria-selected="false" data-tab="list">📋 전체 내역 조회</button>
   </nav>
 
   <main>
-    <!-- ============================ 등록 ============================ -->
-    <section id="panel-write" role="tabpanel" aria-labelledby="tab-write" hidden>
-      <form id="writeForm" autocomplete="off">
-        <div class="card">
-          <div class="plan-link" id="planLink" hidden></div>
-          <div class="field">
-            <div class="label"><span>작업 날짜</span><span class="req">필수</span></div>
-            <input type="date" id="inputDate" required>
-          </div>
-
-          <div class="field">
-            <div class="label"><span>지점명</span><span class="req">필수</span></div>
-            <div class="chips" id="branchChips"></div>
-            <input type="text" id="inputBranch" list="branchList" placeholder="지점명을 선택하거나 직접 입력" required>
-            <datalist id="branchList"></datalist>
-            <div class="hint">새 지점은 그냥 입력하시면 다음부터 목록에 나옵니다.</div>
-          </div>
-
-          <div class="field">
-            <div class="label"><span>작성자</span><span class="req">필수</span></div>
-            <input type="text" id="inputAuthor" list="authorList" placeholder="이름" required>
-            <datalist id="authorList"></datalist>
-          </div>
-
-          <div class="field">
-            <div class="label"><span>작업 내용</span><span class="optional">선택</span></div>
-            <textarea id="inputMemo" rows="2" maxlength="1000" placeholder="예) 냉동고 2대 설치, 진열대 높이 조정"></textarea>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="field">
-            <div class="label"><span>작업사진</span><span class="req">필수 · 여러 장 가능</span></div>
-            <div class="photo-actions">
-              <label class="picker" id="pickLabel">
-                <span>📷 사진 찍기 / 앨범</span>
-                <input type="file" id="photoInput" accept="image/*" multiple hidden>
-              </label>
-            </div>
-            <div class="photo-grid" id="photoGrid"></div>
-            <div class="summary" id="photoSummary">아직 선택한 사진이 없습니다.</div>
-            <div class="hint">올릴 때 자동으로 <b>가로 600 × 세로 400픽셀</b> JPEG로 변환해 저장합니다 (출력 시 6×4cm).</div>
-          </div>
-        </div>
-
-        <button type="submit" class="btn-primary" id="submitBtn">등록하기</button>
-        <p class="footer-note">사진은 회사 구글 드라이브 ‘작업사진_등록시스템’ 폴더에 저장되고,<br>등록 내용은 ‘작업사진_등록기록’ 시트에 함께 기록됩니다.</p>
-      </form>
-    </section>
-
-    <!-- ============================ 캘린더 ============================ -->
+    <!-- ================== 1. 📅 작업 캘린더 (작업사진 전용) ================== -->
     <section id="panel-calendar" role="tabpanel" aria-labelledby="tab-calendar">
+      <!-- 날짜를 골라 [📷 이 날 작업사진 등록]을 누르면 여기에 등록 칸이 열린다 -->
+      <div id="writeCard" class="write-card" hidden>
+        <form id="writeForm" autocomplete="off">
+          <div class="card">
+            <div class="write-head">
+              <div>
+                <h2>📷 작업사진 등록</h2>
+                <div class="write-sub" id="writeSub">날짜 · 지점 · 작성자 · 작업사진</div>
+              </div>
+              <button type="button" class="btn-ghost" id="writeClose">닫기</button>
+            </div>
+            <div class="plan-link" id="planLink" hidden></div>
+            <div class="field">
+              <div class="label"><span>작업 날짜</span><span class="req">필수</span></div>
+              <input type="date" id="inputDate" required>
+            </div>
+
+            <div class="field">
+              <div class="label"><span>지점명</span><span class="req">필수</span></div>
+              <div class="chips" id="branchChips"></div>
+              <input type="text" id="inputBranch" list="branchList" placeholder="지점명을 선택하거나 직접 입력" required>
+              <datalist id="branchList"></datalist>
+              <div class="hint">새 지점은 그냥 입력하시면 다음부터 목록에 나옵니다.</div>
+            </div>
+
+            <div class="field">
+              <div class="label"><span>작성자</span><span class="req">필수</span></div>
+              <input type="text" id="inputAuthor" list="authorList" placeholder="이름" required>
+              <datalist id="authorList"></datalist>
+            </div>
+
+            <div class="field">
+              <div class="label"><span>작업 내용</span><span class="optional">선택</span></div>
+              <textarea id="inputMemo" rows="2" maxlength="1000" placeholder="예) 냉동고 2대 설치, 진열대 높이 조정"></textarea>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="field">
+              <div class="label"><span>작업사진</span><span class="req">필수 · 여러 장 가능</span></div>
+              <div class="photo-actions">
+                <label class="picker" id="pickLabel">
+                  <span>📷 사진 찍기 / 앨범</span>
+                  <input type="file" id="photoInput" accept="image/*" multiple hidden>
+                </label>
+              </div>
+              <div class="photo-grid" id="photoGrid"></div>
+              <div class="summary" id="photoSummary">아직 선택한 사진이 없습니다.</div>
+              <div class="hint">올릴 때 자동으로 <b>가로 600 × 세로 400픽셀</b> JPEG로 변환해 저장합니다 (출력 시 6×4cm).</div>
+            </div>
+          </div>
+
+          <button type="submit" class="btn-primary" id="submitBtn">등록하기</button>
+          <p class="footer-note">사진은 회사 구글 드라이브 ‘작업사진_등록시스템’ 폴더에 저장되고,<br>등록 내용은 ‘작업사진_등록기록’ 시트에 함께 기록됩니다.</p>
+        </form>
+      </div>
+
       <div class="card cal-toolbar">
         <div class="cal-nav">
           <button type="button" class="btn-ghost" id="calPrev" aria-label="이전 달">‹ 이전 달</button>
@@ -463,13 +487,14 @@
         </div>
         <div class="cal-tools">
           <div class="cal-legend">
-            <span>📷 작업사진(자동)</span>
-            <span>📌 예정작업</span>
+            <span>📷 작업사진</span>
           </div>
           <button type="button" class="btn-ghost" id="calToday">오늘</button>
         </div>
         <div class="chips" id="calBranchFilter"></div>
       </div>
+
+      <div class="cal-hint">작업사진(등록기록)만 보이는 달력입니다. 매장 요청은 <b>📝 매장 요청</b> 탭에서 따로 봅니다.</div>
 
       <div class="card cal-card">
         <div class="cal-week">
@@ -486,11 +511,52 @@
             <div class="day-sub" id="daySub"></div>
           </div>
           <div class="day-head-actions">
-            <button type="button" class="btn-day-photo" id="dayPhotoBtn">📷 이 날 사진 등록</button>
-            <button type="button" class="btn-add-plan" id="dayAddBtn">+ 예정작업 등록</button>
+            <button type="button" class="btn-day-photo" id="dayPhotoBtn">📷 이 날 작업사진 등록</button>
           </div>
         </div>
         <div id="dayDetail"></div>
+      </div>
+    </section>
+
+    <!-- ================== 2. 📝 매장 요청 (별도 캘린더) ================== -->
+    <section id="panel-requests" role="tabpanel" aria-labelledby="tab-requests" hidden>
+      <div class="card cal-toolbar">
+        <div class="cal-nav">
+          <button type="button" class="btn-ghost" id="reqPrev" aria-label="이전 달">‹ 이전 달</button>
+          <div class="cal-month" id="reqMonth">–</div>
+          <button type="button" class="btn-ghost" id="reqNext" aria-label="다음 달">다음 달 ›</button>
+        </div>
+        <div class="cal-tools">
+          <div class="cal-legend">
+            <span>📝 요청 대기</span>
+            <span>✓ 완료</span>
+          </div>
+          <button type="button" class="btn-ghost" id="reqToday">오늘</button>
+        </div>
+        <div class="chips" id="reqBranchFilter"></div>
+      </div>
+
+      <div class="cal-hint">매장에서 들어온 요청만 따로 보는 달력입니다. 요청을 등록해 두고, 작업을 마치면 그 요청에서 <b>📷 작업완료(사진등록)</b>으로 사진을 올리면 됩니다.</div>
+
+      <div class="card cal-card">
+        <div class="cal-week">
+          <span class="sun">일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span class="sat">토</span>
+        </div>
+        <div class="cal-grid" id="reqGrid"></div>
+        <div class="cal-summary" id="reqSummary"></div>
+      </div>
+
+      <div class="card">
+        <div class="day-head">
+          <div>
+            <h2 id="reqDayTitle">오늘</h2>
+            <div class="day-sub" id="reqDaySub"></div>
+          </div>
+          <div class="day-head-actions">
+            <button type="button" class="btn-add-plan" id="reqDayAddBtn">+ 이 날 매장 요청 등록</button>
+          </div>
+        </div>
+        <div id="reqDayDetail"></div>
       </div>
     </section>
 
@@ -551,11 +617,12 @@
 <div id="schedModal" hidden>
   <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="schedTitle">
     <div class="modal-head">
-      <h2 id="schedTitle">예정작업 등록</h2>
+      <h2 id="schedTitle">매장 요청 등록</h2>
       <button type="button" class="modal-close" id="schedClose" aria-label="닫기">✕</button>
     </div>
+    <div class="edit-meta" id="schedMeta" hidden></div>
     <div class="field">
-      <div class="label"><span>예정일</span><span class="req">필수</span></div>
+      <div class="label"><span>요청 날짜</span><span class="req">필수</span></div>
       <input type="date" id="schedDate" required>
     </div>
     <div class="field">
@@ -565,14 +632,18 @@
       <div class="hint">새 지점은 그냥 입력하시면 다음부터 목록에 나옵니다.</div>
     </div>
     <div class="field">
-      <div class="label"><span>예정 작업내용</span><span class="req">필수</span></div>
-      <textarea id="schedTask" rows="2" maxlength="500" placeholder="예) 냉동고 2대 설치, 진열대 높이 조정"></textarea>
+      <div class="label"><span>요청 내용</span><span class="req">필수</span></div>
+      <textarea id="schedTask" rows="2" maxlength="500" placeholder="예) 상리동 천만 홑강판 보수공사"></textarea>
     </div>
     <div class="field">
-      <div class="label"><span>등록자</span><span class="optional">선택</span></div>
+      <div class="label"><span>요청자</span><span class="optional">선택</span></div>
       <input type="text" id="schedAuthor" list="authorList" placeholder="이름">
     </div>
-    <button type="button" class="btn-primary" id="schedSave">예정작업 등록</button>
+    <div class="field">
+      <div class="label"><span>비고 / 메모</span><span class="optional">선택</span></div>
+      <textarea id="schedMemo" rows="2" maxlength="500" placeholder="예) 자재는 현장에 있음 · 연락처 등"></textarea>
+    </div>
+    <button type="button" class="btn-primary" id="schedSave">매장 요청 등록</button>
   </div>
 </div>
 
@@ -669,17 +740,31 @@
     listSearched: false,  // 🔍 조회하기를 눌러 내역을 불러왔는지 (누르기 전에는 사진을 보여 주지 않는다)
     lightbox: { photos: [], index: 0, meta: '' },
     edit: null,          // 수정 중인 기록 { record, keep:[기존 사진], newPhotos:[], saving }
+    // 매장 요청 카드에서 [📷 작업완료(사진등록)]으로 넘어온 요청 { id, date, branch, task }
+    prefill: null,
+    // ✏️ 수정 중인 매장 요청 (없으면 새로 등록)
+    schedEdit: null,
+    // 1️⃣ 📅 작업 캘린더 — 작업사진(등록기록)만
     cal: {
       month: '',          // 'YYYY-MM' (지금 보고 있는 달)
       branch: '',         // 지점 필터 ('' = 전체)
       selected: '',       // 선택한 날짜 'YYYY-MM-DD'
       records: [],        // 그 달 작업기록
-      schedules: [],      // 그 달 예정작업
       loaded: false,
       loadedMonth: '',
       loading: false,
-      error: '',
-      prefillId: ''       // 예정작업에서 '사진 등록하기'로 넘어온 일정ID
+      error: ''
+    },
+    // 2️⃣ 📝 매장 요청 — 예정작업 시트를 쓰는 별도 캘린더
+    req: {
+      month: '',
+      branch: '',
+      selected: '',
+      schedules: [],      // 그 달 매장 요청
+      loaded: false,
+      loadedMonth: '',
+      loading: false,
+      error: ''
     }
   };
 
@@ -836,6 +921,11 @@
       if (IS_GAS) return gasCall('saveSchedule', payload);
       if (IS_REMOTE) return remotePost(withAction('saveSchedule', payload));
       return Promise.resolve(mockSaveSchedule(payload));
+    },
+    updateSchedule: function (payload) {
+      if (IS_GAS) return gasCall('updateSchedule', payload);
+      if (IS_REMOTE) return remotePost(withAction('updateSchedule', payload));
+      return Promise.resolve(mockUpdateSchedule(payload));
     },
     updateScheduleStatus: function (id, status) {
       if (IS_GAS) return gasCall('updateScheduleStatus', id, status);
@@ -1023,11 +1113,11 @@
   function mockSaveSchedule(payload) {
     payload = payload || {};
     var date = String(payload.date || '').trim();
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return { ok: false, error: '예정일을 YYYY-MM-DD 형식으로 넣어 주세요.' };
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return { ok: false, error: '요청 날짜를 YYYY-MM-DD 형식으로 넣어 주세요.' };
     var branch = String(payload.branch || '').trim();
     if (!branch) return { ok: false, error: '지점명을 입력해 주세요.' };
     var task = String(payload.task || '').trim();
-    if (!task) return { ok: false, error: '예정 작업내용을 입력해 주세요.' };
+    if (!task) return { ok: false, error: '요청 내용을 입력해 주세요.' };
 
     var all = store.get(LS.schedules, []);
     var maxSeq = 0;
@@ -1041,11 +1131,45 @@
       id: 'SCH-' + ymd(now).replace(/-/g, '') + '-' + ('00' + (maxSeq + 1)).slice(-3),
       date: date, branch: branch, task: task,
       author: String(payload.author || '').trim(),
-      status: '예정', createdAt: stamp
+      status: '예정', createdAt: stamp,
+      memo: String(payload.memo || '').trim()
     };
     all.push(schedule);
     store.set(LS.schedules, all);
     return { ok: true, schedule: schedule };
+  }
+
+  // 매장 요청(예정작업) 수정 — 미리보기(로컬) 저장소
+  function mockUpdateSchedule(payload) {
+    payload = payload || {};
+    var id = String(payload.id || '').trim();
+    if (!id) return { ok: false, error: '수정할 매장 요청 ID가 없습니다.' };
+    var date = String(payload.date || '').trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return { ok: false, error: '요청 날짜를 YYYY-MM-DD 형식으로 넣어 주세요.' };
+    var branch = String(payload.branch || '').trim();
+    if (!branch) return { ok: false, error: '지점명을 입력해 주세요.' };
+    var task = String(payload.task || '').trim();
+    if (!task) return { ok: false, error: '요청 내용을 입력해 주세요.' };
+
+    var all = store.get(LS.schedules, []);
+    var hit = null;
+    all.forEach(function (s) { if (s.id === id) hit = s; });
+    if (!hit) return { ok: false, error: '해당 매장 요청을 찾지 못했습니다. (이미 지워졌을 수 있습니다)' };
+
+    var expect = payload.expect || {};
+    var changed = '이 매장 요청이 그 사이 바뀌었습니다. 새로고침한 뒤 다시 시도해 주세요.';
+    if (expect.date && expect.date !== hit.date) return { ok: false, error: changed };
+    if (expect.branch && expect.branch !== hit.branch) return { ok: false, error: changed };
+    if (expect.task && expect.task !== hit.task) return { ok: false, error: changed };
+    if (expect.author != null && String(expect.author).trim() !== String(hit.author || '').trim()) return { ok: false, error: changed };
+
+    hit.date = date;
+    hit.branch = branch;
+    hit.task = task;
+    hit.author = String(payload.author || '').trim();
+    hit.memo = String(payload.memo || '').trim();
+    store.set(LS.schedules, all);
+    return { ok: true, id: id, schedule: hit };
   }
 
   function mockUpdateScheduleStatus(id, status) {
@@ -1336,11 +1460,14 @@
 
     state.cal.month = nowMonth();
     state.cal.selected = today;
+    state.req.month = nowMonth();
+    state.req.selected = today;
 
     state.branches = mergeBranches(store.get(LS.branches, []), DEFAULT_BRANCHES);
     renderBranchChips();
     renderDatalists();
     renderPlanLink();
+    showWriteCard(false);   // 사진 등록 칸은 [📷 이 날 작업사진 등록]을 눌렀을 때만 펼친다
 
     setQuickRange('30');
 
@@ -1438,13 +1565,17 @@
 
   /* ================================================================
    * 4. 화면 전환
+   *   1) 📅 작업 캘린더 — 작업사진(등록기록)만 보이는 달력
+   *   2) 📝 매장 요청   — 매장 요청(예정작업 시트)만 보이는 별도 달력
+   *   3) 📋 전체 내역 조회
    * ============================================================== */
   function switchTab(tab) {
+    if (tab === 'write') tab = 'calendar';        // 예전 이름(사진 등록 탭) 호환
     state.tab = tab;
-    $('panel-write').hidden = tab !== 'write';
     $('panel-calendar').hidden = tab !== 'calendar';
+    $('panel-requests').hidden = tab !== 'requests';
     $('panel-list').hidden = tab !== 'list';
-    ['write', 'calendar', 'list'].forEach(function (name) {
+    ['calendar', 'requests', 'list'].forEach(function (name) {
       var btn = $('tab-' + name);
       if (!btn) return;
       btn.classList.toggle('active', tab === name);
@@ -1457,24 +1588,51 @@
       showListIdle();
     }
     if (tab === 'calendar') openCalendar();
+    if (tab === 'requests') openRequests();
+  }
+
+  // 작업사진 등록 칸 열기/닫기 (📅 작업 캘린더 안에서 열린다)
+  function showWriteCard(on) {
+    var card = $('writeCard');
+    card.hidden = !on;
+    if (!on) return;
+    var parts = [];
+    if ($('inputDate').value) parts.push(formatDateLabel($('inputDate').value));
+    if ($('inputBranch').value.trim()) parts.push($('inputBranch').value.trim());
+    $('writeSub').textContent = parts.length ? parts.join(' · ') + ' · 작업사진' : '날짜 · 지점 · 작성자 · 작업사진';
+    if (typeof card.scrollIntoView === 'function') {
+      try { card.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { card.scrollIntoView(); }
+    }
   }
 
   function bindEvents() {
-    $('tab-write').addEventListener('click', function () { switchTab('write'); });
     $('tab-calendar').addEventListener('click', function () { switchTab('calendar'); });
+    $('tab-requests').addEventListener('click', function () { switchTab('requests'); });
     $('tab-list').addEventListener('click', function () { switchTab('list'); });
 
-    // 캘린더 달 이동 / 오늘 / 예정작업 등록
+    // 📅 작업 캘린더 — 달 이동 / 오늘
     $('calPrev').addEventListener('click', function () { goToMonth(shiftMonth(state.cal.month, -1)); });
     $('calNext').addEventListener('click', function () { goToMonth(shiftMonth(state.cal.month, 1)); });
     $('calToday').addEventListener('click', function () { goToMonth(nowMonth(), todayStr()); });
-    $('dayAddBtn').addEventListener('click', function () { openScheduleModal(state.cal.selected); });
     $('dayPhotoBtn').addEventListener('click', registerPhotoForSelectedDate);
-    $('schedClose').addEventListener('click', closeScheduleModal);
-    $('schedSave').addEventListener('click', saveScheduleFromForm);
-    $('schedBranch').addEventListener('input', renderScheduleBranchChips);
+    $('writeClose').addEventListener('click', function () {
+      state.prefill = null;
+      renderPlanLink();
+      showWriteCard(false);
+    });
+
+    // 📝 매장 요청 — 달 이동 / 오늘 / 요청 등록
+    $('reqPrev').addEventListener('click', function () { goToReqMonth(shiftMonth(state.req.month, -1)); });
+    $('reqNext').addEventListener('click', function () { goToReqMonth(shiftMonth(state.req.month, 1)); });
+    $('reqToday').addEventListener('click', function () { goToReqMonth(nowMonth(), todayStr()); });
+    $('reqDayAddBtn').addEventListener('click', function () { openRequestModal(null, state.req.selected); });
+
+    // 매장 요청 등록·수정 창
+    $('schedClose').addEventListener('click', closeRequestModal);
+    $('schedSave').addEventListener('click', saveRequestFromForm);
+    $('schedBranch').addEventListener('input', renderRequestBranchChips);
     $('schedModal').addEventListener('click', function (e) {
-      if (e && e.target === $('schedModal')) closeScheduleModal();
+      if (e && e.target === $('schedModal')) closeRequestModal();
     });
 
     // 작업사진 수정 창
@@ -1540,7 +1698,7 @@
     $('lbNext').addEventListener('click', function () { stepLightbox(1); });
     document.addEventListener('keydown', function (e) {
       if (!$('editModal').hidden && e.key === 'Escape') { closeEditModal(); return; }
-      if (!$('schedModal').hidden && e.key === 'Escape') { closeScheduleModal(); return; }
+      if (!$('schedModal').hidden && e.key === 'Escape') { closeRequestModal(); return; }
       if ($('lightbox').hidden) return;
       if (e.key === 'Escape') closeLightbox();
       if (e.key === 'ArrowLeft') stepLightbox(-1);
@@ -1711,7 +1869,7 @@
       branch: branch,
       author: author,
       memo: memo,
-      scheduleId: state.cal.prefillId || '',
+      scheduleId: (state.prefill && state.prefill.id) || '',
       images: state.photos.map(function (p) {
         return { name: p.name, mimeType: p.mimeType, base64: p.base64 };
       })
@@ -1739,9 +1897,13 @@
       $('inputMemo').value = '';
       state.listDirty = true;
       state.listLoaded = false;
-      // 예정작업 연결은 풀고, 등록한 날짜가 보이는 📅 캘린더로 돌아가 새 기록을 바로 보여 준다
-      state.cal.prefillId = '';
+      // 매장 요청 연결은 풀고, 등록한 날짜가 보이는 📅 작업 캘린더로 돌아가 새 기록을 바로 보여 준다
+      state.prefill = null;
       renderPlanLink();
+      showWriteCard(false);
+      // 매장 요청에서 넘어온 등록이면 그 요청이 [완료]로 바뀌었으니 요청 달력도 다시 불러온다
+      state.req.loaded = false;
+      state.req.loadedMonth = '';
       state.cal.month = String(date || todayStr()).substring(0, 7);
       state.cal.selected = date || todayStr();
       state.cal.loaded = false;
@@ -1928,7 +2090,7 @@
   }
 
   /* ================================================================
-   * 7-2. 캘린더 · 예정작업
+   * 7-2. 📅 작업 캘린더 — 작업사진(등록기록)만 보이는 달력
    * ============================================================== */
   function openCalendar() {
     var cal = state.cal;
@@ -1955,9 +2117,8 @@
     API.calendar({ yearMonth: want, branch: cal.branch }).then(function (res) {
       if (want !== cal.month) return;          // 그 사이 달을 바꿨으면 이 응답은 버린다
       cal.loading = false;
-      if (!res || res.ok === false) throw new Error((res && res.error) || '캘린더를 불러오지 못했습니다.');
+      if (!res || res.ok === false) throw new Error((res && res.error) || '작업 캘린더를 불러오지 못했습니다.');
       cal.records = res.records || [];
-      cal.schedules = res.schedules || [];
       if (res.branches && res.branches.length) {
         state.branches = mergeBranches(state.branches, res.branches);
         renderBranchChips();
@@ -1969,16 +2130,13 @@
     }).catch(function (err) {
       if (want !== cal.month) return;
       cal.loading = false;
-      cal.error = (err && err.message) || '캘린더를 불러오지 못했습니다.';
+      cal.error = (err && err.message) || '작업 캘린더를 불러오지 못했습니다.';
       renderCalendar();
     });
   }
 
   function recordsOn(dateStr) {
     return (state.cal.records || []).filter(function (r) { return r.date === dateStr; });
-  }
-  function schedulesOn(dateStr) {
-    return (state.cal.schedules || []).filter(function (s) { return s.date === dateStr; });
   }
 
   function renderCalendar() {
@@ -2010,6 +2168,7 @@
       cell.setAttribute('aria-label', formatDateLabel(dateStr));
       cell.appendChild(el('span', 'cal-num', String(d)));
 
+      // 작업사진(등록기록)만 표시한다. 매장 요청은 📝 매장 요청 탭의 달력에서 따로 본다.
       var recs = recordsOn(dateStr);
       if (recs.length) {
         var photos = recs.reduce(function (n, r) { return n + (r.photoCount || (r.photos || []).length); }, 0);
@@ -2018,20 +2177,12 @@
         if (photos > 1 && recs.length === 1) cell.appendChild(el('span', 'cal-badge photo', '사진 ' + photos + '장'));
       }
 
-      var plans = schedulesOn(dateStr);
-      if (plans.length) {
-        var allDone = plans.every(function (p) { return p.status === '완료'; });
-        var planLabel = plans.length === 1 ? plans[0].branch : plans.length + '건';
-        cell.appendChild(el('span', 'cal-badge plan' + (allDone ? ' done' : ''), '📌 ' + planLabel));
-      }
-
       (function (ds) {
         cell.addEventListener('click', function () { selectDay(ds); });
       })(dateStr);
       grid.appendChild(cell);
     }
 
-    var open = (cal.schedules || []).filter(function (s) { return s.status !== '완료'; }).length;
     var summary = $('calSummary');
     summary.className = 'cal-summary' + (cal.error ? ' err' : '');
     if (cal.loading) {
@@ -2039,8 +2190,9 @@
     } else if (cal.error) {
       summary.textContent = cal.error;
     } else {
-      summary.textContent = '이 달 작업사진 ' + (cal.records || []).length + '건 · 예정작업 ' +
-        (cal.schedules || []).length + '건 (남은 예정 ' + open + ')' +
+      var all = cal.records || [];
+      var shots = all.reduce(function (n, r) { return n + (r.photoCount || (r.photos || []).length); }, 0);
+      summary.textContent = '이 달 작업사진 ' + all.length + '건 · 사진 ' + shots + '장' +
         (cal.branch ? ' · ' + cal.branch : '');
     }
 
@@ -2070,78 +2222,35 @@
     renderCalendar();
   }
 
-  // 캘린더에서 고른 날짜로 바로 사진 등록 — 날짜를 채우고 등록 탭으로 넘어간다.
+  // 캘린더에서 고른 날짜로 바로 작업사진 등록 — 등록 칸을 열고 날짜를 채운다.
   function registerPhotoForSelectedDate() {
     var date = state.cal.selected || todayStr();
-    state.cal.prefillId = '';          // 예정작업 연결은 풀고 일반 등록으로 시작
+    state.prefill = null;          // 매장 요청 연결 없이 일반 등록으로 시작
     $('inputDate').value = date;
     renderBranchChips();
     renderPlanLink();
-    switchTab('write');
-    toast(formatDateLabel(date) + ' 사진을 등록합니다. 사진을 올리고 [등록하기]를 눌러 주세요.', 'ok');
+    showWriteCard(true);
+    toast(formatDateLabel(date) + ' 작업사진을 등록합니다. 사진을 올리고 [등록하기]를 눌러 주세요.', 'ok');
   }
 
   function renderDayDetail() {
     var cal = state.cal;
     var date = cal.selected || todayStr();
     var recs = recordsOn(date);
-    var plans = schedulesOn(date);
     var photos = recs.reduce(function (n, r) { return n + (r.photoCount || (r.photos || []).length); }, 0);
 
     $('dayTitle').textContent = koreanDate(date) + ' (' + WEEKDAY[weekdayOf(date)] + ')';
-    $('daySub').textContent = '예정작업 ' + plans.length + '건 · 작업사진 ' + recs.length + '건(사진 ' + photos + '장)';
+    $('daySub').textContent = '작업사진 ' + recs.length + '건(사진 ' + photos + '장)';
 
     var box = $('dayDetail');
     clearNode(box);
 
-    box.appendChild(el('div', 'day-section-title', '📌 예정작업 ' + plans.length + '건'));
-    if (!plans.length) {
-      box.appendChild(el('div', 'day-empty', '이 날은 예정작업이 없습니다. [+ 예정작업 등록]으로 미리 잡아 두면 그 날짜 칸에 표시됩니다.'));
-    } else {
-      plans.forEach(function (p) { box.appendChild(scheduleItemEl(p)); });
-    }
-
     box.appendChild(el('div', 'day-section-title', '📷 등록된 작업사진 ' + recs.length + '건'));
     if (!recs.length) {
-      box.appendChild(el('div', 'day-empty', '이 날 등록된 작업사진이 없습니다. 사진을 등록하면 이 날짜 칸에 저절로 나타납니다.'));
+      box.appendChild(el('div', 'day-empty', '이 날 등록된 작업사진이 없습니다. [📷 이 날 작업사진 등록]으로 사진을 올리면 이 날짜 칸에 저절로 나타납니다.'));
     } else {
       recs.forEach(function (r) { box.appendChild(dayRecordEl(r)); });
     }
-  }
-
-  function scheduleItemEl(plan) {
-    var item = el('div', 'sched-item');
-    var top = el('div', 'sched-top');
-    top.appendChild(el('span', 'sched-branch', plan.branch));
-    top.appendChild(el('span', 'sched-status' + (plan.status === '완료' ? ' done' : ''),
-      plan.status === '완료' ? '✓ 완료' : '예정'));
-    item.appendChild(top);
-    if (plan.task) item.appendChild(el('p', 'sched-task', plan.task));
-    var meta = [];
-    if (plan.author) meta.push(plan.author);
-    if (plan.createdAt) meta.push(timeLabel(plan.createdAt) + ' 등록');
-    if (meta.length) item.appendChild(el('div', 'sched-meta', meta.join(' · ')));
-
-    var actions = el('div', 'sched-actions');
-    var photoBtn = el('button', 'primary do-photo', '📷 사진 등록하기');
-    photoBtn.setAttribute('type', 'button');
-    photoBtn.addEventListener('click', function () { startPhotoFromSchedule(plan); });
-    actions.appendChild(photoBtn);
-
-    var toggle = el('button', 'do-toggle', plan.status === '완료' ? '↩ 되돌리기' : '✓ 완료');
-    toggle.setAttribute('type', 'button');
-    toggle.addEventListener('click', function () {
-      setScheduleStatus(plan, plan.status === '완료' ? '예정' : '완료');
-    });
-    actions.appendChild(toggle);
-
-    var del = el('button', 'danger do-delete', '🗑️ 삭제');
-    del.setAttribute('type', 'button');
-    del.addEventListener('click', function () { removeSchedule(plan); });
-    actions.appendChild(del);
-
-    item.appendChild(actions);
-    return item;
   }
 
   function dayRecordEl(record) {
@@ -2182,127 +2291,351 @@
     return card;
   }
 
-  function findScheduleById(id) {
-    var hit = null;
-    (state.cal.schedules || []).forEach(function (s) { if (s.id === id) hit = s; });
-    return hit;
+  /* ================================================================
+   * 7-3. 📝 매장 요청 — 요청만 따로 보는 별도 달력 (예정작업 시트)
+   * ============================================================== */
+  function openRequests() {
+    var req = state.req;
+    if (!req.month) req.month = nowMonth();
+    if (!req.selected) req.selected = todayStr();
+    loadRequests(false);
   }
 
-  // 예정작업 → 사진 등록 탭으로 날짜·지점·작업내용을 채워 넘어간다
+  function goToReqMonth(month, dateStr) {
+    var req = state.req;
+    req.month = month;
+    req.selected = dateStr || (month === nowMonth() ? todayStr() : month + '-01');
+    req.loaded = false;
+    loadRequests(true);
+  }
+
+  function loadRequests(force) {
+    var req = state.req;
+    if (!force && req.loaded && req.loadedMonth === req.month) { renderRequests(); return; }
+    var want = req.month;
+    req.loading = true;
+    req.error = '';
+    renderRequests();
+    API.calendar({ yearMonth: want, branch: req.branch }).then(function (res) {
+      if (want !== req.month) return;
+      req.loading = false;
+      if (!res || res.ok === false) throw new Error((res && res.error) || '매장 요청 달력을 불러오지 못했습니다.');
+      req.schedules = res.schedules || [];
+      if (res.branches && res.branches.length) {
+        state.branches = mergeBranches(state.branches, res.branches);
+        renderBranchChips();
+        renderDatalists();
+      }
+      req.loaded = true;
+      req.loadedMonth = want;
+      renderRequests();
+    }).catch(function (err) {
+      if (want !== req.month) return;
+      req.loading = false;
+      req.error = (err && err.message) || '매장 요청 달력을 불러오지 못했습니다.';
+      renderRequests();
+    });
+  }
+
+  function requestsOn(dateStr) {
+    return (state.req.schedules || []).filter(function (s) { return s.date === dateStr; });
+  }
+
+  function renderRequests() {
+    var req = state.req;
+    $('reqMonth').textContent = monthLabel(req.month);
+    renderReqBranchFilter();
+
+    var grid = $('reqGrid');
+    clearNode(grid);
+    var blanks = firstWeekdayOfMonth(req.month);
+    var total = daysInMonth(req.month);
+    var today = todayStr();
+
+    for (var b = 0; b < blanks; b++) {
+      var empty = el('div', 'cal-cell out');
+      empty.setAttribute('aria-hidden', 'true');
+      grid.appendChild(empty);
+    }
+
+    for (var d = 1; d <= total; d++) {
+      var dateStr = req.month + '-' + pad(d);
+      var dow = weekdayOf(dateStr);
+      var cls = 'cal-cell' + (dow === 0 ? ' sun' : (dow === 6 ? ' sat' : ''));
+      if (dateStr === today) cls += ' today';
+      if (dateStr === req.selected) cls += ' selected';
+      var cell = el('button', cls);
+      cell.setAttribute('type', 'button');
+      cell.setAttribute('data-date', dateStr);
+      cell.setAttribute('aria-label', formatDateLabel(dateStr));
+      cell.appendChild(el('span', 'cal-num', String(d)));
+
+      var plans = requestsOn(dateStr);
+      if (plans.length) {
+        var allDone = plans.every(function (p) { return p.status === '완료'; });
+        var planLabel = plans.length === 1 ? plans[0].branch : plans.length + '건';
+        cell.appendChild(el('span', 'cal-badge plan' + (allDone ? ' done' : ''), '📝 ' + planLabel));
+      }
+
+      (function (ds) {
+        cell.addEventListener('click', function () { selectReqDay(ds); });
+      })(dateStr);
+      grid.appendChild(cell);
+    }
+
+    var summary = $('reqSummary');
+    summary.className = 'cal-summary' + (req.error ? ' err' : '');
+    if (req.loading) {
+      summary.textContent = '불러오는 중…';
+    } else if (req.error) {
+      summary.textContent = req.error;
+    } else {
+      var all = req.schedules || [];
+      var done = all.filter(function (p) { return p.status === '완료'; }).length;
+      summary.textContent = '이 달 매장 요청 ' + all.length + '건 · 대기 ' + (all.length - done) + ' · 완료 ' + done +
+        (req.branch ? ' · ' + req.branch : '');
+    }
+
+    renderReqDayDetail();
+  }
+
+  function renderReqBranchFilter() {
+    var req = state.req;
+    var box = $('reqBranchFilter');
+    clearNode(box);
+    var names = [''].concat(state.branches.slice(0, 8));
+    names.forEach(function (value) {
+      var chip = el('button', 'chip' + (value === req.branch ? ' active' : ''), value || '전체');
+      chip.setAttribute('type', 'button');
+      chip.addEventListener('click', function () {
+        if (req.branch === value) return;
+        req.branch = value;
+        req.loaded = false;
+        loadRequests(true);
+      });
+      box.appendChild(chip);
+    });
+  }
+
+  function selectReqDay(dateStr) {
+    state.req.selected = dateStr;
+    renderRequests();
+  }
+
+  function renderReqDayDetail() {
+    var req = state.req;
+    var date = req.selected || todayStr();
+    var plans = requestsOn(date);
+    var done = plans.filter(function (p) { return p.status === '완료'; }).length;
+
+    $('reqDayTitle').textContent = koreanDate(date) + ' (' + WEEKDAY[weekdayOf(date)] + ')';
+    $('reqDaySub').textContent = '매장 요청 ' + plans.length + '건' +
+      (plans.length ? ' (대기 ' + (plans.length - done) + ' · 완료 ' + done + ')' : '');
+
+    var box = $('reqDayDetail');
+    clearNode(box);
+    box.appendChild(el('div', 'day-section-title', '📝 매장 요청 ' + plans.length + '건'));
+    if (!plans.length) {
+      box.appendChild(el('div', 'day-empty', '이 날은 매장 요청이 없습니다. [+ 이 날 매장 요청 등록]으로 요청을 적어 두면 이 날짜 칸에 표시됩니다.'));
+      return;
+    }
+    plans.forEach(function (p) { box.appendChild(requestItemEl(p)); });
+  }
+
+  function requestItemEl(plan) {
+    var done = plan.status === '완료';
+    var item = el('div', 'sched-item' + (done ? ' done' : ''));
+    var top = el('div', 'sched-top');
+    top.appendChild(el('span', 'sched-branch', plan.branch));
+    top.appendChild(el('span', 'sched-status' + (done ? ' done' : ''), done ? '✓ 완료' : '요청 대기'));
+    item.appendChild(top);
+    if (plan.task) item.appendChild(el('p', 'sched-task', plan.task));
+    if (plan.memo) item.appendChild(el('p', 'sched-memo', plan.memo));
+    var meta = [];
+    if (plan.author) meta.push(plan.author);
+    if (plan.createdAt) meta.push(timeLabel(plan.createdAt) + ' 등록');
+    if (meta.length) item.appendChild(el('div', 'sched-meta', meta.join(' · ')));
+
+    var actions = el('div', 'sched-actions');
+    var photoBtn = el('button', 'primary do-photo', '📷 작업완료(사진등록)');
+    photoBtn.setAttribute('type', 'button');
+    photoBtn.addEventListener('click', function () { startPhotoFromSchedule(plan); });
+    actions.appendChild(photoBtn);
+
+    var editBtn = el('button', 'edit do-edit', '✏️ 수정');
+    editBtn.setAttribute('type', 'button');
+    editBtn.setAttribute('aria-label', '이 매장 요청 수정');
+    editBtn.addEventListener('click', function () { openRequestModal(plan); });
+    actions.appendChild(editBtn);
+
+    var toggle = el('button', 'do-toggle', done ? '↩ 대기로 되돌리기' : '✅ 완료 처리');
+    toggle.setAttribute('type', 'button');
+    toggle.addEventListener('click', function () {
+      setRequestStatus(plan, done ? '예정' : '완료');
+    });
+    actions.appendChild(toggle);
+
+    var del = el('button', 'danger do-delete', '🗑️ 삭제');
+    del.setAttribute('type', 'button');
+    del.addEventListener('click', function () { removeRequest(plan); });
+    actions.appendChild(del);
+
+    item.appendChild(actions);
+    return item;
+  }
+
+  // 매장 요청 → 작업사진 등록 칸으로 날짜·지점·요청 내용을 채워 넘어간다 (저장하면 그 요청은 완료)
   function startPhotoFromSchedule(plan) {
-    state.cal.prefillId = plan.id || '';
+    state.prefill = {
+      id: plan.id || '',
+      date: plan.date,
+      branch: plan.branch,
+      task: plan.task || ''
+    };
     $('inputDate').value = plan.date;
     $('inputBranch').value = plan.branch;
     if (plan.task) $('inputMemo').value = plan.task;
     if (!$('inputAuthor').value.trim()) $('inputAuthor').value = store.get(LS.author, '') || plan.author || '';
     renderBranchChips();
     renderPlanLink();
-    switchTab('write');
-    toast('예정작업 내용을 채웠습니다. 사진을 올려 등록해 주세요.', 'ok');
+    switchTab('calendar');
+    showWriteCard(true);
+    toast('매장 요청 내용을 채웠습니다. 사진을 올리고 [등록하기]를 눌러 주세요.', 'ok');
   }
 
   function renderPlanLink() {
     var box = $('planLink');
-    var plan = state.cal.prefillId ? findScheduleById(state.cal.prefillId) : null;
-    if (!plan) {
+    var plan = state.prefill;
+    if (!plan || !plan.id) {
       box.hidden = true;
       box.textContent = '';
       return;
     }
     box.hidden = false;
     clearNode(box);
-    box.appendChild(el('span', '', '📌 ' + plan.branch + ' 예정작업과 연결됨 — 등록하면 이 예정작업이 [완료]로 바뀝니다.'));
+    box.appendChild(el('span', '', '📝 ' + plan.branch + ' 매장 요청과 연결됨 — 등록하면 이 요청이 [완료]로 바뀝니다.'));
     var clear = el('button', 'btn-link', '연결 해제');
     clear.setAttribute('type', 'button');
     clear.addEventListener('click', function () {
-      state.cal.prefillId = '';
+      state.prefill = null;
       renderPlanLink();
     });
     box.appendChild(clear);
   }
 
-  function openScheduleModal(dateStr) {
-    var cal = state.cal;
-    $('schedDate').value = dateStr || cal.selected || todayStr();
-    $('schedTask').value = '';
-    $('schedAuthor').value = store.get(LS.author, '') || $('inputAuthor').value.trim();
-    $('schedBranch').value = $('inputBranch').value.trim() || state.branches[0] || '';
-    renderScheduleBranchChips();
+  function openRequestModal(plan, dateStr) {
+    state.schedEdit = plan || null;
+    var date = plan ? plan.date : (dateStr || state.req.selected || todayStr());
+    $('schedTitle').textContent = plan ? '매장 요청 수정' : '매장 요청 등록';
+    $('schedSave').textContent = plan ? '💾 수정 저장' : '매장 요청 등록';
+    $('schedMeta').hidden = !plan;
+    $('schedMeta').textContent = plan
+      ? '요청 ' + (plan.id || '') + ' · ' + (plan.status === '완료' ? '완료' : '요청 대기')
+      : '';
+    $('schedDate').value = date;
+    $('schedBranch').value = plan ? (plan.branch || '') : (state.req.branch || $('inputBranch').value.trim() || state.branches[0] || '');
+    $('schedTask').value = plan ? (plan.task || '') : '';
+    $('schedAuthor').value = plan ? (plan.author || '') : (store.get(LS.author, '') || $('inputAuthor').value.trim());
+    $('schedMemo').value = plan ? (plan.memo || '') : '';
+    $('schedSave').disabled = false;
+    renderRequestBranchChips();
     $('schedModal').hidden = false;
   }
 
-  function closeScheduleModal() {
+  function closeRequestModal() {
     $('schedModal').hidden = true;
+    state.schedEdit = null;
   }
 
-  function renderScheduleBranchChips() {
+  function renderRequestBranchChips() {
     var box = $('schedBranchChips');
     clearNode(box);
     var current = $('schedBranch').value.trim();
-    state.branches.slice(0, 9).forEach(function (name) {
+    var names = state.branches.slice();
+    if (current && names.indexOf(current) === -1) names.unshift(current);
+    names.slice(0, 9).forEach(function (name) {
       var chip = el('button', 'chip' + (name === current ? ' active' : ''), name);
       chip.setAttribute('type', 'button');
       chip.addEventListener('click', function () {
         $('schedBranch').value = name;
-        renderScheduleBranchChips();
+        renderRequestBranchChips();
       });
       box.appendChild(chip);
     });
   }
 
-  function saveScheduleFromForm() {
+  function saveRequestFromForm() {
     var payload = {
       date: $('schedDate').value,
       branch: $('schedBranch').value.trim(),
       task: $('schedTask').value.trim(),
-      author: $('schedAuthor').value.trim()
+      author: $('schedAuthor').value.trim(),
+      memo: $('schedMemo').value.trim()
     };
-    if (!payload.date) { toast('예정일을 선택해 주세요.', 'err'); return; }
+    if (!payload.date) { toast('요청 날짜를 선택해 주세요.', 'err'); return; }
     if (!payload.branch) { toast('지점명을 입력해 주세요.', 'err'); return; }
-    if (!payload.task) { toast('예정 작업내용을 입력해 주세요.', 'err'); return; }
+    if (!payload.task) { toast('요청 내용을 입력해 주세요.', 'err'); return; }
 
+    var editing = state.schedEdit;
     var btn = $('schedSave');
     if (btn.disabled) return;
     btn.disabled = true;
-    API.saveSchedule(payload).then(function (res) {
+
+    var call;
+    if (editing) {
+      call = API.updateSchedule({
+        id: editing.id,
+        expect: { date: editing.date, branch: editing.branch, task: editing.task, author: editing.author || '' },
+        date: payload.date,
+        branch: payload.branch,
+        task: payload.task,
+        author: payload.author,
+        memo: payload.memo
+      });
+    } else {
+      call = API.saveSchedule(payload);
+    }
+
+    call.then(function (res) {
       btn.disabled = false;
-      if (!res || res.ok === false) throw new Error((res && res.error) || '예정작업을 등록하지 못했습니다.');
-      closeScheduleModal();
+      if (!res || res.ok === false) throw new Error((res && res.error) || '매장 요청을 저장하지 못했습니다.');
+      closeRequestModal();
       rememberBranch(payload.branch);
       if (payload.author) rememberAuthor(payload.author);
-      state.cal.month = payload.date.substring(0, 7);
-      state.cal.selected = payload.date;
-      state.cal.loaded = false;
-      toast('예정작업을 등록했습니다. (' + formatDateLabel(payload.date) + ')', 'ok');
-      if (state.tab === 'calendar') loadCalendar(true);
+      state.req.month = payload.date.substring(0, 7);
+      state.req.selected = payload.date;
+      state.req.loaded = false;
+      state.req.loadedMonth = '';
+      toast((editing ? '매장 요청을 수정했습니다. (' : '매장 요청을 등록했습니다. (') + formatDateLabel(payload.date) + ')', 'ok');
+      if (state.tab === 'requests') loadRequests(true);
     }).catch(function (err) {
       btn.disabled = false;
-      toast((err && err.message) || '예정작업을 등록하지 못했습니다.', 'err');
+      toast((err && err.message) || '매장 요청을 저장하지 못했습니다.', 'err');
     });
   }
 
-  function setScheduleStatus(plan, status) {
+  function setRequestStatus(plan, status) {
     API.updateScheduleStatus(plan.id, status).then(function (res) {
       if (!res || res.ok === false) throw new Error((res && res.error) || '상태를 바꾸지 못했습니다.');
       plan.status = status;
-      toast(status === '완료' ? '완료로 표시했습니다.' : '다시 예정으로 되돌렸습니다.', 'ok');
-      renderCalendar();
+      toast(status === '완료' ? '완료로 표시했습니다.' : '다시 요청 대기로 되돌렸습니다.', 'ok');
+      renderRequests();
     }).catch(function (err) {
       toast((err && err.message) || '상태를 바꾸지 못했습니다.', 'err');
     });
   }
 
-  function removeSchedule(plan) {
-    var ask = '이 예정작업을 지울까요?\n\n' + plan.branch + ' · ' + formatDateLabel(plan.date) +
+  function removeRequest(plan) {
+    var ask = '이 매장 요청을 지울까요?\n\n' + plan.branch + ' · ' + formatDateLabel(plan.date) +
       (plan.task ? '\n' + plan.task : '');
     if (typeof confirm === 'function' && !confirm(ask)) return;
     API.deleteSchedule(plan.id).then(function (res) {
-      if (!res || res.ok === false) throw new Error((res && res.error) || '예정작업을 지우지 못했습니다.');
-      toast('예정작업을 지웠습니다.', 'ok');
-      state.cal.loaded = false;
-      loadCalendar(true);
+      if (!res || res.ok === false) throw new Error((res && res.error) || '매장 요청을 지우지 못했습니다.');
+      toast('매장 요청을 지웠습니다.', 'ok');
+      state.req.loaded = false;
+      loadRequests(true);
     }).catch(function (err) {
-      toast((err && err.message) || '예정작업을 지우지 못했습니다.', 'err');
+      toast((err && err.message) || '매장 요청을 지우지 못했습니다.', 'err');
     });
   }
 
