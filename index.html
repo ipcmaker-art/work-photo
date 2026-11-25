@@ -219,10 +219,27 @@
   /* calendar */
   /* 달력 — 일·토는 좁게, 월~금은 넓게 */
   .cal-card{padding:8px 6px 10px;}
+  /* 달력 카드 맨 위 — ◀ 2026년 11월 ▶ 월 이동 + 지점 선택(컴팩트 드롭다운) */
+  .cal-monthbar{display:flex; align-items:center; gap:3px; padding:0 2px 6px;}
+  .cal-nav{
+    flex:0 0 auto; width:25px; height:25px; border-radius:8px; border:1px solid var(--line);
+    background:#fff; color:#475467; font-size:9px; line-height:1; display:inline-flex;
+    align-items:center; justify-content:center; font-weight:800;
+  }
+  .cal-nav:hover{background:#f8faff; border-color:#c7d7fe; color:var(--brand);}
+  .cal-nav:active{transform:translateY(1px);}
+  .cal-month-label{font-size:12.5px; font-weight:800; color:#101828; letter-spacing:-.2px; padding:0 1px;}
+  .cal-monthbar .spacer{flex:1 1 auto;}
+  .cal-branch-pick{
+    flex:0 0 auto; max-width:104px; height:25px; padding:1px 3px; border-radius:8px;
+    border:1px solid var(--line); background:#fff; font-size:11px; font-weight:700; color:#344054;
+  }
+  .cal-branch-pick:focus{outline:none; border-color:#c7d7fe; box-shadow:0 0 0 2px rgba(29,78,216,.12);}
   .cal-week{display:grid; grid-template-columns:0.45fr repeat(5,1.26fr) 0.45fr; gap:2px; padding:0 0 5px;}
   .cal-week span{text-align:center; font-size:11px; font-weight:800; color:var(--muted);}
   .cal-week span.sun{color:#d92d20;} .cal-week span.sat{color:var(--brand);}
-  .cal-grid{display:grid; grid-template-columns:0.45fr repeat(5,1.26fr) 0.45fr; gap:2px;}
+  .cal-grid{display:grid; grid-template-columns:0.45fr repeat(5,1.26fr) 0.45fr; gap:2px;
+    touch-action:pan-y; -webkit-user-select:none; user-select:none;}
   .cal-cell{
     min-height:98px; border-radius:8px; background:#fff; border:1px solid #eef2f7;
     padding:4px 2px; text-align:left; display:flex; flex-direction:column; gap:2px; overflow:hidden;
@@ -419,6 +436,9 @@
     .period-bar input[type="date"]{background:#12151b; border-color:#2a2f3a;}
     .btn-period{background:var(--card); border-color:#2a2f3a; color:#e4e7ec;}
     .btn-period.search{background:#17233f; color:#93b4ff; border-color:#2b4270;}
+    .cal-nav{background:#12151b; border-color:#2a2f3a; color:#c9d2e3;}
+    .cal-month-label{color:#e4e7ec;}
+    .cal-branch-pick{background:#12151b; border-color:#2a2f3a; color:#e4e7ec;}
     .label{color:#c9d2e3;}
     .record-memo{color:#d0d5dd;}
     .record-author{color:#d0d5dd;}
@@ -544,6 +564,15 @@
       </div>
 
       <div class="card cal-card">
+        <div class="cal-monthbar">
+          <button type="button" class="cal-nav" id="calPrev" aria-label="이전 달" title="이전 달">◀</button>
+          <span class="cal-month-label" id="calMonth">2026년 11월</span>
+          <button type="button" class="cal-nav" id="calNext" aria-label="다음 달" title="다음 달">▶</button>
+          <span class="spacer"></span>
+          <select class="cal-branch-pick" id="calBranchPick" aria-label="지점 선택" title="지점을 고르면 달력·요약·날짜 상세·인쇄가 그 지점만 보여 줍니다">
+            <option value="">전체 지점</option>
+          </select>
+        </div>
         <div class="cal-week">
           <span class="sun">일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span class="sat">토</span>
         </div>
@@ -583,6 +612,15 @@
       </div>
 
       <div class="card cal-card">
+        <div class="cal-monthbar">
+          <button type="button" class="cal-nav" id="reqPrev" aria-label="이전 달" title="이전 달">◀</button>
+          <span class="cal-month-label" id="reqMonth">2026년 11월</span>
+          <button type="button" class="cal-nav" id="reqNext" aria-label="다음 달" title="다음 달">▶</button>
+          <span class="spacer"></span>
+          <select class="cal-branch-pick" id="reqBranchPick" aria-label="지점 선택" title="지점을 고르면 달력·요약·날짜 상세·인쇄가 그 지점만 보여 줍니다">
+            <option value="">전체 지점</option>
+          </select>
+        </div>
         <div class="cal-week">
           <span class="sun">일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span class="sat">토</span>
         </div>
@@ -2188,6 +2226,7 @@
     renderBranchChips();
     renderDatalists();
     renderPlanLink();
+    refreshBranchPicks();
     showWriteCard(false);   // 사진 등록 칸은 [📷 이 날 작업사진 등록]을 눌렀을 때만 펼친다
 
     setQuickRange('30');
@@ -2297,6 +2336,12 @@
     });
   }
 
+  // 지점 목록이 바뀌면 달력 위 지점 선택 드롭다운도 같이 맞춘다
+  function refreshBranchPicks() {
+    renderBranchPick('cal');
+    renderBranchPick('req');
+  }
+
   // 지점 칩의 ✕ — 확인을 받은 뒤에만 목록에서 지운다 (잘못 눌러도 기록은 그대로).
   function askDeleteBranch(name) {
     name = String(name || '').trim();
@@ -2326,6 +2371,7 @@
 
       renderBranchChips();
       renderDatalists();
+      refreshBranchPicks();
 
       var kept = Number((res && res.recordsKept) || 0);
       toast("'" + name + "' 지점을 목록에서 지웠습니다." + (kept ? ' 기존 기록 ' + kept + '건은 그대로입니다.' : ''), 'ok');
@@ -2409,7 +2455,11 @@
     $('tab-requests').addEventListener('click', function () { switchTab('requests'); });
     $('tab-list').addEventListener('click', function () { switchTab('list'); });
 
-    // 📅 일정 및 사진등록 — 기간 지정(조회·인쇄) / 작업 일정·작업사진 등록 / 지점 관리
+    // 📅 일정 및 사진등록 — 월 이동(◀▶·좌우 스와이프) / 지점 선택 / 기간 지정(조회·인쇄) / 등록 / 지점 관리
+    $('calPrev').addEventListener('click', function () { stepCalendarMonth(-1); });
+    $('calNext').addEventListener('click', function () { stepCalendarMonth(1); });
+    $('calBranchPick').addEventListener('change', function () { onBranchPick('cal'); });
+    attachMonthSwipe('calGrid', function () { stepCalendarMonth(-1); }, function () { stepCalendarMonth(1); });
     $('calSearch').addEventListener('click', searchCalendarRange);
     $('calPrint').addEventListener('click', onExportCalendarPeriod);
     ['calFrom', 'calTo'].forEach(function (id) {
@@ -2436,7 +2486,11 @@
       showWriteCard(false);
     });
 
-    // 📝 매장 요청 — 기간 지정(조회·인쇄) / 요청 등록
+    // 📝 매장 요청 — 월 이동(◀▶·좌우 스와이프) / 지점 선택 / 기간 지정(조회·인쇄) / 요청 등록
+    $('reqPrev').addEventListener('click', function () { stepRequestMonth(-1); });
+    $('reqNext').addEventListener('click', function () { stepRequestMonth(1); });
+    $('reqBranchPick').addEventListener('change', function () { onBranchPick('req'); });
+    attachMonthSwipe('reqGrid', function () { stepRequestMonth(-1); }, function () { stepRequestMonth(1); });
     $('reqSearch').addEventListener('click', searchRequestsRange);
     $('reqPrint').addEventListener('click', onExportRequests);
     ['reqFrom', 'reqTo'].forEach(function (id) {
@@ -2744,6 +2798,8 @@
       state.cal.selected = date || todayStr();
       state.cal.loaded = false;
       state.cal.loadedMonth = '';
+      // 지점을 골라 보고 있었는데 다른 지점으로 등록했다면, 방금 올린 기록이 보이도록 전체 지점으로 돌린다
+      if (state.cal.branch && state.cal.branch !== branch) state.cal.branch = '';
 
       setTimeout(function () { switchTab('calendar'); }, 650);
     }).catch(function (err) {
@@ -2968,6 +3024,139 @@
     obj.to = r.to;
   }
 
+  /* ---------- 달력 위 월 이동 바 (◀ 2026년 11월 ▶)와 지점 선택 ---------- */
+
+  // '2026-11' -> '2026년 11월'
+  function monthLabelOf(month) {
+    var m = String(month || nowMonth());
+    return Number(m.substring(0, 4)) + '년 ' + Number(m.substring(5, 7)) + '월';
+  }
+
+  // '2026-11' 에서 delta 달 만큼 이동 ('2026-12', '2026-10' …)
+  function shiftMonth(month, delta) {
+    var m = String(month || nowMonth());
+    var y = Number(m.substring(0, 4));
+    var mo = Number(m.substring(5, 7)) - 1 + (Number(delta) || 0);
+    y += Math.floor(mo / 12);
+    mo = ((mo % 12) + 12) % 12;
+    return y + '-' + pad(mo + 1);
+  }
+
+  // 달력 카드 맨 위 월 이름을 지금 보는 달로 맞춘다
+  function renderMonthBar(which) {
+    var obj = which === 'req' ? state.req : state.cal;
+    var label = $(which + 'Month');
+    if (!label) return;
+    var text = monthLabelOf(obj.month);
+    if (label.textContent !== text) label.textContent = text;
+  }
+
+  // 지점 선택 드롭다운 — 지점 목록이 바뀔 때마다 다시 채운다 (지점 칩 줄을 늘리지 않는다)
+  function renderBranchPick(which) {
+    var obj = which === 'req' ? state.req : state.cal;
+    var box = $(which + 'BranchPick');
+    if (!box) return;
+    var names = (state.branches || []).slice();
+    var selected = obj.branch || '';
+    // 고른 지점이 목록에 없으면(지점 관리에서 지운 경우 등) 전체 지점으로 돌린다
+    if (selected && names.indexOf(selected) === -1) {
+      obj.branch = selected = '';
+    }
+    var wanted = [{ value: '', label: '전체 지점' }].concat(names.map(function (n) {
+      return { value: n, label: n };
+    }));
+    var same = box.children.length === wanted.length && wanted.every(function (o, i) {
+      var c = box.children[i];
+      return c && String(c.value) === o.value && String(c.textContent) === o.label;
+    });
+    if (!same) {
+      clearNode(box);
+      wanted.forEach(function (o) {
+        var opt = document.createElement('option');
+        opt.value = o.value;
+        opt.textContent = o.label;
+        box.appendChild(opt);
+      });
+    }
+    if (box.value !== selected) box.value = selected;
+  }
+
+  // 드롭다운에서 지점을 고르면 달력·요약·날짜 상세·인쇄가 그 지점만 본다
+  function onBranchPick(which) {
+    var obj = which === 'req' ? state.req : state.cal;
+    var box = $(which + 'BranchPick');
+    if (!box) return;
+    var name = String(box.value || '').trim();
+    if (name === (obj.branch || '')) return;
+    obj.branch = name;
+    obj.loaded = false;
+    obj.loadedMonth = '';
+    obj.days = {};
+    obj.dayLoading = {};
+    obj.dayError = {};
+    obj.dayPromise = {};
+    if (which === 'req') {
+      loadRequests(true);
+    } else {
+      obj.records = [];
+      obj.plans = [];
+      obj.planDays = {};
+      obj.planDayLoading = {};
+      obj.planDayError = {};
+      loadCalendar(true);
+    }
+    toast(name ? name + ' 기록만 보여 줍니다.' : '전체 지점 기록을 보여 줍니다.', 'ok');
+  }
+
+  /* ---------- 좌우 스와이프(드래그)로 이전 달 / 다음 달 ---------- */
+  var SWIPE_MIN = 50;      // 가로로 이만큼(px) 밀어야 달을 넘긴다
+  var SWIPE_RATIO = 1.3;   // 세로 이동의 1.3배보다 더 가로로 가야 한다 (세로 스크롤·대각선 제외)
+
+  function attachMonthSwipe(gridId, goPrev, goNext) {
+    var grid = $(gridId);
+    if (!grid || !grid.addEventListener) return;
+    var startX = 0, startY = 0, tracking = false, fired = false;
+    grid.addEventListener('pointerdown', function (e) {
+      if (!e || (e.pointerType === 'mouse' && e.button !== 0)) return;
+      startX = e.clientX;
+      startY = e.clientY;
+      tracking = true;
+      fired = false;
+      grid.__swipeGuardUntil = 0;   // 새로 누르면 지난 스와이프의 클릭 차단은 끝
+    });
+    grid.addEventListener('pointermove', function (e) {
+      if (!tracking || fired || !e) return;
+      var dx = e.clientX - startX;
+      var dy = e.clientY - startY;
+      if (Math.abs(dx) < SWIPE_MIN) return;                   // 아직 가로 이동이 충분치 않다
+      if (Math.abs(dx) <= Math.abs(dy) * SWIPE_RATIO) return;  // 세로 스크롤·대각선은 넘기지 않는다
+      fired = true;
+      tracking = false;
+      grid.__swipeGuardUntil = Date.now() + 500;
+      if (dx < 0) goNext(); else goPrev();                    // 왼쪽으로 밀면 다음 달, 오른쪽이면 이전 달
+    });
+    // 달을 넘긴 직후 따라오는 클릭(날짜 선택)은 무시한다 — 날짜 탭은 그대로 동작
+    grid.addEventListener('click', function (e) {
+      if (!grid.__swipeGuardUntil || Date.now() > grid.__swipeGuardUntil) return;
+      grid.__swipeGuardUntil = 0;
+      if (e && e.stopPropagation) e.stopPropagation();
+      if (e && e.preventDefault) e.preventDefault();
+    }, true);
+    var stop = function () { tracking = false; };
+    grid.addEventListener('pointerup', stop);
+    grid.addEventListener('pointercancel', stop);
+    grid.addEventListener('pointerleave', stop);
+  }
+
+  // ◀ / ▶ / 스와이프 — 그 달 기록이 바로 보이도록 기간 칸도 그 달로 맞춘다
+  function stepCalendarMonth(delta) {
+    goToMonth(shiftMonth(state.cal.month || nowMonth(), delta));
+  }
+
+  function stepRequestMonth(delta) {
+    goToReqMonth(shiftMonth(state.req.month || nowMonth(), delta));
+  }
+
   // 상태에 저장된 기간을 날짜 입력칸에 보여 준다
   function syncPeriodInputs(which) {
     var obj = which === 'req' ? state.req : state.cal;
@@ -2981,6 +3170,11 @@
     if (!from || !to) return '';
     function part(d) { return Number(d.substring(5, 7)) + '.' + Number(d.substring(8, 10)); }
     return from === to ? part(from) : part(from) + '~' + part(to);
+  }
+
+  // 지점을 골랐으면 요약 앞에 '진천점 · ' 을 붙여 어느 지점 기준인지 보이게 한다
+  function branchPrefix(name) {
+    return name ? String(name) + ' · ' : '';
   }
 
   // 지금 달력에 보이는 달 안으로 기간을 잘라 요약에 쓴다 (여러 달에 걸친 기간도 오해 없이)
@@ -3042,7 +3236,7 @@
     if (from > to) { var t = from; from = to; to = t; }
     btn.disabled = true;
     showLoading('워드 파일 만드는 중…', from + ' ~ ' + to + ' 작업사진을 문서에 담고 있어요');
-    API.exportDoc({ from: from, to: to }).then(function (res) {
+    API.exportDoc({ from: from, to: to, branch: cal.branch || '' }).then(function (res) {
       if (!res || res.ok === false) throw new Error((res && res.error) || '워드 파일을 만들지 못했습니다.');
       saveFile(res);
       hideLoading();
@@ -3269,6 +3463,8 @@
   function renderCalendar() {
     var cal = state.cal;
     syncPeriodInputs('cal');
+    renderMonthBar('cal');
+    renderBranchPick('cal');
 
     var grid = $('calGrid');
     clearNode(grid);
@@ -3323,7 +3519,7 @@
       var all = (cal.records || []).filter(function (r) { return inCalendarRange(r.date); });
       var shots = all.reduce(function (n, r) { return n + (r.photoCount || (r.photos || []).length); }, 0);
       var planCount = (cal.plans || []).filter(function (p) { return inCalendarRange(p.date); }).length;
-      summary.textContent = visiblePeriodLabel(cal) + ' 작업사진 ' + all.length + '건 · 사진 ' + shots + '장 · 작업 일정 ' + planCount + '건' +
+      summary.textContent = branchPrefix(cal.branch) + visiblePeriodLabel(cal) + ' 작업사진 ' + all.length + '건 · 사진 ' + shots + '장 · 작업 일정 ' + planCount + '건' +
         (cal.syncing ? ' · 동기화 중…' : '');
       if (cal.error) summary.className = 'cal-summary err';
     }
@@ -3765,6 +3961,8 @@
   function renderRequests() {
     var req = state.req;
     syncPeriodInputs('req');
+    renderMonthBar('req');
+    renderBranchPick('req');
     renderReqStatusFilter();
 
     var grid = $('reqGrid');
@@ -3817,7 +4015,7 @@
         return inRequestsRange(s.date) && reqStatusMatches(s);
       });
       var done = all.filter(function (p) { return p.status === '완료'; }).length;
-      summary.textContent = visiblePeriodLabel(req) + ' 매장 요청 ' + all.length + '건 · 대기 ' + (all.length - done) + ' · 완료 ' + done +
+      summary.textContent = branchPrefix(req.branch) + visiblePeriodLabel(req) + ' 매장 요청 ' + all.length + '건 · 대기 ' + (all.length - done) + ' · 완료 ' + done +
         (req.syncing ? ' · 동기화 중…' : '');
       if (req.error) summary.className = 'cal-summary err';
     }
