@@ -3035,9 +3035,11 @@
     var cal = state.cal;
     var btn = $('calPrint');
     if (!btn || btn.disabled) return;
-    var from = cal.from || $('calFrom').value;
-    var to = cal.to || $('calTo').value;
+    // 인쇄는 지금 입력칸에 적힌 기간을 따른다 (조회를 누르지 않았어도 그 기간으로)
+    var from = $('calFrom').value || cal.from;
+    var to = $('calTo').value || cal.to;
     if (!from || !to) { toast('기간을 먼저 골라 주세요.', 'err'); return; }
+    if (from > to) { var t = from; from = to; to = t; }
     btn.disabled = true;
     showLoading('워드 파일 만드는 중…', from + ' ~ ' + to + ' 작업사진을 문서에 담고 있어요');
     API.exportDoc({ from: from, to: to }).then(function (res) {
@@ -3883,9 +3885,11 @@
     var req = state.req;
     var btn = $('reqPrint');
     if (!btn || btn.disabled) return;
-    var from = req.from || $('reqFrom').value;
-    var to = req.to || $('reqTo').value;
+    // 인쇄는 지금 입력칸에 적힌 기간을 따른다 (조회를 누르지 않았어도 그 기간으로)
+    var from = $('reqFrom').value || req.from;
+    var to = $('reqTo').value || req.to;
     if (!from || !to) { toast('기간을 먼저 골라 주세요.', 'err'); return; }
+    if (from > to) { var rt = from; from = to; to = rt; }
     var filters = { branch: req.branch || '', status: req.status || '', from: from, to: to };
 
     btn.disabled = true;
