@@ -29,6 +29,7 @@
     --shadow:0 1px 2px rgba(16,24,40,.06), 0 8px 24px rgba(16,24,40,.05);
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  [hidden]{display:none !important;}
   html,body{margin:0; padding:0;}
   body{
     font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","맑은 고딕","Noto Sans KR",system-ui,sans-serif;
@@ -68,6 +69,7 @@
   }
   @media (min-width:420px){ .tab{font-size:13px; padding:9px 6px;} }
   .tab.active{background:var(--brand); color:#fff; box-shadow:0 2px 8px rgba(29,78,216,.25);}
+  .tabs.two{grid-template-columns:repeat(2,1fr);}
   main{padding:10px;}
 
   .card{
@@ -360,6 +362,89 @@
   .edit-actions .btn-primary{flex:1; padding:14px; font-size:15px;}
   .photo-item.existing .badge-size{background:rgba(29,78,216,.82);}
 
+  /* 🔐 첫 화면 로그인 (휴대폰 뒷번호 4자리) */
+  .login-screen{
+    position:fixed; inset:0; z-index:200; display:flex; align-items:center; justify-content:center;
+    padding:24px; background:linear-gradient(160deg,#eef4ff 0%,#f7f9fc 45%,#eef2f7 100%);
+  }
+  .login-screen[hidden]{display:none;}
+  .login-card{
+    width:100%; max-width:340px; background:#fff; border-radius:20px; padding:26px 22px 22px;
+    box-shadow:0 18px 50px rgba(16,24,40,.14); text-align:center;
+  }
+  .login-logo{
+    width:56px; height:56px; margin:0 auto 12px; border-radius:16px; background:var(--brand-soft);
+    display:flex; align-items:center; justify-content:center; font-size:28px;
+  }
+  .login-card h1{font-size:17px; margin:0 0 3px; letter-spacing:-.5px;}
+  .login-card .login-sub{font-size:11.5px; color:var(--muted); margin:0 0 20px; line-height:1.4;}
+  .login-label{display:block; text-align:left; font-size:12.5px; font-weight:800; color:#344054; margin-bottom:7px;}
+  .login-pin{
+    width:100%; text-align:center; font-size:30px; font-weight:800; letter-spacing:14px; text-indent:14px;
+    padding:14px 10px; border:1px solid var(--line); border-radius:14px; background:#fbfcfd; outline:none;
+    -webkit-text-security:disc;
+  }
+  .login-pin:focus{border-color:var(--brand); background:#fff; box-shadow:0 0 0 3px rgba(29,78,216,.12);}
+  .login-btn{
+    width:100%; margin-top:14px; padding:15px; border-radius:14px; font-size:16px; font-weight:800; color:#fff;
+    background:linear-gradient(135deg,#1d4ed8,#3b82f6); box-shadow:0 6px 16px rgba(29,78,216,.28);
+  }
+  .login-btn:disabled{opacity:.55; box-shadow:none;}
+  .login-error{
+    margin-top:10px; font-size:12.5px; font-weight:700; color:#b42318; background:#fef3f2;
+    border:1px solid #fecdca; border-radius:10px; padding:8px 10px; text-align:left; line-height:1.45;
+  }
+  .login-error[hidden]{display:none;}
+  .login-foot{font-size:11px; color:#98a2b3; margin:16px 0 0; line-height:1.5;}
+
+  /* 로그인한 사람 · 로그아웃 · 직원 관리 */
+  .who-bar{display:flex; align-items:center; justify-content:center; gap:6px; margin-top:7px; flex-wrap:wrap;}
+  .who-bar[hidden]{display:none;}
+  .who-name{font-size:12px; font-weight:800; color:#344054;}
+  .role-pill{
+    font-size:10.5px; font-weight:800; padding:2px 7px; border-radius:999px;
+    background:var(--brand-soft); color:var(--brand);
+  }
+  .role-pill.staff{background:#fff4e5; color:#b54708;}
+  .btn-mini{
+    padding:4px 8px; border-radius:8px; border:1px solid var(--line); background:#fff;
+    font-size:11px; font-weight:700; color:#475467; white-space:nowrap;
+  }
+  .btn-mini:hover{background:#f6f8fb;}
+  .btn-mini.staff{color:#1d4ed8; border-color:#c7d7fe; background:#f8faff;}
+
+  /* 👥 직원 관리 창 */
+  #staffModal{position:fixed; inset:0; background:rgba(16,24,40,.5); z-index:115; display:flex; align-items:flex-end; justify-content:center;}
+  #staffModal[hidden]{display:none;}
+  .staff-add{display:grid; grid-template-columns:1fr 1.4fr 1fr; gap:6px; align-items:end;}
+  .staff-add .label{font-size:11px; margin-bottom:4px;}
+  .staff-add input,.staff-add select{
+    width:100%; border:1px solid var(--line); background:#fbfcfd; border-radius:10px; padding:9px 10px; font-size:14px;
+    outline:none;
+  }
+  .staff-add input:focus,.staff-add select:focus{border-color:var(--brand); background:#fff;}
+  .staff-save{grid-column:1 / -1; padding:11px; border-radius:11px; background:var(--brand); color:#fff; font-weight:800; font-size:14px;}
+  .staff-list{margin-top:12px; border-top:1px solid #eef2f7;}
+  .staff-row{
+    display:flex; align-items:center; gap:8px; padding:9px 2px; border-bottom:1px solid #f2f4f7;
+  }
+  .staff-row .no{
+    font-size:12.5px; font-weight:800; color:#475467; background:#f2f4f7; border-radius:7px;
+    padding:3px 7px; letter-spacing:1px; min-width:52px; text-align:center;
+  }
+  .staff-row .who{flex:1 1 auto; min-width:0;}
+  .staff-row .who .nm{font-size:13.5px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .staff-row .who .rl{font-size:10.5px; color:var(--muted);}
+  .staff-row .rl.admin{color:#1d4ed8; font-weight:800;}
+  .staff-row .act{display:flex; gap:4px; flex:0 0 auto;}
+  .staff-row .act button{
+    padding:5px 8px; border-radius:8px; font-size:11.5px; font-weight:700;
+    background:#f2f4f7; color:#344054; border:1px solid var(--line);
+  }
+  .staff-row .act button.danger{color:#b42318; border-color:#fecdca; background:#fef3f2;}
+  .staff-empty{padding:14px 2px; font-size:12.5px; color:var(--muted); text-align:center;}
+  @media (min-width:640px){ #staffModal{align-items:center; padding:20px;} }
+
   /* toast */
   #toast{
     position:fixed; left:50%; bottom:24px; transform:translate(-50%,20px); z-index:100;
@@ -479,13 +564,35 @@
 </style>
 </head>
 <body>
-<div class="app">
+
+<!-- 🔐 첫 화면 로그인 — 휴대폰 뒷번호 4자리 (직원 시트와 대조는 서버에서 한다) -->
+<div id="loginScreen" class="login-screen" hidden>
+  <div class="login-card">
+    <div class="login-logo">📷</div>
+    <h1>작업사진 등록</h1>
+    <p class="login-sub">(주)제이비지종합건설 시설유지보수사업부</p>
+    <label class="login-label" for="loginPin">휴대폰 뒷번호 4자리</label>
+    <input id="loginPin" class="login-pin" type="tel" inputmode="numeric" maxlength="4"
+           autocomplete="one-time-code" placeholder="••••" aria-label="휴대폰 뒷번호 4자리">
+    <button type="button" class="login-btn" id="loginBtn">로그인</button>
+    <div class="login-error" id="loginError" hidden></div>
+    <p class="login-foot">등록된 번호만 들어갈 수 있습니다.<br>번호는 관리자에게 문의하세요.</p>
+  </div>
+</div>
+
+<div class="app" id="appRoot" hidden>
   <header class="app-header">
     <h1>(주)제이비지종합건설 시설유지보수사업부</h1>
+    <div class="who-bar" id="whoBar" hidden>
+      <span class="who-name" id="whoName"></span>
+      <span class="role-pill" id="whoRole"></span>
+      <button type="button" class="btn-mini staff admin-only" id="staffManageBtn">👥 직원 관리</button>
+      <button type="button" class="btn-mini" id="logoutBtn">로그아웃</button>
+    </div>
     <div class="mode-pill" id="modePill">🧪 미리보기 모드 · 이 브라우저에만 저장됩니다</div>
   </header>
 
-  <nav class="tabs" role="tablist" aria-label="화면 전환">
+  <nav class="tabs" id="tabs" role="tablist" aria-label="화면 전환">
     <button class="tab active" id="tab-calendar" role="tab" aria-selected="true" data-tab="calendar">📅 일정 및 사진등록</button>
     <button class="tab" id="tab-requests" role="tab" aria-selected="false" data-tab="requests">📝 매장 요청</button>
     <button class="tab" id="tab-list" role="tab" aria-selected="false" data-tab="list">📋 전체 내역 조회</button>
@@ -518,15 +625,16 @@
               <datalist id="branchList"></datalist>
               <div class="branch-head">
                 <div class="hint" style="margin:0">새 지점은 그냥 입력하시면 다음부터 목록에 나옵니다.</div>
-                <button type="button" class="btn-branch-manage" id="branchManageBtn">🏷️ 지점 관리</button>
+                <button type="button" class="btn-branch-manage admin-only" id="branchManageBtn">🏷️ 지점 관리</button>
               </div>
               <div class="hint" id="branchManageHint" hidden style="color:#b42318">지점 칩의 ✕ 를 누르면 목록에서 지워집니다. (이미 등록된 작업사진·일정 기록은 그대로 남습니다)</div>
             </div>
 
             <div class="field">
-              <div class="label"><span>작성자</span><span class="req">필수</span></div>
-              <input type="text" id="inputAuthor" list="authorList" placeholder="이름" required>
+              <div class="label"><span>작성자</span><span class="req">자동</span></div>
+              <input type="text" id="inputAuthor" list="authorList" placeholder="로그인한 이름" required>
               <datalist id="authorList"></datalist>
+              <div class="hint" id="authorHint">작성자는 로그인한 사람으로 자동 입력됩니다.</div>
             </div>
 
             <div class="field">
@@ -587,9 +695,9 @@
             <div class="day-sub" id="daySub"></div>
           </div>
           <div class="day-head-actions">
-            <button type="button" class="btn-add-plan" id="dayPlanAddBtn">+ 이 날 작업 일정</button>
+            <button type="button" class="btn-add-plan admin-only" id="dayPlanAddBtn">+ 이 날 작업 일정</button>
             <button type="button" class="btn-day-photo" id="dayPhotoBtn">📷 이 날 작업사진 등록</button>
-            <button type="button" class="btn-branch-manage" id="calBranchManageBtn">🏷️ 지점 관리</button>
+            <button type="button" class="btn-branch-manage admin-only" id="calBranchManageBtn">🏷️ 지점 관리</button>
           </div>
         </div>
         <div id="dayDetail"></div>
@@ -823,6 +931,38 @@
   </div>
 </div>
 
+<div id="staffModal" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="staffTitle">
+    <div class="modal-head">
+      <h2 id="staffTitle">👥 직원 관리</h2>
+      <button type="button" class="modal-close" id="staffClose" aria-label="닫기">✕</button>
+    </div>
+    <div class="edit-meta">번호는 각자 <b>휴대폰 뒷번호 4자리</b>입니다. 여기에 등록된 번호만 로그인할 수 있고,<br>직원은 <b>작업사진 등록과 본인 글 수정</b>만 할 수 있습니다.</div>
+    <div class="field">
+      <div class="staff-add">
+        <div>
+          <div class="label"><span>번호(4자리)</span></div>
+          <input type="tel" id="staffNo" inputmode="numeric" maxlength="4" placeholder="0000" aria-label="직원 번호 4자리">
+        </div>
+        <div>
+          <div class="label"><span>이름</span></div>
+          <input type="text" id="staffName" maxlength="30" placeholder="이름" aria-label="직원 이름">
+        </div>
+        <div>
+          <div class="label"><span>권한</span></div>
+          <select id="staffRole" aria-label="직원 권한">
+            <option value="직원">직원</option>
+            <option value="관리자">관리자</option>
+          </select>
+        </div>
+        <button type="button" class="staff-save" id="staffSave">➕ 직원 등록</button>
+      </div>
+      <div class="hint" id="staffEditHint" hidden style="color:#1d4ed8">수정 중입니다. 번호·이름·권한을 고치고 [💾 수정 저장]을 누르세요.</div>
+    </div>
+    <div class="staff-list" id="staffList"></div>
+  </div>
+</div>
+
 <div id="lightbox" hidden>
   <div class="lb-top">
     <span class="title" id="lbTitle">사진</span>
@@ -967,7 +1107,9 @@
     workSchedules: 'workphoto.mock.workschedules.v1',
     mockBranchesDeleted: 'workphoto.mock.branches.deleted.v1',
     seeded: 'workphoto.mock.seeded.v1',
-    cacheManifest: 'workphoto.cache.manifest.v1'
+    cacheManifest: 'workphoto.cache.manifest.v1',
+    session: 'workphoto.session.v1',
+    mockStaff: 'workphoto.mock.staff.v1'
   };
 
   /* ----------------------------------------------------------------
@@ -1030,10 +1172,59 @@
   }
 
   /* ----------------------------------------------------------------
+   * 1-2. 로그인 세션
+   *   · 번호는 화면 코드에 없다 — 서버(직원 시트)가 맞는지 보고 토큰을 준다.
+   *   · 토큰은 이 브라우저(localStorage)에만 두고, 서버를 부를 때마다 같이 보낸다.
+   * -------------------------------------------------------------- */
+  var AUTH = { token: '', no: '', name: '', role: '', checked: false };
+
+  function authToken() { return AUTH && AUTH.token ? AUTH.token : ''; }
+  function isAdmin() { return AUTH.role === '관리자'; }
+  function isLoggedIn() { return !!authToken(); }
+
+  // 보낼 내용에 토큰을 붙인 사본 (원래 객체는 건드리지 않는다)
+  function withToken(payload) {
+    var out = {};
+    Object.keys(payload || {}).forEach(function (key) { out[key] = payload[key]; });
+    out.token = authToken();
+    return out;
+  }
+
+  function saveSession(session) {
+    AUTH.token = session.token || '';
+    AUTH.no = session.no || '';
+    AUTH.name = session.name || '';
+    AUTH.role = session.role === '관리자' ? '관리자' : '직원';
+    AUTH.checked = true;
+    store.set(LS.session, { token: AUTH.token, no: AUTH.no, name: AUTH.name, role: AUTH.role });
+  }
+
+  function loadSession() {
+    var saved = store.get(LS.session, null);
+    if (!saved || !saved.token) return false;
+    AUTH.token = saved.token;
+    AUTH.no = saved.no || '';
+    AUTH.name = saved.name || '';
+    AUTH.role = saved.role === '관리자' ? '관리자' : '직원';
+    AUTH.checked = false;
+    return true;
+  }
+
+  function clearSession() {
+    AUTH.token = '';
+    AUTH.no = '';
+    AUTH.name = '';
+    AUTH.role = '';
+    AUTH.checked = false;
+    store.del(LS.session);
+  }
+
+  /* ----------------------------------------------------------------
    * 1-1. 외부(GitHub Pages) ↔ Apps Script 통신
-   *   조회 : GET  ?action=list / calendar / export
+   *   조회 : GET  ?action=list / calendar / calendarbundle / export / session
    *   저장 : POST (Content-Type: text/plain 으로 보내 preflight 를 피한다)
    *   Apps Script 는 302 로 한 번 넘긴 뒤 결과를 주므로 redirect: 'follow'.
+   *   로그인 토큰은 조회면 주소(?token=), 저장이면 body(token) 에 실어 보낸다.
    * -------------------------------------------------------------- */
   function remoteQuery(params) {
     var parts = [];
@@ -1101,17 +1292,48 @@
   }
 
   var API = {
+    // 🔐 로그인 / 로그아웃 / 세션 확인 / 직원 관리
+    login: function (pin) {
+      if (IS_GAS) return gasCall('login', pin);
+      if (IS_REMOTE) return remotePost({ action: 'login', pin: pin });
+      return mockLogin(pin);
+    },
+    logout: function () {
+      if (IS_GAS) return gasCall('logout', authToken());
+      if (IS_REMOTE) return remotePost({ action: 'logout', token: authToken() });
+      return Promise.resolve({ ok: true });
+    },
+    session: function () {
+      if (IS_GAS) return gasCall('getSession', authToken());
+      if (IS_REMOTE) return remoteGet({ action: 'session', token: authToken() });
+      return mockSession();
+    },
+    staffList: function () {
+      if (IS_GAS) return gasCall('listStaff', authToken());
+      if (IS_REMOTE) return remotePost({ action: 'liststaff', token: authToken() });
+      return mockStaffList();
+    },
+    saveStaff: function (payload) {
+      if (IS_GAS) return gasCall('saveStaff', withToken(payload));
+      if (IS_REMOTE) return remotePost(withAction('savestaff', withToken(payload)));
+      return mockSaveStaff(payload);
+    },
+    deleteStaff: function (no) {
+      if (IS_GAS) return gasCall('deleteStaff', withToken({ no: no }));
+      if (IS_REMOTE) return remotePost(withAction('deletestaff', { no: no, token: authToken() }));
+      return mockDeleteStaff(no);
+    },
     save: function (payload) {
-      if (IS_GAS) return gasCall('saveWorkLog', payload);
-      if (IS_REMOTE) return remotePost(withAction('save', payload), REMOTE_UPLOAD_TIMEOUT);
-      return mockSave(payload);
+      if (IS_GAS) return gasCall('saveWorkLog', withToken(payload));
+      if (IS_REMOTE) return remotePost(withAction('save', withToken(payload)), REMOTE_UPLOAD_TIMEOUT);
+      return mockSave(withToken(payload));
     },
     list: function (filters) {
-      if (IS_GAS) return gasCall('getWorkLogs', filters);
+      if (IS_GAS) return gasCall('getWorkLogs', withToken(filters));
       if (IS_REMOTE) {
         filters = filters || {};
         return remoteGet({
-          action: 'list',
+          action: 'list', token: authToken(),
           date: filters.date,
           from: filters.from, to: filters.to,
           branch: filters.branch, author: filters.author, limit: filters.limit
@@ -1120,11 +1342,11 @@
       return Promise.resolve(mockList(filters));
     },
     exportDoc: function (filters) {
-      if (IS_GAS) return gasCall('exportWorkLogsDoc', filters);
+      if (IS_GAS) return gasCall('exportWorkLogsDoc', withToken(filters));
       if (IS_REMOTE) {
         filters = filters || {};
         return remoteGet({
-          action: 'export',
+          action: 'export', token: authToken(),
           date: filters.date,
           from: filters.from, to: filters.to,
           branch: filters.branch, author: filters.author
@@ -1134,11 +1356,11 @@
     },
     // 📝 매장 요청 인쇄(워드) — 예정작업 시트를 표로
     exportRequestsDoc: function (filters) {
-      if (IS_GAS) return gasCall('exportStoreRequestsDoc', filters);
+      if (IS_GAS) return gasCall('exportStoreRequestsDoc', withToken(filters));
       if (IS_REMOTE) {
         filters = filters || {};
         return remoteGet({
-          action: 'exportrequests',
+          action: 'exportrequests', token: authToken(),
           yearMonth: filters.yearMonth,
           from: filters.from, to: filters.to,
           branch: filters.branch, status: filters.status
@@ -1148,11 +1370,11 @@
     },
     // 📝 매장 요청 상세 — 그 날·그 요청 하나의 사진 URL 까지
     getStoreRequests: function (filters) {
-      if (IS_GAS) return gasCall('getStoreRequests', filters);
+      if (IS_GAS) return gasCall('getStoreRequests', withToken(filters));
       if (IS_REMOTE) {
         filters = filters || {};
         return remoteGet({
-          action: 'storerequests',
+          action: 'storerequests', token: authToken(),
           id: filters.id, date: filters.date,
           yearMonth: filters.yearMonth,
           from: filters.from, to: filters.to,
@@ -1162,82 +1384,82 @@
       return Promise.resolve(mockGetStoreRequests(filters));
     },
     calendar: function (filters) {
-      if (IS_GAS) return gasCall('getCalendarData', filters);
+      if (IS_GAS) return gasCall('getCalendarData', withToken(filters));
       if (IS_REMOTE) {
         filters = filters || {};
-        return remoteGet({ action: 'calendar', yearMonth: filters.yearMonth, branch: filters.branch });
+        return remoteGet({ action: 'calendar', token: authToken(), yearMonth: filters.yearMonth, branch: filters.branch });
       }
       return Promise.resolve(mockCalendar(filters));
     },
     // ⚡ 첫 화면용 — 지점 · 그 달 기록 요약 · 작업 일정 · 매장 요청을 한 번에
     calendarBundle: function (filters) {
-      if (IS_GAS) return gasCall('getCalendarBundle', filters);
+      if (IS_GAS) return gasCall('getCalendarBundle', withToken(filters));
       if (IS_REMOTE) {
         filters = filters || {};
-        return remoteGet({ action: 'calendarbundle', yearMonth: filters.yearMonth, branch: filters.branch });
+        return remoteGet({ action: 'calendarbundle', token: authToken(), yearMonth: filters.yearMonth, branch: filters.branch });
       }
       return Promise.resolve(mockCalendarBundle(filters));
     },
     saveSchedule: function (payload) {
-      if (IS_GAS) return gasCall('saveSchedule', payload);
-      if (IS_REMOTE) return remotePost(withAction('saveSchedule', payload));
+      if (IS_GAS) return gasCall('saveSchedule', withToken(payload));
+      if (IS_REMOTE) return remotePost(withAction('saveSchedule', withToken(payload)));
       return Promise.resolve(mockSaveSchedule(payload));
     },
     updateSchedule: function (payload) {
-      if (IS_GAS) return gasCall('updateSchedule', payload);
-      if (IS_REMOTE) return remotePost(withAction('updateSchedule', payload));
+      if (IS_GAS) return gasCall('updateSchedule', withToken(payload));
+      if (IS_REMOTE) return remotePost(withAction('updateSchedule', withToken(payload)));
       return Promise.resolve(mockUpdateSchedule(payload));
     },
     updateScheduleStatus: function (id, status) {
-      if (IS_GAS) return gasCall('updateScheduleStatus', id, status);
-      if (IS_REMOTE) return remotePost({ action: 'updateScheduleStatus', id: id, status: status });
+      if (IS_GAS) return gasCall('updateScheduleStatus', id, status, authToken());
+      if (IS_REMOTE) return remotePost({ action: 'updateScheduleStatus', id: id, status: status, token: authToken() });
       return Promise.resolve(mockUpdateScheduleStatus(id, status));
     },
     deleteSchedule: function (id) {
-      if (IS_GAS) return gasCall('deleteSchedule', id);
-      if (IS_REMOTE) return remotePost({ action: 'deleteSchedule', id: id });
+      if (IS_GAS) return gasCall('deleteSchedule', id, authToken());
+      if (IS_REMOTE) return remotePost({ action: 'deleteSchedule', id: id, token: authToken() });
       return Promise.resolve(mockDeleteSchedule(id));
     },
     // 📅 일정 및 사진등록 탭의 작업 일정 (작업일정 시트 — 매장 요청과 별도)
     listWorkSchedules: function (filters) {
-      if (IS_GAS) return gasCall('listWorkSchedules', filters);
+      if (IS_GAS) return gasCall('listWorkSchedules', withToken(filters));
       if (IS_REMOTE) {
         filters = filters || {};
-        return remoteGet({ action: 'workschedules', yearMonth: filters.yearMonth, date: filters.date, branch: filters.branch });
+        return remoteGet({ action: 'workschedules', token: authToken(), yearMonth: filters.yearMonth, date: filters.date, branch: filters.branch });
       }
       return Promise.resolve(mockListWorkSchedules(filters));
     },
     addWorkSchedule: function (payload) {
-      if (IS_GAS) return gasCall('addWorkSchedule', payload);
-      if (IS_REMOTE) return remotePost(withAction('addWorkSchedule', payload));
+      if (IS_GAS) return gasCall('addWorkSchedule', withToken(payload));
+      if (IS_REMOTE) return remotePost(withAction('addWorkSchedule', withToken(payload)));
       return Promise.resolve(mockAddWorkSchedule(payload));
     },
     updateWorkSchedule: function (payload) {
-      if (IS_GAS) return gasCall('updateWorkSchedule', payload);
-      if (IS_REMOTE) return remotePost(withAction('updateWorkSchedule', payload));
+      if (IS_GAS) return gasCall('updateWorkSchedule', withToken(payload));
+      if (IS_REMOTE) return remotePost(withAction('updateWorkSchedule', withToken(payload)));
       return Promise.resolve(mockUpdateWorkSchedule(payload));
     },
     updateWorkScheduleStatus: function (id, status) {
-      if (IS_GAS) return gasCall('updateWorkScheduleStatus', id, status);
-      if (IS_REMOTE) return remotePost({ action: 'updateWorkScheduleStatus', id: id, status: status });
+      if (IS_GAS) return gasCall('updateWorkScheduleStatus', id, status, authToken());
+      if (IS_REMOTE) return remotePost({ action: 'updateWorkScheduleStatus', id: id, status: status, token: authToken() });
       return Promise.resolve(mockUpdateWorkScheduleStatus(id, status));
     },
     deleteWorkSchedule: function (id) {
-      if (IS_GAS) return gasCall('deleteWorkSchedule', id);
-      if (IS_REMOTE) return remotePost({ action: 'deleteWorkSchedule', id: id });
+      if (IS_GAS) return gasCall('deleteWorkSchedule', id, authToken());
+      if (IS_REMOTE) return remotePost({ action: 'deleteWorkSchedule', id: id, token: authToken() });
       return Promise.resolve(mockDeleteWorkSchedule(id));
     },
     // 🏷️ 잘못 등록된 지점 목록에서 지우기 (기존 기록은 그대로)
     deleteBranch: function (branch) {
-      if (IS_GAS) return gasCall('deleteBranch', branch);
-      if (IS_REMOTE) return remotePost({ action: 'deleteBranch', branch: branch });
+      if (IS_GAS) return gasCall('deleteBranch', branch, { token: authToken() });
+      if (IS_REMOTE) return remotePost({ action: 'deleteBranch', branch: branch, token: authToken() });
       return Promise.resolve(mockDeleteBranch(branch));
     },
     // 작업사진 기록 삭제 (시트 행 + 드라이브 사진 파일)
     deleteRecord: function (id, expect) {
-      if (IS_GAS) return gasCall('deleteWorkLog', id, expect || {});
+      if (IS_GAS) return gasCall('deleteWorkLog', id, withToken(expect), authToken());
       if (IS_REMOTE) {
-        var body = withAction('deleteRecord', expect || {});
+        var body = withAction('deleteRecord', withToken(expect));
         body.id = id;
         return remotePost(body);
       }
@@ -1245,8 +1467,8 @@
     },
     // 작업사진 기록 수정 (날짜·지점·작성자·작업내용·사진)
     updateRecord: function (payload) {
-      if (IS_GAS) return gasCall('updateWorkLog', payload);
-      if (IS_REMOTE) return remotePost(withAction('updateRecord', payload), REMOTE_UPLOAD_TIMEOUT);
+      if (IS_GAS) return gasCall('updateWorkLog', withToken(payload));
+      if (IS_REMOTE) return remotePost(withAction('updateRecord', withToken(payload)), REMOTE_UPLOAD_TIMEOUT);
       return Promise.resolve(mockUpdateRecord(payload));
     }
   };
@@ -1291,9 +1513,95 @@
           return res;
         });
       }
+      // 세션이 끊긴 응답이면 첫 화면 로그인으로 돌린다 (로그인 요청 자체는 제외)
+      if (out && typeof out.then === 'function' && name !== 'login' && name !== 'session') {
+        out = out.then(function (res) {
+          if (res && res.ok === false && res.code === 'auth') onSessionExpired();
+          return res;
+        });
+      }
       return out;
     };
   });
+  /* ---------- 체험판(미리보기) 로그인·직원 관리 ---------- */
+  function previewStaffList() {
+    var custom = store.get(LS.mockStaff, null);
+    if (Array.isArray(custom) && custom.length) return custom;
+    var given = window.__PREVIEW_STAFF__;
+    if (Array.isArray(given) && given.length) return given.slice();
+    return [{ no: '0000', role: '관리자', name: '미리보기 사용자' }];
+  }
+
+  function mockLogin(pin) {
+    var no = String(pin == null ? '' : pin).replace(/[^0-9]/g, '');
+    if (no.length !== 4) return Promise.resolve({ ok: false, error: '휴대폰 뒷번호 4자리를 입력해 주세요.' });
+    var list = previewStaffList();
+    var hit = null;
+    list.forEach(function (s) { if (String(s.no) === no) hit = s; });
+    if (!hit) return Promise.resolve({ ok: false, error: '등록되지 않은 번호입니다. 관리자에게 문의해 주세요.' });
+    return Promise.resolve({
+      ok: true,
+      token: 'preview-' + no + '-' + Date.now(),
+      no: String(hit.no),
+      name: hit.name,
+      role: hit.role === '관리자' ? '관리자' : '직원'
+    });
+  }
+
+  function mockSession() {
+    if (!isLoggedIn()) return Promise.resolve({ ok: false, code: 'auth', error: '로그인이 필요합니다. 다시 로그인해 주세요.' });
+    return Promise.resolve({ ok: true, no: AUTH.no, name: AUTH.name, role: AUTH.role });
+  }
+
+  function mockStaffList() {
+    if (!isAdmin()) return Promise.resolve({ ok: false, code: 'forbidden', error: '이 기능은 관리자만 쓸 수 있습니다.' });
+    return Promise.resolve({ ok: true, staff: previewStaffList().map(function (s) {
+      return { no: String(s.no), role: s.role, name: s.name, createdAt: s.createdAt || '' };
+    }) });
+  }
+
+  function mockSaveStaff(payload) {
+    if (!isAdmin()) return Promise.resolve({ ok: false, code: 'forbidden', error: '이 기능은 관리자만 쓸 수 있습니다.' });
+    payload = payload || {};
+    var no = String(payload.no == null ? '' : payload.no).replace(/[^0-9]/g, '');
+    if (no.length !== 4) return Promise.resolve({ ok: false, error: '번호는 휴대폰 뒷번호 4자리 숫자로 넣어 주세요.' });
+    var role = payload.role === '관리자' ? '관리자' : '직원';
+    var name = String(payload.name || '').trim();
+    if (!name) return Promise.resolve({ ok: false, error: '이름을 입력해 주세요.' });
+    var list = previewStaffList().map(function (s) { return { no: String(s.no), role: s.role, name: s.name }; });
+    var original = String(payload.originalNo || '').replace(/[^0-9]/g, '');
+    var at = -1;
+    list.forEach(function (s, i) { if (s.no === original) at = i; });
+    var clash = -1;
+    list.forEach(function (s, i) { if (s.no === no) clash = i; });
+    if (clash > -1 && clash !== at) return Promise.resolve({ ok: false, error: '이미 등록된 번호입니다. (번호: ' + no + ')' });
+    if (at > -1) {
+      if (list[at].role === '관리자' && role !== '관리자' &&
+          list.filter(function (s) { return s.role === '관리자'; }).length <= 1) {
+        return Promise.resolve({ ok: false, error: '마지막 관리자는 직원으로 바꿀 수 없습니다.' });
+      }
+      list[at] = { no: no, role: role, name: name };
+    } else {
+      list.push({ no: no, role: role, name: name });
+    }
+    store.set(LS.mockStaff, list);
+    return Promise.resolve({ ok: true, staff: { no: no, role: role, name: name } });
+  }
+
+  function mockDeleteStaff(no) {
+    if (!isAdmin()) return Promise.resolve({ ok: false, code: 'forbidden', error: '이 기능은 관리자만 쓸 수 있습니다.' });
+    var target = String(no || '').replace(/[^0-9]/g, '');
+    if (target && target === AUTH.no) return Promise.resolve({ ok: false, error: '본인 계정은 지울 수 없습니다.' });
+    var list = previewStaffList().map(function (s) { return { no: String(s.no), role: s.role, name: s.name }; });
+    var hit = list.filter(function (s) { return s.no === target; })[0];
+    if (!hit) return Promise.resolve({ ok: false, error: '그 번호로 등록된 직원이 없습니다.' });
+    if (hit.role === '관리자' && list.filter(function (s) { return s.role === '관리자'; }).length <= 1) {
+      return Promise.resolve({ ok: false, error: '마지막 관리자는 지울 수 없습니다.' });
+    }
+    store.set(LS.mockStaff, list.filter(function (s) { return s.no !== target; }));
+    return Promise.resolve({ ok: true, deletedNo: target });
+  }
+
   function seedMockData() {
     if (!IS_PREVIEW) return;
     if (!store.get(LS.seeded, false)) {
@@ -1353,6 +1661,7 @@
   }
 
   function mockSave(payload) {
+    if (!isAdmin() && authToken()) payload.author = AUTH.name;   // 직원은 자기 이름으로 고정
     return Promise.all((payload.images || []).map(function (img) {
       return shrinkForLocal('data:' + (img.mimeType || 'image/jpeg') + ';base64,' + img.base64);
     })).then(function (locals) {
@@ -1691,6 +2000,8 @@
 
   function mockSaveSchedule(payload) {
     payload = payload || {};
+    // 매장 요청은 로그인한 사람이 넣는다 — 요청자를 비우면(직원은 항상) 로그인 이름으로
+    if (authToken() && (!String(payload.author || '').trim() || !isAdmin())) payload.author = AUTH.name;
     var date = String(payload.date || '').trim();
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return { ok: false, error: '요청 날짜를 YYYY-MM-DD 형식으로 넣어 주세요.' };
     var branch = String(payload.branch || '').trim();
@@ -1800,6 +2111,10 @@
     var at = -1;
     all.forEach(function (r, i) { if (r.id === payload.id) { hit = r; at = i; } });
     if (!hit) return { ok: false, error: '해당 작업사진 기록을 찾지 못했습니다. (이미 지워졌을 수 있습니다)' };
+    if (!isAdmin() && authToken()) {
+      if (String(hit.author || '') !== AUTH.name) return { ok: false, code: 'forbidden', error: '본인이 쓴 작업사진만 수정할 수 있습니다.' };
+      payload.author = AUTH.name;
+    }
 
     var expect = payload.expect || {};
     var changed = '기록이 그 사이 바뀌었습니다. 새로고침한 뒤 다시 시도해 주세요.';
@@ -2197,21 +2512,96 @@
   /* ================================================================
    * 3. 초기화
    * ============================================================== */
-  function init() {
-    seedMockData();
-    if (IS_PREVIEW) $('modePill').classList.add('show');
+  /* ================================================================
+   * 3-0. 🔐 로그인 화면 (휴대폰 뒷번호 4자리)
+   *   · 세션이 없으면 첫 화면은 로그인이다. 앱 화면은 로그인 뒤에만 보인다.
+   *   · 권한(관리자/직원)에 따라 보이는 기능이 달라진다.
+   * ============================================================== */
+  var eventsBound = false;
+
+  function loginError(message) {
+    var box = $('loginError');
+    if (!message) { box.hidden = true; box.textContent = ''; return; }
+    box.hidden = false;
+    box.textContent = message;
+  }
+
+  function showLogin(message) {
+    $('appRoot').hidden = true;
+    $('loginScreen').hidden = false;
+    $('loginPin').value = '';
+    loginError(message || '');
+    try { $('loginPin').focus(); } catch (ignore) {}
+  }
+
+  function doLogin() {
+    var input = $('loginPin');
+    var pin = String(input.value || '').replace(/[^0-9]/g, '').slice(0, 4);
+    input.value = pin;
+    if (pin.length !== 4) { loginError('휴대폰 뒷번호 4자리를 입력해 주세요.'); return; }
+    var btn = $('loginBtn');
+    if (btn.disabled) return;
+    btn.disabled = true;
+    loginError('');
+    API.login(pin).then(function (res) {
+      btn.disabled = false;
+      if (!res || res.ok === false) {
+        loginError((res && res.error) || '로그인하지 못했습니다.');
+        return;
+      }
+      saveSession(res);
+      startApp();
+      toast((AUTH.name || '') + ' 님 (' + AUTH.role + ') 로그인했습니다.', 'ok');
+    }).catch(function (err) {
+      btn.disabled = false;
+      loginError((err && err.message) || '로그인하지 못했습니다. 잠시 후 다시 시도해 주세요.');
+    });
+  }
+
+  function doLogout() {
+    var ask = '로그아웃할까요?';
+    if (typeof confirm === 'function' && !confirm(ask)) return;
+    API.logout().then(function () {
+      finishLogout();
+    }).catch(function () {
+      finishLogout();
+    });
+  }
+
+  function finishLogout() {
+    clearSession();
+    invalidateCalendarCache();
+    state.cal.loaded = false;
+    state.req.loaded = false;
+    showLogin('');
+    toast('로그아웃했습니다.', 'ok');
+  }
+
+  // 서버가 '로그인이 필요합니다' 라고 하면 조용히 첫 화면으로 돌린다
+  function onSessionExpired() {
+    if (!$('loginScreen').hidden) return;
+    clearSession();
+    showLogin('로그인이 만료되었습니다. 다시 로그인해 주세요.');
+  }
+
+  // 로그인한 뒤 앱 화면 준비 (권한에 맞춰 보일 것/숨길 것을 정한다)
+  function startApp() {
+    $('loginScreen').hidden = true;
+    $('appRoot').hidden = false;
+    applyRole();
 
     var today = todayStr();
-    $('inputDate').value = today;
+    if (!$('inputDate').value) $('inputDate').value = today;
 
     var savedAuthor = store.get(LS.author, '');
-    if (savedAuthor) $('inputAuthor').value = savedAuthor;
+    if (savedAuthor && isAdmin()) $('inputAuthor').value = savedAuthor;
+    if (!isAdmin()) $('inputAuthor').value = AUTH.name;
 
     state.cal.month = nowMonth();
     state.cal.selected = today;
     state.req.month = nowMonth();
     state.req.selected = today;
-    // 기간 지정 바 기본값 — 이번 달 1일 ~ 오늘 (지난 달·다음 달은 그 달 전체)
+    // 기간 지정 바 기본값 — 그 달 1일 ~ 말일 (미래 날짜 일정도 달력에 보이도록)
     var initRange = monthRange(state.cal.month);
     state.cal.from = initRange.from;
     state.cal.to = initRange.to;
@@ -2231,9 +2621,205 @@
 
     setQuickRange('30');
 
-    bindEvents();
+    if (!eventsBound) { bindEvents(); eventsBound = true; }
     // 첫 화면은 📅 캘린더 — 이번 달 달력과 오늘 상세를 바로 보여 준다.
-    switchTab(state.tab || 'calendar');
+    switchTab('calendar');
+  }
+
+  // 권한에 따라 화면 정리 — 직원은 사진 등록·본인 글 수정만 (나머지는 숨긴다)
+  function applyRole() {
+    var admin = isAdmin();
+    $('whoBar').hidden = false;
+    $('whoName').textContent = AUTH.name || '';
+    $('whoRole').textContent = AUTH.role || '';
+    $('whoRole').className = 'role-pill' + (admin ? '' : ' staff');
+
+    // 관리자 전용 버튼은 id 로도 한 번 더 확실히 숨긴다 (클래스 표시 + id 두 겹)
+    ['dayPlanAddBtn', 'calBranchManageBtn', 'branchManageBtn', 'staffManageBtn'].forEach(function (id) {
+      var node = $(id);
+      if (node) node.hidden = !admin;
+    });
+    var adminNodes = (typeof document.querySelectorAll === 'function') ? document.querySelectorAll('.admin-only') : [];
+    Array.prototype.forEach.call(adminNodes || [], function (node) {
+      node.hidden = !admin;
+    });
+    $('tab-requests').hidden = false;    // 매장 요청은 로그인한 사람 모두 (직원도 등록 가능)
+    var tabs = $('tabs');
+    if (tabs) tabs.classList.remove('two');
+
+    // 직원은 작성자가 자기 이름으로 고정 (입력칸은 보이되 바꿀 수 없다)
+    $('inputAuthor').readOnly = !admin;
+    $('editAuthor').readOnly = false;   // 수정 창은 열 때 기록에 맞춰 다시 정한다
+    $('inputAuthor').title = admin ? '' : '작성자는 로그인한 이름으로 고정됩니다.';
+
+
+    renderBranchChips();
+    renderDatalists();
+    if (state.cal.loaded) renderCalendar();
+    if (state.req.loaded) renderRequests();
+  }
+
+  // 이 기록을 지금 로그인한 사람이 고칠 수 있는지 (관리자 = 전체, 직원 = 본인 글)
+  function canEditRecord(record) {
+    if (!record) return false;
+    if (isAdmin()) return true;
+    return String(record.author || '').trim() === String(AUTH.name || '').trim();
+  }
+
+  /* ================================================================
+   * 3-1. 👥 직원 관리 (관리자 전용)
+   *   번호(4자리) · 권한 · 이름만 다룬다. 계정의 원본은 구글 시트 '직원' 탭이다.
+   * ============================================================== */
+  var staffState = { editing: null, list: [] };
+
+  function openStaffModal() {
+    if (!isAdmin()) { toast('직원 관리는 관리자만 할 수 있습니다.', 'err'); return; }
+    staffState.editing = null;
+    $('staffNo').value = '';
+    $('staffName').value = '';
+    $('staffRole').value = '직원';
+    $('staffSave').textContent = '➕ 직원 등록';
+    $('staffEditHint').hidden = true;
+    $('staffModal').hidden = false;
+    loadStaffList();
+  }
+
+  function closeStaffModal() {
+    $('staffModal').hidden = true;
+    staffState.editing = null;
+  }
+
+  function loadStaffList() {
+    var box = $('staffList');
+    box.innerHTML = '';
+    box.appendChild(el('div', 'staff-empty', '불러오는 중…'));
+    API.staffList().then(function (res) {
+      if (!res || res.ok === false) throw new Error((res && res.error) || '직원 목록을 불러오지 못했습니다.');
+      staffState.list = res.staff || [];
+      renderStaffList();
+    }).catch(function (err) {
+      box.innerHTML = '';
+      box.appendChild(el('div', 'staff-empty', (err && err.message) || '직원 목록을 불러오지 못했습니다.'));
+    });
+  }
+
+  function renderStaffList() {
+    var box = $('staffList');
+    clearNode(box);
+    var list = staffState.list || [];
+    if (!list.length) {
+      box.appendChild(el('div', 'staff-empty', '등록된 직원이 없습니다. 위에서 번호·이름을 넣어 등록해 주세요.'));
+      return;
+    }
+    list.forEach(function (row) {
+      var item = el('div', 'staff-row');
+      item.appendChild(el('span', 'no', row.no));
+      var who = el('div', 'who');
+      who.appendChild(el('div', 'nm', row.name || '(이름 없음)'));
+      var role = el('div', 'rl' + (row.role === '관리자' ? ' admin' : ''), row.role || '직원');
+      who.appendChild(role);
+      item.appendChild(who);
+
+      var act = el('div', 'act');
+      var edit = el('button', 'staff-edit', '✏️ 수정');
+      edit.setAttribute('type', 'button');
+      edit.setAttribute('aria-label', row.name + ' 직원 정보 수정');
+      edit.addEventListener('click', function () { editStaffRow(row); });
+      act.appendChild(edit);
+      var del = el('button', 'danger staff-del', '🗑️');
+      del.setAttribute('type', 'button');
+      del.setAttribute('aria-label', row.name + ' 직원 삭제');
+      del.addEventListener('click', function () { removeStaffRow(row); });
+      act.appendChild(del);
+      item.appendChild(act);
+      box.appendChild(item);
+    });
+  }
+
+  function editStaffRow(row) {
+    staffState.editing = row;
+    $('staffNo').value = row.no;
+    $('staffName').value = row.name || '';
+    $('staffRole').value = row.role === '관리자' ? '관리자' : '직원';
+    $('staffSave').textContent = '💾 수정 저장';
+    $('staffEditHint').hidden = false;
+    $('staffEditHint').textContent = (row.name || '') + ' 님 정보를 고치는 중입니다. 고친 뒤 [💾 수정 저장]을 누르세요.';
+  }
+
+  function saveStaffFromForm() {
+    var no = String($('staffNo').value || '').replace(/[^0-9]/g, '');
+    var name = String($('staffName').value || '').trim();
+    var role = $('staffRole').value === '관리자' ? '관리자' : '직원';
+    if (no.length !== 4) { toast('번호는 휴대폰 뒷번호 4자리 숫자로 넣어 주세요.', 'err'); $('staffNo').focus(); return; }
+    if (!name) { toast('이름을 입력해 주세요.', 'err'); $('staffName').focus(); return; }
+
+    var editing = staffState.editing;
+    var btn = $('staffSave');
+    if (btn.disabled) return;
+    btn.disabled = true;
+    API.saveStaff({
+      no: no,
+      role: role,
+      name: name,
+      originalNo: editing ? editing.no : ''
+    }).then(function (res) {
+      btn.disabled = false;
+      if (!res || res.ok === false) throw new Error((res && res.error) || '저장하지 못했습니다.');
+      toast((res.updated ? '직원 정보를 수정했습니다.' : '직원을 등록했습니다.') + ' (' + res.staff.no + ' · ' + res.staff.name + ' · ' + res.staff.role + ')', 'ok');
+      staffState.editing = null;
+      $('staffNo').value = '';
+      $('staffName').value = '';
+      $('staffRole').value = '직원';
+      $('staffSave').textContent = '➕ 직원 등록';
+      $('staffEditHint').hidden = true;
+      loadStaffList();
+    }).catch(function (err) {
+      btn.disabled = false;
+      toast((err && err.message) || '저장하지 못했습니다.', 'err');
+    });
+  }
+
+  function removeStaffRow(row) {
+    var ask = (row.name || '') + ' (' + row.no + ') 님을 직원 목록에서 지울까요?\n\n지운 번호로는 더 이상 로그인할 수 없습니다.';
+    if (typeof confirm === 'function' && !confirm(ask)) return;
+    API.deleteStaff(row.no).then(function (res) {
+      if (!res || res.ok === false) throw new Error((res && res.error) || '직원을 지우지 못했습니다.');
+      toast('직원을 목록에서 지웠습니다. (' + row.no + ')', 'ok');
+      loadStaffList();
+    }).catch(function (err) {
+      toast((err && err.message) || '직원을 지우지 못했습니다.', 'err');
+    });
+  }
+
+  function init() {
+    seedMockData();
+    if (IS_PREVIEW) $('modePill').classList.add('show');
+
+    $('loginBtn').addEventListener('click', doLogin);
+    $('loginPin').addEventListener('keydown', function (e) {
+      if (e && e.key === 'Enter') { e.preventDefault(); doLogin(); }
+    });
+
+    if (!loadSession()) { showLogin(''); return; }
+
+    // 저장된 세션으로 먼저 화면을 연다 (첫 화면이 바로 뜨게) — 서버 확인은 뒤에서 한다.
+    // 세션이 이미 끊겼으면 첫 자료 요청이 '로그인이 필요합니다'로 돌아오며 로그인 화면으로 간다.
+    startApp();
+    API.session().then(function (res) {
+      if (!res || res.ok === false) {
+        clearSession();
+        showLogin((res && res.error) || '로그인이 필요합니다. 다시 로그인해 주세요.');
+        return;
+      }
+      AUTH.name = res.name || AUTH.name;
+      AUTH.role = res.role === '관리자' ? '관리자' : '직원';
+      AUTH.no = res.no || AUTH.no;
+      AUTH.checked = true;
+      saveSession({ token: AUTH.token, no: AUTH.no, name: AUTH.name, role: AUTH.role });
+      applyRole();
+    }).catch(function () {
+      // 서버에 잠깐 닿지 않아도 저장된 세션으로 화면은 연다 (자료를 받을 때 다시 안내)
+    });
   }
 
   // 저장본(캐시)에 들어 있던 지점 목록을 먼저 칩에 올린다 — 지점 목록을 따로 부르지 않는다.
@@ -2294,6 +2880,7 @@
 
   // 지점 관리(칩에 ✕ 표시) 켜기/끄기 — 등록 칸과 달력 지점 필터가 함께 바뀐다.
   function setBranchEdit(on) {
+    if (!isAdmin()) { toast('지점 관리는 관리자만 할 수 있습니다.', 'err'); return; }
     state.branchEdit = (on === undefined) ? !state.branchEdit : !!on;
     var label = state.branchEdit ? '✕ 지점 관리 끝내기' : '🏷️ 지점 관리';
     ['branchManageBtn', 'calBranchManageBtn'].forEach(function (id) {
@@ -2344,6 +2931,7 @@
 
   // 지점 칩의 ✕ — 확인을 받은 뒤에만 목록에서 지운다 (잘못 눌러도 기록은 그대로).
   function askDeleteBranch(name) {
+    if (!isAdmin()) { toast('지점 삭제는 관리자만 할 수 있습니다.', 'err'); return; }
     name = String(name || '').trim();
     if (!name) return;
     var ask = "지점 '" + name + "' 을(를) 목록에서 지울까요?\n\n" +
@@ -2580,6 +3168,19 @@
       });
     });
 
+    // 👥 직원 관리 / 로그아웃
+    $('logoutBtn').addEventListener('click', doLogout);
+    $('staffManageBtn').addEventListener('click', openStaffModal);
+    $('staffClose').addEventListener('click', closeStaffModal);
+    $('staffSave').addEventListener('click', saveStaffFromForm);
+    $('staffModal').addEventListener('click', function (e) {
+      if (e && e.target === $('staffModal')) closeStaffModal();
+    });
+    $('staffNo').addEventListener('input', function () {
+      var v = String($('staffNo').value || '').replace(/[^0-9]/g, '').slice(0, 4);
+      if ($('staffNo').value !== v) $('staffNo').value = v;
+    });
+
     $('lbClose').addEventListener('click', closeLightbox);
     $('lbPrev').addEventListener('click', function () { stepLightbox(-1); });
     $('lbNext').addEventListener('click', function () { stepLightbox(1); });
@@ -2587,6 +3188,7 @@
       if (!$('workModal').hidden && e.key === 'Escape') { closeWorkScheduleModal(); return; }
       if (!$('editModal').hidden && e.key === 'Escape') { closeEditModal(); return; }
       if (!$('schedModal').hidden && e.key === 'Escape') { closeRequestModal(); return; }
+      if (!$('staffModal').hidden && e.key === 'Escape') { closeStaffModal(); return; }
       if ($('lightbox').hidden) return;
       if (e.key === 'Escape') closeLightbox();
       if (e.key === 'ArrowLeft') stepLightbox(-1);
@@ -2794,13 +3396,11 @@
       // 매장 요청에서 넘어온 등록이면 그 요청이 [완료]로 바뀌었으니 요청 달력도 다시 불러온다
       state.req.loaded = false;
       state.req.loadedMonth = '';
-      state.cal.month = String(date || todayStr()).substring(0, 7);
-      state.cal.selected = date || todayStr();
-      state.cal.loaded = false;
-      state.cal.loadedMonth = '';
       // 지점을 골라 보고 있었는데 다른 지점으로 등록했다면, 방금 올린 기록이 보이도록 전체 지점으로 돌린다
       if (state.cal.branch && state.cal.branch !== branch) state.cal.branch = '';
 
+      // 상태(보는 달·고른 날·기간)는 바로 저장한 날짜로 맞춰 두고, 화면 전환 때 새로 받는다
+      focusCalendarOnDate(date, 'cal', { defer: true });
       setTimeout(function () { switchTab('calendar'); }, 650);
     }).catch(function (err) {
       hideLoading();
@@ -2898,8 +3498,8 @@
         (r.memo ? '<p class="record-memo">' + esc(r.memo) + '</p>' : '') +
         (thumbs ? '<div class="thumbs">' + thumbs + '</div>' : '') +
         '<div class="record-actions">' +
-          '<button type="button" class="rec-edit" data-record="' + ri + '" aria-label="이 작업사진 기록 수정">✏️ 수정</button>' +
-          '<button type="button" class="rec-del" data-record="' + ri + '" aria-label="이 작업사진 기록 삭제">🗑️ 삭제</button>' +
+          (canEditRecord(r) ? '<button type="button" class="rec-edit" data-record="' + ri + '" aria-label="이 작업사진 기록 수정">✏️ 수정</button>' : '') +
+          (isAdmin() ? '<button type="button" class="rec-del" data-record="' + ri + '" aria-label="이 작업사진 기록 삭제">🗑️ 삭제</button>' : '') +
         '</div>' +
       '</article>';
     }).join('');
@@ -3008,13 +3608,12 @@
 
   /* ---------- 기간 지정 바 (시작일 ~ 종료일 · 조회 · 인쇄) ---------- */
 
-  // 그 달 기준 기본 기간 — 이번 달은 1일~오늘, 다른 달은 1일~말일
+  // 그 달 기본 기간 — 1일 ~ 말일.
+  //   예전에는 이번 달을 '1일~오늘' 로 잡아서, 일정 날짜를 오늘 이후(미래)로 수정하면
+  //   달력 칸 배지가 기간 밖으로 밀려 안 보였다(날짜를 누르면 목록에는 나옴). 그 버그의 원인.
   function monthRange(month) {
     var first = month + '-01';
     var last = month + '-' + pad(daysInMonth(month));
-    if (month === nowMonth() && todayStr() >= first && todayStr() < last) {
-      return { from: first, to: todayStr() };
-    }
     return { from: first, to: last };
   }
 
@@ -3022,6 +3621,49 @@
     var r = monthRange(obj.month || nowMonth());
     obj.from = r.from;
     obj.to = r.to;
+  }
+
+  /**
+   * 저장·수정한 날짜로 달력을 바로 맞춘다.
+   *   · 그 날이 든 달로 이동하고 그 날을 고른 뒤 새로 그린다.
+   *   · 기간도 그 달 전체로 되돌린다 — 오늘이나 예전에 고른 기간에 걸려
+   *     새로 바꾼 날짜(특히 미래 날짜)가 달력에서 가려지지 않게.
+   * which: 'cal'(📅 작업 캘린더) | 'req'(📝 매장 요청)
+   */
+  function focusCalendarOnDate(dateStr, which, opts) {
+    opts = opts || {};
+    var date = String(dateStr || todayStr()).substring(0, 10);
+    var month = date.substring(0, 7);
+    var obj = which === 'req' ? state.req : state.cal;
+    var changedMonth = obj.month !== month;
+
+    obj.month = month;
+    obj.selected = date;
+    obj.from = month + '-01';
+    obj.to = month + '-' + pad(daysInMonth(month));
+    obj.loaded = false;
+    obj.loadedMonth = '';
+    obj.days = {};
+    obj.dayLoading = {};
+    obj.dayError = {};
+    obj.dayPromise = {};
+
+    if (which === 'req') {
+      if (changedMonth) obj.schedules = [];
+      syncPeriodInputs('req');
+      if (!opts.defer && state.tab === 'requests') loadRequests(true);
+      return;
+    }
+    if (changedMonth) {
+      state.cal.records = [];
+      state.cal.plans = [];
+    }
+    state.cal.planDays = {};
+    state.cal.planDayLoading = {};
+    state.cal.planDayError = {};
+    syncPeriodInputs('cal');
+    // opts.defer: 화면 전환(switchTab)이 이어서 불러오게 두고 여기서는 상태만 맞춘다
+    if (!opts.defer && state.tab === 'calendar') loadCalendar(true);
   }
 
   /* ---------- 달력 위 월 이동 바 (◀ 2026년 11월 ▶)와 지점 선택 ---------- */
@@ -3649,21 +4291,23 @@
     photoBtn.addEventListener('click', function () { startPhotoFromWorkSchedule(plan); });
     actions.appendChild(photoBtn);
 
-    var editBtn = el('button', 'edit do-work-edit', '✏️ 수정');
-    editBtn.setAttribute('type', 'button');
-    editBtn.setAttribute('aria-label', '이 작업 일정 수정');
-    editBtn.addEventListener('click', function () { openWorkScheduleModal(plan); });
-    actions.appendChild(editBtn);
+    if (isAdmin()) {
+      var editBtn = el('button', 'edit do-work-edit', '✏️ 수정');
+      editBtn.setAttribute('type', 'button');
+      editBtn.setAttribute('aria-label', '이 작업 일정 수정');
+      editBtn.addEventListener('click', function () { openWorkScheduleModal(plan); });
+      actions.appendChild(editBtn);
 
-    var toggle = el('button', 'do-work-toggle', done ? '↩ 예정으로 되돌리기' : '✅ 완료 처리');
-    toggle.setAttribute('type', 'button');
-    toggle.addEventListener('click', function () { setWorkScheduleStatus(plan, done ? '예정' : '완료'); });
-    actions.appendChild(toggle);
+      var toggle = el('button', 'do-work-toggle', done ? '↩ 예정으로 되돌리기' : '✅ 완료 처리');
+      toggle.setAttribute('type', 'button');
+      toggle.addEventListener('click', function () { setWorkScheduleStatus(plan, done ? '예정' : '완료'); });
+      actions.appendChild(toggle);
 
-    var del = el('button', 'danger do-work-delete', '🗑️ 삭제');
-    del.setAttribute('type', 'button');
-    del.addEventListener('click', function () { removeWorkSchedule(plan); });
-    actions.appendChild(del);
+      var del = el('button', 'danger do-work-delete', '🗑️ 삭제');
+      del.setAttribute('type', 'button');
+      del.addEventListener('click', function () { removeWorkSchedule(plan); });
+      actions.appendChild(del);
+    }
 
     item.appendChild(actions);
     return item;
@@ -3690,6 +4334,7 @@
   }
 
   function setWorkScheduleStatus(plan, status) {
+    if (!isAdmin()) { toast('일정 변경은 관리자만 할 수 있습니다.', 'err'); return; }
     API.updateWorkScheduleStatus(plan.id, status).then(function (res) {
       if (!res || res.ok === false) throw new Error((res && res.error) || '상태를 바꾸지 못했습니다.');
       plan.status = status;
@@ -3702,6 +4347,7 @@
   }
 
   function removeWorkSchedule(plan) {
+    if (!isAdmin()) { toast('일정 삭제는 관리자만 할 수 있습니다.', 'err'); return; }
     var ask = '이 작업 일정을 지울까요?\n\n' + plan.branch + ' · ' + formatDateLabel(plan.date) +
       (plan.task ? '\n' + plan.task : '') + '\n\n(이미 올린 작업사진은 그대로 남습니다)';;
     if (typeof confirm === 'function' && !confirm(ask)) return;
@@ -3717,6 +4363,7 @@
 
   /* ---------- 작업 일정 등록·수정 창 ---------- */
   function openWorkScheduleModal(plan, dateStr) {
+    if (!isAdmin()) { toast('작업 일정은 관리자만 등록·수정할 수 있습니다.', 'err'); return; }
     state.workEdit = plan || null;
     var date = plan ? plan.date : (dateStr || state.cal.selected || todayStr());
     $('workTitle').textContent = plan ? '작업 일정 수정' : '작업 일정 등록';
@@ -3813,16 +4460,12 @@
       reviveBranch(payload.branch);
       rememberBranch(payload.branch);
       if (payload.author) rememberAuthor(payload.author);
-      state.cal.month = payload.date.substring(0, 7);
-      state.cal.selected = payload.date;
-      state.cal.loaded = false;
-      state.cal.loadedMonth = '';
-      state.cal.planDays = {};
       toast((editing ? '작업 일정을 수정했습니다. (' : '작업 일정을 등록했습니다. (') + formatDateLabel(payload.date) +
         (savedCount ? ' · 사진 ' + savedCount + '장' : '') + ')', 'ok');
       if (warnings.length) setTimeout(function () { toast(warnings[0], 'err'); }, 1800);
-      if (state.tab === 'calendar') loadCalendar(true);
-      else switchTab('calendar');
+      // 수정한 날짜(미래·다른 달 포함)가 달력에 바로 보이게 그 달로 맞춘다
+      focusCalendarOnDate(payload.date, 'cal');
+      if (state.tab !== 'calendar') switchTab('calendar');
     }).catch(function (err) {
       hideLoading();
       btn.disabled = false;
@@ -3859,18 +4502,22 @@
     }
 
     var actions = el('div', 'rec-actions');
-    var editBtn = el('button', 'edit do-rec-edit', '✏️ 수정');
-    editBtn.setAttribute('type', 'button');
-    editBtn.setAttribute('aria-label', '이 작업사진 기록 수정');
-    // 사진까지 받은 기록으로 수정 창을 연다 (아직이면 그 날 사진을 먼저 받는다)
-    editBtn.addEventListener('click', function () { withDayRecord(record, openEditModal); });
-    actions.appendChild(editBtn);
-    var del = el('button', 'danger do-rec-delete', '🗑️ 삭제');
-    del.setAttribute('type', 'button');
-    del.setAttribute('aria-label', '이 작업사진 기록 삭제');
-    del.addEventListener('click', function () { withDayRecord(record, removeWorkRecord); });
-    actions.appendChild(del);
-    card.appendChild(actions);
+    if (canEditRecord(record)) {
+      var editBtn = el('button', 'edit do-rec-edit', '✏️ 수정');
+      editBtn.setAttribute('type', 'button');
+      editBtn.setAttribute('aria-label', '이 작업사진 기록 수정');
+      // 사진까지 받은 기록으로 수정 창을 연다 (아직이면 그 날 사진을 먼저 받는다)
+      editBtn.addEventListener('click', function () { withDayRecord(record, openEditModal); });
+      actions.appendChild(editBtn);
+    }
+    if (isAdmin()) {
+      var del = el('button', 'danger do-rec-delete', '🗑️ 삭제');
+      del.setAttribute('type', 'button');
+      del.setAttribute('aria-label', '이 작업사진 기록 삭제');
+      del.addEventListener('click', function () { withDayRecord(record, removeWorkRecord); });
+      actions.appendChild(del);
+    }
+    if (actions.children.length) card.appendChild(actions);
     return card;
   }
 
@@ -4221,23 +4868,25 @@
     photoBtn.addEventListener('click', function () { startPhotoFromSchedule(plan); });
     actions.appendChild(photoBtn);
 
-    var editBtn = el('button', 'edit do-edit', '✏️ 수정');
-    editBtn.setAttribute('type', 'button');
-    editBtn.setAttribute('aria-label', '이 매장 요청 수정');
-    editBtn.addEventListener('click', function () { openRequestModal(plan); });
-    actions.appendChild(editBtn);
+    if (isAdmin()) {
+      var editBtn = el('button', 'edit do-edit', '✏️ 수정');
+      editBtn.setAttribute('type', 'button');
+      editBtn.setAttribute('aria-label', '이 매장 요청 수정');
+      editBtn.addEventListener('click', function () { openRequestModal(plan); });
+      actions.appendChild(editBtn);
 
-    var toggle = el('button', 'do-toggle', done ? '↩ 대기로 되돌리기' : '✅ 완료 처리');
-    toggle.setAttribute('type', 'button');
-    toggle.addEventListener('click', function () {
-      setRequestStatus(plan, done ? '예정' : '완료');
-    });
-    actions.appendChild(toggle);
+      var toggle = el('button', 'do-toggle', done ? '↩ 대기로 되돌리기' : '✅ 완료 처리');
+      toggle.setAttribute('type', 'button');
+      toggle.addEventListener('click', function () {
+        setRequestStatus(plan, done ? '예정' : '완료');
+      });
+      actions.appendChild(toggle);
 
-    var del = el('button', 'danger do-delete', '🗑️ 삭제');
-    del.setAttribute('type', 'button');
-    del.addEventListener('click', function () { removeRequest(plan); });
-    actions.appendChild(del);
+      var del = el('button', 'danger do-delete', '🗑️ 삭제');
+      del.setAttribute('type', 'button');
+      del.addEventListener('click', function () { removeRequest(plan); });
+      actions.appendChild(del);
+    }
 
     item.appendChild(actions);
     return item;
@@ -4442,6 +5091,8 @@
   }
 
   function openRequestModal(plan, dateStr) {
+    // 등록은 로그인한 사람 누구나, 고치기는 관리자만 (남의 요청을 함부로 바꾸지 않게)
+    if (plan && !isAdmin()) { toast('매장 요청 수정은 관리자만 할 수 있습니다.', 'err'); return; }
     state.schedEdit = plan || null;
     var date = plan ? plan.date : (dateStr || state.req.selected || todayStr());
     $('schedTitle').textContent = plan ? '매장 요청 수정' : '매장 요청 등록';
@@ -4537,15 +5188,12 @@
       reviveBranch(payload.branch);
       rememberBranch(payload.branch);
       if (payload.author) rememberAuthor(payload.author);
-      state.req.month = payload.date.substring(0, 7);
-      state.req.selected = payload.date;
-      state.req.loaded = false;
-      state.req.loadedMonth = '';
-      state.req.days = {};
       toast((editing ? '매장 요청을 수정했습니다. (' : '매장 요청을 등록했습니다. (') + formatDateLabel(payload.date) +
         (savedCount ? ' · 사진 ' + savedCount + '장' : '') + ')', 'ok');
       if (warnings.length) setTimeout(function () { toast(warnings[0], 'err'); }, 1800);
-      if (state.tab === 'requests') loadRequests(true);
+      // 매장 요청도 같은 버그가 있었다 — 바꾼 날짜로 달력을 맞춘다
+      focusCalendarOnDate(payload.date, 'req');
+      if (state.tab !== 'requests') switchTab('requests');
     }).catch(function (err) {
       hideLoading();
       btn.disabled = false;
@@ -4580,6 +5228,7 @@
 
   function removeWorkRecord(record) {
     if (!record) return;
+    if (!isAdmin()) { toast('글 삭제는 관리자만 할 수 있습니다.', 'err'); return; }
     var ask = '이 작업사진 기록을 삭제할까요? (시트와 사진 파일이 함께 삭제됩니다)';
     if (typeof confirm === 'function' && !confirm(ask)) return;
 
@@ -4614,6 +5263,7 @@
    * ============================================================== */
   function openEditModal(record) {
     if (!record) return;
+    if (!canEditRecord(record)) { toast('본인이 쓴 작업사진만 수정할 수 있습니다.', 'err'); return; }
     state.edit = {
       record: record,
       keep: (record.photos || []).slice(),
@@ -4622,7 +5272,8 @@
     };
     $('editDate').value = record.date || todayStr();
     $('editBranch').value = record.branch || '';
-    $('editAuthor').value = record.author || '';
+    $('editAuthor').value = isAdmin() ? (record.author || '') : AUTH.name;
+    $('editAuthor').readOnly = !isAdmin();
     $('editMemo').value = record.memo || '';
     $('editMeta').textContent = formatDateLabel(record.date) + ' ' + (record.branch || '') +
       (record.author ? ' · ' + record.author + ' 님이 등록한 기록' : '') +
@@ -4797,12 +5448,8 @@
       state.listDirty = true;
       state.listLoaded = false;
       // 보던 화면을 유지한다 — 캘린더는 수정한 날짜로, 조회는 그대로 다시 불러온다.
-      state.cal.month = String(date || todayStr()).substring(0, 7);
-      state.cal.selected = date || todayStr();
-      state.cal.loaded = false;
-      state.cal.loadedMonth = '';
       if (state.tab === 'list') loadList(true);
-      else loadCalendar(true);
+      else focusCalendarOnDate(date, 'cal');
     }).catch(function (err) {
       hideLoading();
       if (state.edit) state.edit.saving = false;
