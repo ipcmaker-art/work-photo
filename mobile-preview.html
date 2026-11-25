@@ -13,15 +13,18 @@
 <script>
   // 확인용 화면에서만: 폰 화면에는 없는 데스크톱 스크롤바를 감춘다 (앱 자체는 건드리지 않음)
   var f = document.getElementById('frame');
-  f.addEventListener('load', function () {
+  function hideScrollbar() {
     try {
       var d = f.contentDocument;
-      var st = d.createElement('style');
+      var st = d.getElementById('mp-noscroll') || d.createElement('style');
+      st.id = 'mp-noscroll';
       st.textContent = '::-webkit-scrollbar{width:0;height:0;display:none}' +
-        'html,body{scrollbar-width:none;-ms-overflow-style:none}';
+        'html,body{scrollbar-width:none;-ms-overflow-style:none} html{overflow-y:scroll}::-webkit-scrollbar-thumb{display:none}';
       d.head.appendChild(st);
     } catch (e) {}
-  });
+  }
+  f.addEventListener('load', hideScrollbar);
+  hideScrollbar();
 </script>
 </body>
 </html>
