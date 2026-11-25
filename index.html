@@ -3548,18 +3548,16 @@
     var branch = req.branch ? req.branch + ' ' : '';
     var scope = req.printPeriod === 'all' ? '전체 기간' : monthLabel(req.month);
     var statusLabel = req.status ? req.status + ' ' : '';
-    var tail = 'A4 표 워드로 내려받습니다 (여백 10mm · 날짜 오름차순).';
-    if (req.printPeriod === 'all' || (req.loading && !req.stale)) {
-      // 전체 기간은 서버가 고르므로 건수를 미리 세지 않고, 불러오는 중에는 엉뚝한 숫자를 보여 주지 않는다.
-      hint.textContent = branch + scope + ' ' + statusLabel + '매장 요청을 ' + tail;
-      return;
+    if (req.printPeriod !== 'all') {
+      var list = (req.schedules || []).filter(function (s) {
+        return !req.status || (s.status === '완료' ? '완료' : '대기') === req.status;
+      });
+      hint.textContent = branch + scope + ' ' + statusLabel + '매장 요청 ' + list.length +
+        '건을 A4 표 워드로 내려받습니다 (여백 10mm · 날짜 오름차순).';
+    } else {
+      hint.textContent = branch + scope + ' ' + statusLabel +
+        '매장 요청을 A4 표 워드로 내려받습니다 (여백 10mm · 날짜 오름차순).';
     }
-    var list = (req.schedules || []).filter(function (s) {
-      return !req.status || (s.status === '완료' ? '완료' : '대기') === req.status;
-    });
-    hint.textContent = list.length
-      ? branch + scope + ' ' + statusLabel + '매장 요청 ' + list.length + '건을 ' + tail
-      : branch + scope + ' ' + statusLabel + '매장 요청이 없습니다. 기간·상태·지점을 바꿔 보세요.';
   }
 
   /** 📄 인쇄(워드) — 지금 조건의 매장 요청을 표 문서로 내려받는다. */
