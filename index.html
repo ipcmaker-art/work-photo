@@ -39,39 +39,36 @@
   button{cursor:pointer; border:0; background:none;}
   .app{max-width:760px; margin:0 auto; padding-bottom:48px;}
 
-  /* header */
+  /* header — 상단 제목 한 줄만 (달력이 화면의 주인공) */
   .app-header{
-    background:linear-gradient(135deg,#1d4ed8 0%,#3b82f6 100%);
-    color:#fff; padding:20px 20px 18px;
-    border-radius:0 0 22px 22px;
-    box-shadow:0 6px 20px rgba(29,78,216,.18);
+    background:#fff; color:var(--text); padding:13px 12px 11px;
+    border-radius:0 0 16px 16px;
+    box-shadow:0 1px 3px rgba(16,24,40,.06); border-bottom:1px solid #eef2f7;
   }
-  .brand{display:flex; align-items:center; gap:12px;}
-  .logo{
-    width:44px; height:44px; border-radius:14px; background:rgba(255,255,255,.18);
-    display:flex; align-items:center; justify-content:center; font-size:22px; flex:0 0 auto;
+  .app-header h1{
+    font-size:16px; margin:0; text-align:center; letter-spacing:-.7px; font-weight:800; line-height:1.3;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   }
-  .app-header h1{font-size:19px; margin:0; letter-spacing:-.3px;}
-  .app-header .sub{margin:2px 0 0; font-size:12.5px; opacity:.85;}
+  @media (min-width:420px){ .app-header h1{font-size:18px;} }
   .mode-pill{
-    margin-top:12px; display:none; align-items:center; gap:6px;
-    font-size:12px; background:rgba(255,255,255,.16); padding:5px 10px; border-radius:999px; width:fit-content;
+    margin:8px auto 0; display:none; align-items:center; gap:6px;
+    font-size:11.5px; background:#f2f4f7; color:#475467; padding:4px 10px; border-radius:999px; width:fit-content;
   }
-  .mode-pill.show{display:inline-flex;}
+  .mode-pill.show{display:flex;}
 
-  /* tabs */
+  /* tabs — 아담하게 한 줄 */
   .tabs{
-    display:flex; gap:6px; padding:6px; margin:14px 14px 0;
-    background:#fff; border-radius:14px; box-shadow:var(--shadow); position:sticky; top:8px; z-index:20;
+    display:grid; grid-template-columns:repeat(3,1fr); gap:6px; padding:5px; margin:8px 10px 0;
+    background:#fff; border-radius:12px; box-shadow:var(--shadow); position:sticky; top:6px; z-index:20;
   }
   .tab{
-    flex:1; padding:11px 3px; border-radius:10px; font-weight:700; font-size:12.5px; color:var(--muted);
-    transition:background .15s,color .15s; white-space:nowrap; letter-spacing:-.4px;
+    width:100%; padding:8px 1px; border-radius:9px; font-weight:800; font-size:11.5px; color:#475467;
+    transition:background .15s,color .15s; white-space:nowrap; letter-spacing:-.5px;
     overflow:hidden; text-overflow:ellipsis;
   }
-  @media (min-width:420px){ .tab{font-size:14px; padding:11px 8px;} }
+  @media (min-width:420px){ .tab{font-size:13px; padding:9px 6px;} }
   .tab.active{background:var(--brand); color:#fff; box-shadow:0 2px 8px rgba(29,78,216,.25);}
-  main{padding:14px;}
+  main{padding:10px;}
 
   .card{
     background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow);
@@ -168,18 +165,34 @@
   .btn-export:active{transform:translateY(1px);}
   .btn-export:disabled{opacity:.55; box-shadow:none; cursor:default;}
 
-  /* 📝 매장 요청 인쇄(워드) 막대 */
-  .req-print{padding:12px 14px;}
-  .req-print-row{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
-  .req-print-row .chips{margin:0; padding-bottom:0; overflow:visible;}
-  .req-print-row .chip{padding:7px 12px; font-size:12.5px;}
-  .req-print-label{font-size:12.5px; font-weight:800; color:#344054;}
-  .req-print select{
-    padding:8px 10px; border-radius:10px; border:1px solid var(--line); background:#fff;
-    font-size:13px; font-weight:700; color:#344054;
+  /* 기간 지정 바 — 달력 바로 위 한 줄 (📅·📝 공통) */
+  .period-bar{
+    display:flex; align-items:center; gap:4px; padding:6px 7px; margin-bottom:8px;
+    background:#fff; border-radius:12px; box-shadow:var(--shadow);
   }
-  .req-print .btn-export{margin-left:auto;}
-  .req-print .hint{margin-top:8px;}
+  .period-bar input[type="date"]{
+    flex:1 1 0; width:0; min-width:0; min-height:30px; height:30px; padding:2px 3px;
+    font-size:11.5px; font-weight:700; text-align:center; border-radius:8px; background:#fff;
+  }
+  .period-sep{flex:0 0 auto; font-size:11px; font-weight:800; color:#98a2b3;}
+  .btn-period{
+    flex:0 0 auto; display:inline-flex; align-items:center; justify-content:center; gap:2px;
+    padding:6px 8px; border-radius:8px; border:1px solid var(--line); background:#fff;
+    font-size:11.5px; font-weight:800; color:#344054; white-space:nowrap;
+  }
+  .btn-period.search{color:var(--brand); border-color:#c7d7fe; background:#f8faff;}
+  .btn-period:disabled{opacity:.5;}
+  @media (min-width:420px){
+    .period-bar input[type="date"]{font-size:13px; height:34px;}
+    .btn-period{font-size:13px; padding:7px 11px;}
+    .period-sep{font-size:12px;}
+  }
+
+  /* 📝 매장 요청 — 인쇄 상태 칩 (달력 아래 얇은 줄) */
+  .cal-subbar{display:flex; align-items:center; gap:6px; padding:0 4px 6px;}
+  .cal-subbar-label{font-size:11px; font-weight:800; color:var(--muted); flex:0 0 auto;}
+  .cal-subbar .chips{margin:0; padding:0; overflow:visible; gap:4px;}
+  .cal-subbar .chip{padding:4px 9px; font-size:11px;}
 
   .record{background:#fff; border-radius:var(--radius); box-shadow:var(--shadow); padding:14px 15px; margin-bottom:12px;}
   .record-top{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
@@ -204,38 +217,34 @@
   @keyframes sk{0%{background-position:100% 50%}100%{background-position:0 50%}}
 
   /* calendar */
-  .cal-nav{display:flex; align-items:center; gap:6px;}
-  .cal-nav .btn-ghost{padding:9px 11px; font-size:13px; white-space:nowrap;}
-  .cal-month{flex:1; text-align:center; font-weight:800; font-size:15.5px; letter-spacing:-.3px;}
-  .cal-tools{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:10px; flex-wrap:wrap;}
-  .cal-legend{display:flex; gap:10px; flex-wrap:wrap; font-size:11.5px; color:var(--muted);}
-  #calBranchFilter{margin-top:10px; margin-bottom:0;}
-  .cal-card{padding:10px 8px 12px;}
-  .cal-week{display:grid; grid-template-columns:repeat(7,1fr); gap:4px; padding:0 0 6px;}
-  .cal-week span{text-align:center; font-size:11.5px; font-weight:700; color:var(--muted);}
+  /* 달력 — 일·토는 좁게, 월~금은 넓게 */
+  .cal-card{padding:8px 6px 10px;}
+  .cal-week{display:grid; grid-template-columns:0.56fr repeat(5,1.2fr) 0.56fr; gap:2px; padding:0 0 5px;}
+  .cal-week span{text-align:center; font-size:11px; font-weight:800; color:var(--muted);}
   .cal-week span.sun{color:#d92d20;} .cal-week span.sat{color:var(--brand);}
-  .cal-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:4px;}
+  .cal-grid{display:grid; grid-template-columns:0.56fr repeat(5,1.2fr) 0.56fr; gap:2px;}
   .cal-cell{
-    min-height:62px; border-radius:10px; background:#fbfcfd; border:1px solid var(--line);
-    padding:4px 3px; text-align:left; display:flex; flex-direction:column; gap:3px; overflow:hidden;
+    min-height:98px; border-radius:8px; background:#fff; border:1px solid #eef2f7;
+    padding:5px 3px; text-align:left; display:flex; flex-direction:column; gap:3px; overflow:hidden;
     transition:background .12s, border-color .12s;
   }
   .cal-cell.out{background:transparent; border-color:transparent; min-height:0;}
   .cal-cell.today{border-color:var(--brand); box-shadow:inset 0 0 0 1px var(--brand);}
   .cal-cell.selected{background:var(--brand-soft); border-color:var(--brand);}
-  .cal-num{font-size:12px; font-weight:800; color:#344054; line-height:1.2;}
+  .cal-num{font-size:12.5px; font-weight:800; color:#344054; line-height:1.15;}
   .cal-cell.sun .cal-num{color:#d92d20;} .cal-cell.sat .cal-num{color:var(--brand);}
   .cal-cell.today .cal-num{color:var(--brand);}
   .cal-badge{
-    display:block; font-size:9.5px; line-height:1.35; padding:1px 4px; border-radius:5px;
+    display:block; font-size:9.5px; line-height:1.3; padding:2px 3px; border-radius:5px;
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%;
+    letter-spacing:-.2px; font-weight:700;
   }
   .cal-badge.photo{background:#e7f6ef; color:#067647;}
-  .cal-badge.plan{background:#fef3c7; color:#92400e; font-weight:700;}
+  .cal-badge.plan{background:#fef3c7; color:#92400e;}
   .cal-badge.plan.done{background:#f2f4f7; color:#98a2b3; text-decoration:line-through;}
-  .cal-badge.work{background:#e0e7ff; color:#3730a3; font-weight:700;}
+  .cal-badge.work{background:#e0e7ff; color:#3730a3;}
   .cal-badge.work.done{background:#f2f4f7; color:#98a2b3; text-decoration:line-through;}
-  .cal-summary{font-size:11.5px; color:var(--muted); padding:10px 4px 0; line-height:1.5;}
+  .cal-summary{font-size:11.5px; color:var(--muted); padding:8px 4px 0; line-height:1.5;}
   .cal-summary.err{color:var(--danger);}
 
   .day-head{display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:12px;}
@@ -381,12 +390,12 @@
   .footer-note{text-align:center; font-size:11.5px; color:#98a2b3; padding:6px 20px 0; line-height:1.6;}
 
   @media (min-width:640px){
-    .app-header{padding:24px 24px 22px;}
-    main{padding:16px 18px;}
+    .app-header{padding:16px 24px 14px;}
+    main{padding:12px 18px;}
     .photo-grid{grid-template-columns:repeat(auto-fill,minmax(108px,1fr));}
     .thumbs{grid-template-columns:repeat(auto-fill,minmax(104px,1fr));}
-    .cal-cell{min-height:88px; padding:6px 5px;}
-    .cal-num{font-size:12.5px;}
+    .cal-cell{min-height:112px; padding:6px 5px;}
+    .cal-num{font-size:13px;}
     .cal-badge{font-size:10.5px;}
     #schedModal,#workModal,#editModal{align-items:center; padding:20px;}
     .modal-card{border-radius:18px;}
@@ -403,6 +412,11 @@
     .picker{background:#131a29; border-color:#2f4370; color:#93b4ff;}
     .btn-ghost{background:#232833; color:#e4e7ec;}
     .record,.card{background:var(--card);}
+    .app-header{background:var(--card); border-color:#2a2f3a;}
+    .period-bar{background:var(--card);}
+    .period-bar input[type="date"]{background:#12151b; border-color:#2a2f3a;}
+    .btn-period{background:var(--card); border-color:#2a2f3a; color:#e4e7ec;}
+    .btn-period.search{background:#17233f; color:#93b4ff; border-color:#2b4270;}
     .label{color:#c9d2e3;}
     .record-memo{color:#d0d5dd;}
     .record-author{color:#d0d5dd;}
@@ -445,13 +459,7 @@
 <body>
 <div class="app">
   <header class="app-header">
-    <div class="brand">
-      <div class="logo">📷</div>
-      <div>
-        <h1>작업사진 등록</h1>
-        <p class="sub">장보고식자재마트 · 현장 작업 기록</p>
-      </div>
-    </div>
+    <h1 title="(주)제이비지종합건설 시설유지보수사업부">(주)제이비지종합건설 시설유지보수사업부</h1>
     <div class="mode-pill" id="modePill">🧪 미리보기 모드 · 이 브라우저에만 저장됩니다</div>
   </header>
 
@@ -525,26 +533,13 @@
         </form>
       </div>
 
-      <div class="card cal-toolbar">
-        <div class="cal-nav">
-          <button type="button" class="btn-ghost" id="calPrev" aria-label="이전 달">‹ 이전 달</button>
-          <div class="cal-month" id="calMonth">–</div>
-          <button type="button" class="btn-ghost" id="calNext" aria-label="다음 달">다음 달 ›</button>
-        </div>
-        <div class="cal-tools">
-          <div class="cal-legend">
-            <span>📷 작업사진</span>
-            <span>📋 작업 일정</span>
-          </div>
-          <div style="display:flex; gap:6px; align-items:center">
-            <button type="button" class="btn-branch-manage" id="calBranchManageBtn">🏷️ 지점 관리</button>
-            <button type="button" class="btn-ghost" id="calToday">오늘</button>
-          </div>
-        </div>
-        <div class="chips" id="calBranchFilter"></div>
+      <div class="period-bar" role="group" aria-label="기간 지정 · 조회 · 인쇄">
+        <input type="date" id="calFrom" aria-label="시작일">
+        <span class="period-sep">~</span>
+        <input type="date" id="calTo" aria-label="종료일">
+        <button type="button" class="btn-period search" id="calSearch" title="이 기간으로 달력을 맞추고 내역을 조회합니다">🔍 조회</button>
+        <button type="button" class="btn-period print" id="calPrint" title="이 기간의 작업사진을 워드(.docx)로 내려받습니다 (여백 10mm, 사진 한 줄 3장, 날짜 오름차순)">📄 인쇄</button>
       </div>
-
-      <div class="cal-hint">작업 일정과 작업사진을 함께 보는 달력입니다. 매장 요청은 <b>📝 매장 요청</b> 탭에서 따로 봅니다.</div>
 
       <div class="card cal-card">
         <div class="cal-week">
@@ -563,6 +558,7 @@
           <div class="day-head-actions">
             <button type="button" class="btn-add-plan" id="dayPlanAddBtn">+ 이 날 작업 일정</button>
             <button type="button" class="btn-day-photo" id="dayPhotoBtn">📷 이 날 작업사진 등록</button>
+            <button type="button" class="btn-branch-manage" id="calBranchManageBtn">🏷️ 지점 관리</button>
           </div>
         </div>
         <div id="dayDetail"></div>
@@ -571,37 +567,17 @@
 
     <!-- ================== 2. 📝 매장 요청 (별도 캘린더) ================== -->
     <section id="panel-requests" role="tabpanel" aria-labelledby="tab-requests" hidden>
-      <div class="card cal-toolbar">
-        <div class="cal-nav">
-          <button type="button" class="btn-ghost" id="reqPrev" aria-label="이전 달">‹ 이전 달</button>
-          <div class="cal-month" id="reqMonth">–</div>
-          <button type="button" class="btn-ghost" id="reqNext" aria-label="다음 달">다음 달 ›</button>
-        </div>
-        <div class="cal-tools">
-          <div class="cal-legend">
-            <span>📝 요청 대기</span>
-            <span>✓ 완료</span>
-          </div>
-          <button type="button" class="btn-ghost" id="reqToday">오늘</button>
-        </div>
-        <div class="chips" id="reqBranchFilter"></div>
+      <div class="period-bar" role="group" aria-label="기간 지정 · 조회 · 인쇄">
+        <input type="date" id="reqFrom" aria-label="시작일">
+        <span class="period-sep">~</span>
+        <input type="date" id="reqTo" aria-label="종료일">
+        <button type="button" class="btn-period search" id="reqSearch" title="이 기간으로 달력을 맞추고 매장 요청을 조회합니다">🔍 조회</button>
+        <button type="button" class="btn-period print" id="reqPrint" title="이 기간의 매장 요청을 A4 표 워드(.docx)로 내려받습니다 (여백 10mm, 제목 20pt, 본문 10pt, 날짜 오름차순)">📄 인쇄</button>
       </div>
 
-      <div class="cal-hint">매장에서 들어온 요청만 따로 보는 달력입니다. 요청을 등록해 두고, 작업을 마치면 그 요청에서 <b>📷 작업완료(사진등록)</b>으로 사진을 올리면 됩니다.</div>
-
-      <!-- 🖨️ 매장 요청 인쇄(워드) — 지금 보고 있는 달·지점·상태 그대로 A4 표로 -->
-      <div class="card req-print">
-        <div class="req-print-row">
-          <span class="req-print-label">상태</span>
-          <div class="chips" id="reqStatusFilter"></div>
-          <label class="req-print-label" for="reqPrintPeriod">기간</label>
-          <select id="reqPrintPeriod" aria-label="인쇄할 기간">
-            <option value="month">이 달</option>
-            <option value="all">전체 기간</option>
-          </select>
-          <button type="button" class="btn-export" id="reqExportBtn" title="지금 보고 있는 달·지점·상태의 매장 요청을 A4 표 워드 파일로 내려받습니다 (여백 10mm, 제목 20pt, 본문 10pt, 날짜 오름차순)">📄 인쇄(워드)</button>
-        </div>
-        <div class="hint" id="reqExportHint">이 달 매장 요청을 워드 파일로 내려받습니다.</div>
+      <div class="cal-subbar">
+        <span class="cal-subbar-label">상태</span>
+        <div class="chips" id="reqStatusFilter"></div>
       </div>
 
       <div class="card cal-card">
@@ -875,7 +851,9 @@
     // 1️⃣ 📅 작업 캘린더 — 작업사진(등록기록)만
     cal: {
       month: '',          // 'YYYY-MM' (지금 보고 있는 달)
-      branch: '',         // 지점 필터 ('' = 전체)
+      from: '',           // 기간 지정 바 시작일 'YYYY-MM-DD'
+      to: '',             // 기간 지정 바 종료일 'YYYY-MM-DD'
+      branch: '',         // 지점 필터 ('' = 전체 — 달력 화면에는 지점 칩을 두지 않는다)
       selected: '',       // 선택한 날짜 'YYYY-MM-DD'
       records: [],        // 그 달 작업기록 — 사진 없이 요약만 (달력 칸·글)
       plans: [],          // 그 달 작업 일정(작업일정 시트)
@@ -896,6 +874,8 @@
     // 2️⃣ 📝 매장 요청 — 예정작업 시트를 쓰는 별도 캘린더
     req: {
       month: '',
+      from: '',
+      to: '',
       branch: '',
       selected: '',
       schedules: [],      // 그 달 매장 요청
@@ -903,8 +883,7 @@
       dayLoading: {},
       dayError: {},
       dayPromise: {},
-      status: '',         // 인쇄할 상태 ('전체'='' / '대기' / '완료')
-      printPeriod: 'month', // 인쇄 기간 ('month' 이 달 / 'all' 전체 기간)
+      status: '',         // 달력·인쇄에 보일 상태 ('전체'='' / '대기' / '완료')
       syncing: false,
       stale: false,
       loaded: false,
@@ -2192,6 +2171,14 @@
     state.cal.selected = today;
     state.req.month = nowMonth();
     state.req.selected = today;
+    // 기간 지정 바 기본값 — 이번 달 1일 ~ 오늘 (지난 달·다음 달은 그 달 전체)
+    var initRange = monthRange(state.cal.month);
+    state.cal.from = initRange.from;
+    state.cal.to = initRange.to;
+    state.req.from = initRange.from;
+    state.req.to = initRange.to;
+    syncPeriodInputs('cal');
+    syncPeriodInputs('req');
 
     state.deletedBranches = (store.get(LS.branchesDeleted, []) || []).slice();
     state.branches = mergeBranches(store.get(LS.branches, []), DEFAULT_BRANCHES);
@@ -2277,7 +2264,6 @@
     var hint = $('branchManageHint');
     if (hint) hint.hidden = !state.branchEdit;
     renderBranchChips();
-    renderCalBranchFilter();
     renderDatalists();
     if (state.branchEdit) toast('지점 관리: 칩의 ✕ 를 누르면 목록에서 지울 수 있습니다.', 'ok');
   }
@@ -2338,8 +2324,6 @@
 
       renderBranchChips();
       renderDatalists();
-      renderCalBranchFilter();
-      renderReqBranchFilter();
 
       var kept = Number((res && res.recordsKept) || 0);
       toast("'" + name + "' 지점을 목록에서 지웠습니다." + (kept ? ' 기존 기록 ' + kept + '건은 그대로입니다.' : ''), 'ok');
@@ -2423,10 +2407,14 @@
     $('tab-requests').addEventListener('click', function () { switchTab('requests'); });
     $('tab-list').addEventListener('click', function () { switchTab('list'); });
 
-    // 📅 일정 및 사진등록 — 달 이동 / 오늘 / 작업 일정·작업사진 등록 / 지점 관리
-    $('calPrev').addEventListener('click', function () { goToMonth(shiftMonth(state.cal.month, -1)); });
-    $('calNext').addEventListener('click', function () { goToMonth(shiftMonth(state.cal.month, 1)); });
-    $('calToday').addEventListener('click', function () { goToMonth(nowMonth(), todayStr()); });
+    // 📅 일정 및 사진등록 — 기간 지정(조회·인쇄) / 작업 일정·작업사진 등록 / 지점 관리
+    $('calSearch').addEventListener('click', searchCalendarRange);
+    $('calPrint').addEventListener('click', onExportCalendarPeriod);
+    ['calFrom', 'calTo'].forEach(function (id) {
+      $(id).addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); searchCalendarRange(); }
+      });
+    });
     $('dayPhotoBtn').addEventListener('click', registerPhotoForSelectedDate);
     $('dayPlanAddBtn').addEventListener('click', function () { openWorkScheduleModal(null, state.cal.selected); });
     $('branchManageBtn').addEventListener('click', function () { setBranchEdit(); });
@@ -2446,16 +2434,15 @@
       showWriteCard(false);
     });
 
-    // 📝 매장 요청 — 달 이동 / 오늘 / 요청 등록 / 인쇄(워드)
-    $('reqPrev').addEventListener('click', function () { goToReqMonth(shiftMonth(state.req.month, -1)); });
-    $('reqNext').addEventListener('click', function () { goToReqMonth(shiftMonth(state.req.month, 1)); });
-    $('reqToday').addEventListener('click', function () { goToReqMonth(nowMonth(), todayStr()); });
-    $('reqDayAddBtn').addEventListener('click', function () { openRequestModal(null, state.req.selected); });
-    $('reqExportBtn').addEventListener('click', onExportRequests);
-    $('reqPrintPeriod').addEventListener('change', function () {
-      state.req.printPeriod = $('reqPrintPeriod').value === 'all' ? 'all' : 'month';
-      renderReqExportBar();
+    // 📝 매장 요청 — 기간 지정(조회·인쇄) / 요청 등록
+    $('reqSearch').addEventListener('click', searchRequestsRange);
+    $('reqPrint').addEventListener('click', onExportRequests);
+    ['reqFrom', 'reqTo'].forEach(function (id) {
+      $(id).addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); searchRequestsRange(); }
+      });
     });
+    $('reqDayAddBtn').addEventListener('click', function () { openRequestModal(null, state.req.selected); });
 
     // 매장 요청 등록·수정 창
     $('schedClose').addEventListener('click', closeRequestModal);
@@ -2943,6 +2930,8 @@
     var cal = state.cal;
     if (!cal.month) cal.month = nowMonth();
     if (!cal.selected) cal.selected = todayStr();
+    if (!cal.from || !cal.to) applyMonthRange(cal);
+    syncPeriodInputs('cal');
     loadCalendar(false);
   }
 
@@ -2950,11 +2939,116 @@
     var cal = state.cal;
     cal.month = month;
     cal.selected = dateStr || (month === nowMonth() ? todayStr() : month + '-01');
+    applyMonthRange(cal);
+    syncPeriodInputs('cal');
     cal.loaded = false;
     cal.planDays = {};
     cal.planDayLoading = {};
     cal.planDayError = {};
     loadCalendar(true);
+  }
+
+  /* ---------- 기간 지정 바 (시작일 ~ 종료일 · 조회 · 인쇄) ---------- */
+
+  // 그 달 기준 기본 기간 — 이번 달은 1일~오늘, 다른 달은 1일~말일
+  function monthRange(month) {
+    var first = month + '-01';
+    var last = month + '-' + pad(daysInMonth(month));
+    if (month === nowMonth() && todayStr() >= first && todayStr() < last) {
+      return { from: first, to: todayStr() };
+    }
+    return { from: first, to: last };
+  }
+
+  function applyMonthRange(obj) {
+    var r = monthRange(obj.month || nowMonth());
+    obj.from = r.from;
+    obj.to = r.to;
+  }
+
+  // 상태에 저장된 기간을 날짜 입력칸에 보여 준다
+  function syncPeriodInputs(which) {
+    var obj = which === 'req' ? state.req : state.cal;
+    var fromEl = $(which + 'From');
+    var toEl = $(which + 'To');
+    if (fromEl && fromEl.value !== (obj.from || '')) fromEl.value = obj.from || '';
+    if (toEl && toEl.value !== (obj.to || '')) toEl.value = obj.to || '';
+  }
+
+  function periodLabelShort(from, to) {
+    if (!from || !to) return '';
+    function part(d) { return Number(d.substring(5, 7)) + '.' + Number(d.substring(8, 10)); }
+    return from === to ? part(from) : part(from) + '~' + part(to);
+  }
+
+  // 지금 달력에 보이는 달 안으로 기간을 잘라 요약에 쓴다 (여러 달에 걸친 기간도 오해 없이)
+  function visiblePeriodLabel(obj) {
+    var month = obj.month || nowMonth();
+    var first = month + '-01';
+    var last = month + '-' + pad(daysInMonth(month));
+    var from = (!obj.from || obj.from < first) ? first : obj.from;
+    var to = (!obj.to || obj.to > last) ? last : obj.to;
+    return periodLabelShort(from, to);
+  }
+
+  function inCalendarRange(dateStr) {
+    var cal = state.cal;
+    return (!cal.from || dateStr >= cal.from) && (!cal.to || dateStr <= cal.to);
+  }
+
+  function inRequestsRange(dateStr) {
+    var req = state.req;
+    return (!req.from || dateStr >= req.from) && (!req.to || dateStr <= req.to);
+  }
+
+  // 🔍 조회 — 고른 기간의 달로 이동해 달력을 맞춘다
+  function searchCalendarRange() {
+    var cal = state.cal;
+    var from = $('calFrom').value;
+    var to = $('calTo').value;
+    if (!from && !to) { toast('시작일과 종료일을 골라 주세요.', 'err'); return; }
+    if (!from) from = to;
+    if (!to) to = from;
+    if (from > to) {
+      var t = from; from = to; to = t;
+      $('calFrom').value = from;
+      $('calTo').value = to;
+    }
+    cal.from = from;
+    cal.to = to;
+    var month = from.substring(0, 7);
+    var changed = month !== cal.month;
+    cal.month = month;
+    cal.selected = from;
+    if (changed) {
+      cal.days = {}; cal.dayLoading = {}; cal.dayError = {}; cal.dayPromise = {};
+      cal.planDays = {}; cal.planDayLoading = {}; cal.planDayError = {};
+    }
+    loadCalendar(true);
+    toast(from + ' ~ ' + to + ' 기간으로 조회했습니다.', 'ok');
+  }
+
+  // 📄 인쇄 — 지금 기간의 작업사진을 워드(.docx)로 내려받는다
+  function onExportCalendarPeriod() {
+    var cal = state.cal;
+    var btn = $('calPrint');
+    if (!btn || btn.disabled) return;
+    var from = cal.from || $('calFrom').value;
+    var to = cal.to || $('calTo').value;
+    if (!from || !to) { toast('기간을 먼저 골라 주세요.', 'err'); return; }
+    btn.disabled = true;
+    showLoading('워드 파일 만드는 중…', from + ' ~ ' + to + ' 작업사진을 문서에 담고 있어요');
+    API.exportDoc({ from: from, to: to }).then(function (res) {
+      if (!res || res.ok === false) throw new Error((res && res.error) || '워드 파일을 만들지 못했습니다.');
+      saveFile(res);
+      hideLoading();
+      btn.disabled = false;
+      toast('워드 파일을 내려받았습니다. (' + (res.count || 0) + '건)', 'ok');
+    }).catch(function (err) {
+      hideLoading();
+      btn.disabled = false;
+      toast((err && err.message) || '워드 파일을 만들지 못했습니다.', 'err');
+    });
   }
 
   /**
@@ -3043,6 +3137,16 @@
 
   function plansOn(dateStr) {
     return (state.cal.plans || []).filter(function (p) { return p.date === dateStr; });
+  }
+
+  // 같은 날 같은 지점이 여러 건이어도 뱃지는 지점 이름 하나로만
+  function branchNamesOf(list) {
+    var out = [];
+    (list || []).forEach(function (x) {
+      var b = String(x.branch || '지점 미지정');
+      if (out.indexOf(b) === -1) out.push(b);
+    });
+    return out;
   }
 
   /* ---------- 그 날 사진 (날짜를 눌렀을 때만 받는다) ---------- */
@@ -3152,8 +3256,7 @@
 
   function renderCalendar() {
     var cal = state.cal;
-    $('calMonth').textContent = monthLabel(cal.month);
-    renderCalBranchFilter();
+    syncPeriodInputs('cal');
 
     var grid = $('calGrid');
     clearNode(grid);
@@ -3179,21 +3282,18 @@
       cell.setAttribute('aria-label', formatDateLabel(dateStr));
       cell.appendChild(el('span', 'cal-num', String(d)));
 
-      // 작업사진(등록기록)과 작업 일정(작업일정 시트)만 표시한다. 매장 요청은 📝 매장 요청 탭의 달력에서 따로 본다.
-      var recs = recordsOn(dateStr);
-      if (recs.length) {
-        var photos = recs.reduce(function (n, r) { return n + (r.photoCount || (r.photos || []).length); }, 0);
-        var photoLabel = recs.length === 1 ? recs[0].branch : recs.length + '건';
-        cell.appendChild(el('span', 'cal-badge photo', '📷 ' + photoLabel));
-        if (photos > 1 && recs.length === 1) cell.appendChild(el('span', 'cal-badge photo', '사진 ' + photos + '장'));
-      }
+      // 작업사진(등록기록)과 작업 일정(작업일정 시트)만 — 기간 안의 날짜만, 아이콘 + 지점명으로
+      var recs = recordsOn(dateStr).filter(function () { return inCalendarRange(dateStr); });
+      branchNamesOf(recs).forEach(function (branch) {
+        cell.appendChild(el('span', 'cal-badge photo', '📷 ' + branch));
+      });
 
-      var plans = plansOn(dateStr);
-      if (plans.length) {
-        var allDone = plans.every(function (p) { return p.status === '완료'; });
-        var planLabel = plans.length === 1 ? plans[0].branch : plans.length + '건';
-        cell.appendChild(el('span', 'cal-badge work' + (allDone ? ' done' : ''), '📋 ' + planLabel));
-      }
+      var plans = plansOn(dateStr).filter(function () { return inCalendarRange(dateStr); });
+      branchNamesOf(plans).forEach(function (branch) {
+        var mine = plans.filter(function (p) { return String(p.branch || '지점 미지정') === branch; });
+        var allDone = mine.every(function (p) { return p.status === '완료'; });
+        cell.appendChild(el('span', 'cal-badge work' + (allDone ? ' done' : ''), '📋 ' + branch));
+      });
 
       (function (ds) {
         cell.addEventListener('click', function () { selectDay(ds); });
@@ -3208,51 +3308,15 @@
     } else if (cal.error && !(cal.records || []).length) {
       summary.textContent = cal.error;
     } else {
-      var all = cal.records || [];
+      var all = (cal.records || []).filter(function (r) { return inCalendarRange(r.date); });
       var shots = all.reduce(function (n, r) { return n + (r.photoCount || (r.photos || []).length); }, 0);
-      var planCount = (cal.plans || []).length;
-      summary.textContent = '이 달 작업사진 ' + all.length + '건 · 사진 ' + shots + '장 · 작업 일정 ' + planCount + '건' +
-        (cal.branch ? ' · ' + cal.branch : '') +
+      var planCount = (cal.plans || []).filter(function (p) { return inCalendarRange(p.date); }).length;
+      summary.textContent = visiblePeriodLabel(cal) + ' 작업사진 ' + all.length + '건 · 사진 ' + shots + '장 · 작업 일정 ' + planCount + '건' +
         (cal.syncing ? ' · 동기화 중…' : '');
       if (cal.error) summary.className = 'cal-summary err';
     }
 
     renderDayDetail();
-  }
-
-  function renderCalBranchFilter() {
-    var cal = state.cal;
-    var box = $('calBranchFilter');
-    if (!box) return;
-    clearNode(box);
-    box.className = 'chips' + (state.branchEdit ? ' manage' : '');
-    var names = [''].concat(state.branchEdit ? state.branches.slice(0, 30) : state.branches.slice(0, 8));
-    names.forEach(function (value) {
-      var chip = el('button', 'chip' + (value === cal.branch ? ' active' : ''), value || '전체');
-      chip.setAttribute('type', 'button');
-      chip.setAttribute('data-branch', value || '전체');
-      if (value && state.branchEdit) {
-        chip.setAttribute('aria-label', value + ' 지점 목록에서 지우기');
-        chip.appendChild(el('span', 'chip-x', '✕'));
-        chip.addEventListener('click', function () { askDeleteBranch(value); });
-      } else {
-        chip.addEventListener('click', function () {
-          if (cal.branch === value) return;
-          cal.branch = value;
-          cal.loaded = false;
-          // 지점을 바꾸면 그 날 사진도 그 지점 것으로 다시 받는다
-          cal.days = {};
-          cal.dayLoading = {};
-          cal.dayError = {};
-          cal.dayPromise = {};
-          cal.planDays = {};
-          cal.planDayLoading = {};
-          cal.planDayError = {};
-          loadCalendar(true);
-        });
-      }
-      box.appendChild(chip);
-    });
   }
 
   function selectDay(dateStr) {
@@ -3609,6 +3673,8 @@
     var req = state.req;
     if (!req.month) req.month = nowMonth();
     if (!req.selected) req.selected = todayStr();
+    if (!req.from || !req.to) applyMonthRange(req);
+    syncPeriodInputs('req');
     loadRequests(false);
   }
 
@@ -3616,6 +3682,8 @@
     var req = state.req;
     req.month = month;
     req.selected = dateStr || (month === nowMonth() ? todayStr() : month + '-01');
+    applyMonthRange(req);
+    syncPeriodInputs('req');
     req.loaded = false;
     req.days = {};
     req.dayLoading = {};
@@ -3684,9 +3752,8 @@
 
   function renderRequests() {
     var req = state.req;
-    $('reqMonth').textContent = monthLabel(req.month);
-    renderReqBranchFilter();
-    renderReqExportBar();
+    syncPeriodInputs('req');
+    renderReqStatusFilter();
 
     var grid = $('reqGrid');
     clearNode(grid);
@@ -3712,12 +3779,14 @@
       cell.setAttribute('aria-label', formatDateLabel(dateStr));
       cell.appendChild(el('span', 'cal-num', String(d)));
 
-      var plans = requestsOn(dateStr);
-      if (plans.length) {
-        var allDone = plans.every(function (p) { return p.status === '완료'; });
-        var planLabel = plans.length === 1 ? plans[0].branch : plans.length + '건';
-        cell.appendChild(el('span', 'cal-badge plan' + (allDone ? ' done' : ''), '📝 ' + planLabel));
-      }
+      var plans = requestsOn(dateStr).filter(function (s) {
+        return inRequestsRange(dateStr) && reqStatusMatches(s);
+      });
+      branchNamesOf(plans).forEach(function (branch) {
+        var mine = plans.filter(function (p) { return String(p.branch || '지점 미지정') === branch; });
+        var allDone = mine.every(function (p) { return p.status === '완료'; });
+        cell.appendChild(el('span', 'cal-badge plan' + (allDone ? ' done' : ''), '📝 ' + branch));
+      });
 
       (function (ds) {
         cell.addEventListener('click', function () { selectReqDay(ds); });
@@ -3732,10 +3801,11 @@
     } else if (req.error && !(req.schedules || []).length) {
       summary.textContent = req.error;
     } else {
-      var all = req.schedules || [];
+      var all = (req.schedules || []).filter(function (s) {
+        return inRequestsRange(s.date) && reqStatusMatches(s);
+      });
       var done = all.filter(function (p) { return p.status === '완료'; }).length;
-      summary.textContent = '이 달 매장 요청 ' + all.length + '건 · 대기 ' + (all.length - done) + ' · 완료 ' + done +
-        (req.branch ? ' · ' + req.branch : '') +
+      summary.textContent = visiblePeriodLabel(req) + ' 매장 요청 ' + all.length + '건 · 대기 ' + (all.length - done) + ' · 완료 ' + done +
         (req.syncing ? ' · 동기화 중…' : '');
       if (req.error) summary.className = 'cal-summary err';
     }
@@ -3743,23 +3813,25 @@
     renderReqDayDetail();
   }
 
-  function renderReqBranchFilter() {
+  function reqStatusMatches(s) {
     var req = state.req;
-    var box = $('reqBranchFilter');
+    if (!req.status) return true;
+    return (s.status === '완료' ? '완료' : '대기') === req.status;
+  }
+
+  function renderReqStatusFilter() {
+    var req = state.req;
+    var box = $('reqStatusFilter');
+    if (!box) return;
     clearNode(box);
-    var names = [''].concat(state.branches.slice(0, 8));
-    names.forEach(function (value) {
-      var chip = el('button', 'chip' + (value === req.branch ? ' active' : ''), value || '전체');
+    [{ value: '', label: '전체' }, { value: '대기', label: '대기' }, { value: '완료', label: '완료' }].forEach(function (opt) {
+      var chip = el('button', 'chip' + (req.status === opt.value ? ' active' : ''), opt.label);
       chip.setAttribute('type', 'button');
+      chip.setAttribute('data-status', opt.value);
       chip.addEventListener('click', function () {
-        if (req.branch === value) return;
-        req.branch = value;
-        req.loaded = false;
-        req.days = {};
-        req.dayLoading = {};
-        req.dayError = {};
-        req.dayPromise = {};
-        loadRequests(true);
+        if (req.status === opt.value) return;
+        req.status = opt.value;
+        renderRequests();
       });
       box.appendChild(chip);
     });
@@ -3770,62 +3842,44 @@
     renderRequests();
   }
 
-  /**
-   * 🖨️ 매장 요청 인쇄 막대 — 상태 칩(전체/대기/완료)과 기간(이 달/전체 기간)을 고르면
-   * 지금 보고 있는 달·지점·상태 그대로 워드 파일을 내려받는다.
-   * 아래 힌트에 인쇄할 건수를 보여 준다.
-   */
-  function renderReqExportBar() {
+  // 🔍 조회 — 고른 기간의 달로 이동해 매장 요청 달력을 맞춘다
+  function searchRequestsRange() {
     var req = state.req;
-    var box = $('reqStatusFilter');
-    if (box) {
-      clearNode(box);
-      [{ value: '', label: '전체' }, { value: '대기', label: '대기' }, { value: '완료', label: '완료' }].forEach(function (opt) {
-        var chip = el('button', 'chip' + (req.status === opt.value ? ' active' : ''), opt.label);
-        chip.setAttribute('type', 'button');
-        chip.setAttribute('data-status', opt.value);
-        chip.addEventListener('click', function () {
-          if (req.status === opt.value) return;
-          req.status = opt.value;
-          renderReqExportBar();
-        });
-        box.appendChild(chip);
-      });
+    var from = $('reqFrom').value;
+    var to = $('reqTo').value;
+    if (!from && !to) { toast('시작일과 종료일을 골라 주세요.', 'err'); return; }
+    if (!from) from = to;
+    if (!to) to = from;
+    if (from > to) {
+      var t = from; from = to; to = t;
+      $('reqFrom').value = from;
+      $('reqTo').value = to;
     }
-
-    var select = $('reqPrintPeriod');
-    if (select && select.value !== req.printPeriod) select.value = req.printPeriod;
-
-    var hint = $('reqExportHint');
-    if (!hint) return;
-    var branch = req.branch ? req.branch + ' ' : '';
-    var scope = req.printPeriod === 'all' ? '전체 기간' : monthLabel(req.month);
-    var statusLabel = req.status ? req.status + ' ' : '';
-    if (req.printPeriod !== 'all') {
-      var list = (req.schedules || []).filter(function (s) {
-        return !req.status || (s.status === '완료' ? '완료' : '대기') === req.status;
-      });
-      hint.textContent = branch + scope + ' ' + statusLabel + '매장 요청 ' + list.length +
-        '건을 A4 표 워드로 내려받습니다 (여백 10mm · 날짜 오름차순).';
-    } else {
-      hint.textContent = branch + scope + ' ' + statusLabel +
-        '매장 요청을 A4 표 워드로 내려받습니다 (여백 10mm · 날짜 오름차순).';
+    req.from = from;
+    req.to = to;
+    var month = from.substring(0, 7);
+    var changed = month !== req.month;
+    req.month = month;
+    req.selected = from;
+    if (changed) {
+      req.days = {}; req.dayLoading = {}; req.dayError = {}; req.dayPromise = {};
     }
+    loadRequests(true);
+    toast(from + ' ~ ' + to + ' 기간으로 조회했습니다.', 'ok');
   }
 
-  /** 📄 인쇄(워드) — 지금 조건의 매장 요청을 표 문서로 내려받는다. */
+  /** 📄 인쇄 — 지금 기간·상태의 매장 요청을 표 워드(.docx)로 내려받는다. */
   function onExportRequests() {
     var req = state.req;
-    var btn = $('reqExportBtn');
+    var btn = $('reqPrint');
     if (!btn || btn.disabled) return;
-    var all = req.printPeriod === 'all';
-    var filters = { branch: req.branch || '', status: req.status || '' };
-    if (!all) filters.yearMonth = req.month || nowMonth();
+    var from = req.from || $('reqFrom').value;
+    var to = req.to || $('reqTo').value;
+    if (!from || !to) { toast('기간을 먼저 골라 주세요.', 'err'); return; }
+    var filters = { branch: req.branch || '', status: req.status || '', from: from, to: to };
 
     btn.disabled = true;
-    showLoading('매장 요청 워드 만드는 중…',
-      all ? '전체 기간의 매장 요청을 표로 정리하고 있어요'
-          : monthLabel(filters.yearMonth) + ' 매장 요청을 표로 정리하고 있어요');
+    showLoading('매장 요청 워드 만드는 중…', from + ' ~ ' + to + ' 매장 요청을 표로 정리하고 있어요');
 
     API.exportRequestsDoc(filters).then(function (res) {
       if (!res || res.ok === false) throw new Error((res && res.error) || '매장 요청 워드 파일을 만들지 못했습니다.');
