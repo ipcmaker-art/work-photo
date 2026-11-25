@@ -264,6 +264,12 @@
   .day-record .rec-top{display:flex; align-items:center; gap:6px; flex-wrap:wrap;}
   .day-record .rec-memo{margin:6px 0 0; font-size:13.5px; color:#344054; white-space:pre-wrap; word-break:break-word;}
   .day-record .rec-thumbs{display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;}
+  .day-record .rec-thumbs.loading{align-items:center; gap:8px; color:var(--muted);}
+  .thumb-wait{display:inline-flex; align-items:center; gap:7px; font-size:12px; font-weight:600; color:var(--muted);}
+  .thumb-wait::before{
+    content:''; width:13px; height:13px; border:2px solid #dbe5ff; border-top-color:var(--brand);
+    border-radius:50%; animation:spin .8s linear infinite;
+  }
   .day-record .rec-thumb{width:64px; height:64px; border-radius:8px; overflow:hidden; padding:0; background:#eef1f5; flex:0 0 auto;}
   .day-record .rec-thumb img{width:100%; height:100%; object-fit:cover; display:block;}
   .rec-actions{display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; margin-top:9px;}
@@ -813,8 +819,14 @@
       month: '',          // 'YYYY-MM' (지금 보고 있는 달)
       branch: '',         // 지점 필터 ('' = 전체)
       selected: '',       // 선택한 날짜 'YYYY-MM-DD'
-      records: [],        // 그 달 작업기록
+      records: [],        // 그 달 작업기록 — 사진 없이 요약만 (달력 칸·글)
       plans: [],          // 그 달 작업 일정(작업일정 시트)
+      days: {},           // 'YYYY-MM-DD' -> 그 날 기록(사진 URL 포함). 날짜를 눌렀을 때 받는다
+      dayLoading: {},     // 'YYYY-MM-DD' -> true (그 날 사진 받는 중)
+      dayError: {},       // 'YYYY-MM-DD' -> 안내 문구
+      dayPromise: {},     // 'YYYY-MM-DD' -> 그 날 사진을 받는 중인 약속
+      syncing: false,     // 저장본을 먼저 그리고 새 자료를 받는 중
+      stale: false,       // 지금 달력이 저장본으로 그려졌는지
       loaded: false,
       loadedMonth: '',
       loading: false,
@@ -826,6 +838,8 @@
       branch: '',
       selected: '',
       schedules: [],      // 그 달 매장 요청
+      syncing: false,
+      stale: false,
       loaded: false,
       loadedMonth: '',
       loading: false,
@@ -849,7 +863,12 @@
       try { localStorage.setItem(key, JSON.stringify(value)); return true; }
       catch (e) { return false; }
     }
-    return { get: get, set: set };
+    function del(key) {
+      delete mem[key];
+      try { localStorage.removeItem(key); return true; }
+      catch (e) { return false; }
+    }
+    return { get: get, set: set, del: del };
   })();
 
   var LS = {
@@ -861,8 +880,57 @@
     schedules: 'workphoto.mock.schedules.v1',
     workSchedules: 'workphoto.mock.workschedules.v1',
     mockBranchesDeleted: 'workphoto.mock.branches.deleted.v1',
-    seeded: 'workphoto.mock.seeded.v1'
+    seeded: 'workphoto.mock.seeded.v1',
+    cacheManifest: 'workphoto.cache.manifest.v1'
   };
+
+  /* ----------------------------------------------------------------
+   * 1-0. 달력 화면 저장본 (Stale-While-Revalidate)
+   *   · 달 한 칸(년월 + 지점)의 달력 요약은 통째로 저장해 두고, 화면을 열 때
+   *     저장본을 먼저 그리고(즉시 표시) 서버의 새 자료로 조용히 바꾼다.
+   *   · 그 날 사진(무거운 목록)은 날짜를 눌렀을 때만 받아 날짜별로 저장한다.
+   *   · 등록·수정·삭제가 성공하면 저장본을 바로 버린다(다음 화면은 새로 받는다).
+   * -------------------------------------------------------------- */
+  var CACHE = (function () {
+    var MAX = 24;            // 기억해 두는 항목 수 (넘치면 오래된 것부터 버린다)
+    function nowMs() { return new Date().getTime(); }
+    function manifest() {
+      var list = store.get(LS.cacheManifest, []);
+      return Array.isArray(list) ? list : [];
+    }
+    function read(key) {
+      var hit = store.get(key, null);
+      if (!hit || !hit.data || !hit.savedAt) return null;
+      return hit;
+    }
+    function write(key, data) {
+      var savedAt = nowMs();
+      store.set(key, { savedAt: savedAt, data: data });
+      var list = manifest().filter(function (e) { return e && e.key !== key; });
+      list.unshift({ key: key, savedAt: savedAt });
+      while (list.length > MAX) {
+        var old = list.pop();
+        if (old && old.key) store.del(old.key);
+      }
+      store.set(LS.cacheManifest, list);
+      return savedAt;
+    }
+    function clear() {
+      manifest().forEach(function (e) { if (e && e.key) store.del(e.key); });
+      store.set(LS.cacheManifest, []);
+    }
+    return { read: read, write: write, clear: clear, nowMs: nowMs };
+  })();
+
+  function bundleCacheKey(month, branch) { return 'workphoto.cache.bundle.v2|' + month + '|' + (branch || '전체'); }
+  function dayCacheKey(date, branch) { return 'workphoto.cache.day.v2|' + date + '|' + (branch || '전체'); }
+
+  // 테스트·진단용: 어떤 API 를 불렀는지 남긴다 (화면 동작에는 영향 없음)
+  function noteApiCall(name) {
+    try {
+      if (typeof window !== 'undefined' && window && window.__apiLog) window.__apiLog.push(name);
+    } catch (ignore) {}
+  }
 
   // google.script.run 은 인자를 여러 개 받을 수 있다 (updateScheduleStatus(id, status) 등)
   function gasCall(fn) {
@@ -958,6 +1026,7 @@
         filters = filters || {};
         return remoteGet({
           action: 'list',
+          date: filters.date,
           from: filters.from, to: filters.to,
           branch: filters.branch, author: filters.author, limit: filters.limit
         });
@@ -984,6 +1053,15 @@
         return remoteGet({ action: 'calendar', yearMonth: filters.yearMonth, branch: filters.branch });
       }
       return Promise.resolve(mockCalendar(filters));
+    },
+    // ⚡ 첫 화면용 — 지점 · 그 달 기록 요약 · 작업 일정 · 매장 요청을 한 번에
+    calendarBundle: function (filters) {
+      if (IS_GAS) return gasCall('getCalendarBundle', filters);
+      if (IS_REMOTE) {
+        filters = filters || {};
+        return remoteGet({ action: 'calendarbundle', yearMonth: filters.yearMonth, branch: filters.branch });
+      }
+      return Promise.resolve(mockCalendarBundle(filters));
     },
     saveSchedule: function (payload) {
       if (IS_GAS) return gasCall('saveSchedule', payload);
@@ -1059,6 +1137,41 @@
   };
 
   /* ---------- 미리보기/로컬용 모의 저장소 ---------- */
+
+  /* ----------------------------------------------------------------
+   * 1-3. API 부를 때마다 — 부른 이름을 기억(진단) · 저장·수정·삭제가 성공하면 달력 저장본을 버린다
+   * -------------------------------------------------------------- */
+  var CACHE_MUTATIONS = ['save', 'saveSchedule', 'updateSchedule', 'updateScheduleStatus',
+    'deleteSchedule', 'addWorkSchedule', 'updateWorkSchedule', 'updateWorkScheduleStatus',
+    'deleteWorkSchedule', 'deleteBranch', 'deleteRecord', 'updateRecord'];
+
+  // 저장본을 버리고 지금 화면이 다음에 새로 받도록 표시한다
+  function invalidateCalendarCache() {
+    CACHE.clear();
+    state.cal.days = {};
+    state.cal.dayLoading = {};
+    state.cal.dayError = {};
+    state.cal.loadedMonth = '';
+    state.cal.dayPromise = {};
+    state.req.loadedMonth = '';
+  }
+
+  Object.keys(API).forEach(function (name) {
+    var fn = API[name];
+    if (typeof fn !== 'function') return;
+    var mutates = CACHE_MUTATIONS.indexOf(name) > -1;
+    API[name] = function () {
+      noteApiCall(name);
+      var out = fn.apply(API, arguments);
+      if (mutates && out && typeof out.then === 'function') {
+        out = out.then(function (res) {
+          if (!res || res.ok !== false) invalidateCalendarCache();
+          return res;
+        });
+      }
+      return out;
+    };
+  });
   function seedMockData() {
     if (!IS_PREVIEW) return;
     if (!store.get(LS.seeded, false)) {
@@ -1229,6 +1342,35 @@
     return {
       ok: true, yearMonth: range.month, from: range.from, to: range.to,
       records: records, schedules: schedules, workSchedules: workSchedules, branches: mockBranchNames()
+    };
+  }
+
+  function mockCalendarBundle(filters) {
+    var res = mockCalendar(filters);
+    var records = (res.records || []).map(function (r) {
+      return {
+        id: r.id,
+        registeredAt: r.registeredAt,
+        date: r.date,
+        branch: r.branch,
+        author: r.author,
+        memo: r.memo,
+        photoCount: (r.photos || []).length
+      };
+    });
+    var photos = records.reduce(function (n, r) { return n + r.photoCount; }, 0);
+    return {
+      ok: true,
+      yearMonth: res.yearMonth,
+      from: res.from,
+      to: res.to,
+      records: records,
+      recordCount: records.length,
+      photoCount: photos,
+      schedules: res.schedules || [],
+      workSchedules: res.workSchedules || [],
+      branches: res.branches || [],
+      generatedAt: todayStr() + ' ' + pad(new Date().getHours()) + ':' + pad(new Date().getMinutes()) + ':' + pad(new Date().getSeconds())
     };
   }
 
@@ -1740,6 +1882,7 @@
 
     state.deletedBranches = (store.get(LS.branchesDeleted, []) || []).slice();
     state.branches = mergeBranches(store.get(LS.branches, []), DEFAULT_BRANCHES);
+    seedBranchesFromCache();
     renderBranchChips();
     renderDatalists();
     renderPlanLink();
@@ -1750,7 +1893,14 @@
     bindEvents();
     // 첫 화면은 📅 캘린더 — 이번 달 달력과 오늘 상세를 바로 보여 준다.
     switchTab(state.tab || 'calendar');
-    refreshBranchListFromServer();
+  }
+
+  // 저장본(캐시)에 들어 있던 지점 목록을 먼저 칩에 올린다 — 지점 목록을 따로 부르지 않는다.
+  function seedBranchesFromCache() {
+    var month = state.cal.month || nowMonth();
+    var hit = CACHE.read(bundleCacheKey(month, ''));
+    if (!hit || !hit.data || !hit.data.branches || !hit.data.branches.length) return;
+    state.branches = mergeBranches(state.branches, hit.data.branches);
   }
 
   function mergeBranches(a, b) {
@@ -1817,19 +1967,6 @@
     renderCalBranchFilter();
     renderDatalists();
     if (state.branchEdit) toast('지점 관리: 칩의 ✕ 를 누르면 목록에서 지울 수 있습니다.', 'ok');
-  }
-
-  function refreshBranchListFromServer() {
-    if (!IS_GAS) return;
-    gasCall('getBranchList', null).then(function (res) {
-      if (!res) return;
-      var list = Array.isArray(res) ? res : (res.branches || []);
-      if (list.length) {
-        state.branches = mergeBranches(store.get(LS.branches, []).concat(list), DEFAULT_BRANCHES);
-        renderBranchChips();
-        renderDatalists();
-      }
-    }).catch(function () { /* 조회 실패는 조용히 무시 */ });
   }
 
   function renderBranchChips() {
@@ -2485,33 +2622,84 @@
     loadCalendar(true);
   }
 
+  /**
+   * 달력 한 달치를 띄운다.
+   *  1) 저장본(캐시)이 있으면 전체 로딩 없이 바로 그리고
+   *  2) 서버의 새 자료(getCalendarBundle 한 번)를 조용히 받아 바꾼다.
+   *  3) 사진은 날짜를 눌렀을 때 loadDay 로 그 날 것만 받는다.
+   */
   function loadCalendar(force) {
     var cal = state.cal;
-    if (!force && cal.loaded && cal.loadedMonth === cal.month) { renderCalendar(); return; }
+    var already = !force && cal.loaded && cal.loadedMonth === cal.month;
+    var cached = CACHE.read(bundleCacheKey(cal.month, cal.branch));
+    if (already) {
+      // 이미 그려 둔 화면으로 돌아왔다 — 저장본이 있으면 뒤에서만 새로 받는다
+      renderCalendar();
+      if (!cached) return;
+      cal.syncing = true;
+      renderCalendar();
+      fetchCalendarBundle(cal, cal.month);
+      return;
+    }
     var want = cal.month;
-    cal.loading = true;
     cal.error = '';
-    renderCalendar();
-    API.calendar({ yearMonth: want, branch: cal.branch }).then(function (res) {
-      if (want !== cal.month) return;          // 그 사이 달을 바꿨으면 이 응답은 버린다
+    if (cached) {
+      applyBundleToCalendar(cal, cached.data, want);
+      cal.stale = true;
+      cal.loaded = true;
+      cal.loadedMonth = want;
       cal.loading = false;
+    } else {
+      cal.stale = false;
+      cal.loading = true;
+    }
+    cal.syncing = true;
+    renderCalendar();
+    if (cached) ensureDayPhotos(cal.selected);   // 저장본에 있는 그 날 사진은 바로
+    fetchCalendarBundle(cal, want);
+  }
+
+  // 서버에서 번들 한 번 받아 화면·저장본을 새로 맞춘다
+  function fetchCalendarBundle(cal, want) {
+    var wantBranch = cal.branch;
+    API.calendarBundle({ yearMonth: want, branch: wantBranch }).then(function (res) {
+      if (want !== cal.month || wantBranch !== cal.branch) return;  // 그 사이 달·지점을 바꿨으면 이 응답은 버린다
+      cal.loading = false;
+      cal.syncing = false;
       if (!res || res.ok === false) throw new Error((res && res.error) || '작업 캘린더를 불러오지 못했습니다.');
-      cal.records = res.records || [];
-      cal.plans = res.workSchedules || [];
-      if (res.branches && res.branches.length) {
-        state.branches = mergeBranches(state.branches, res.branches);
-        renderBranchChips();
-        renderDatalists();
-      }
+      applyBundleToCalendar(cal, res, want);
+      CACHE.write(bundleCacheKey(want, wantBranch), res);
+      cal.stale = false;
       cal.loaded = true;
       cal.loadedMonth = want;
       renderCalendar();
+      // 보고 있는 날의 사진이 서버 자료와 달라졌으면 그 날 사진만 다시 받는다
+      refreshOpenDayIfStale();
+      loadDay(cal.selected);                      // 오늘/고른 날 사진은 이때 한 번 받는다
     }).catch(function (err) {
-      if (want !== cal.month) return;
+      if (want !== cal.month || wantBranch !== cal.branch) return;
       cal.loading = false;
-      cal.error = (err && err.message) || '작업 캘린더를 불러오지 못했습니다.';
+      cal.syncing = false;
+      cal.stale = !!CACHE.read(bundleCacheKey(want, wantBranch));
+      if (!cal.stale) {
+        cal.error = (err && err.message) || '작업 캘린더를 불러오지 못했습니다.';
+      } else {
+        toast('새 자료를 받지 못해 저장된 화면을 보여 주고 있습니다.', 'err');
+      }
       renderCalendar();
     });
+  }
+
+  // 번들(지점·기록 요약·일정)을 화면 상태에 앉힌다
+  function applyBundleToCalendar(cal, data, month) {
+    cal.records = (data && data.records) || [];
+    cal.plans = (data && data.workSchedules) || [];
+    cal.month = month || cal.month;
+    if (data && data.branches && data.branches.length) {
+      state.branches = mergeBranches(state.branches, data.branches);
+      renderBranchChips();
+      renderDatalists();
+    }
   }
 
   function recordsOn(dateStr) {
@@ -2520,6 +2708,111 @@
 
   function plansOn(dateStr) {
     return (state.cal.plans || []).filter(function (p) { return p.date === dateStr; });
+  }
+
+  /* ---------- 그 날 사진 (날짜를 눌렀을 때만 받는다) ---------- */
+
+  // 저장해 둔 그 날 사진을 꺼내 둔다 — 서버 호출 없음
+  function ensureDayPhotos(date) {
+    var cal = state.cal;
+    if (!date || cal.days[date]) return;
+    var hit = CACHE.read(dayCacheKey(date, cal.branch));
+    if (hit) cal.days[date] = (hit.data && hit.data.records) || [];
+  }
+
+  /**
+   * 그 날 기록을 사진 URL 까지 받아 둔다.
+   *  - 저장본이 있으면 먼저 보여 주고(즉시) 서버에서 조용히 새로 받는다.
+   *  - 없으면 사진 자리에 '불러오는 중'을 보여 주고 받아 온 뒤 채운다.
+   *  - 일정·글은 번들로 이미 그려져 있으므로 기다리지 않는다.
+   */
+  function loadDay(date, opts) {
+    opts = opts || {};
+    var cal = state.cal;
+    if (!date) return Promise.resolve([]);
+    var key = dayCacheKey(date, cal.branch);
+    var cached = opts.ignoreCache ? null : CACHE.read(key);
+    if (cached) {
+      cal.days[date] = (cached.data && cached.data.records) || [];
+      if (!opts.silent) renderDayDetail();
+    }
+    if (cal.dayLoading[date]) return cal.dayPromise[date] || Promise.resolve(cal.days[date] || []);
+
+    cal.dayLoading[date] = true;
+    delete cal.dayError[date];
+    if (!cached) renderDayDetail();            // 사진 자리에 '불러오는 중' 표시
+    var wantBranch = cal.branch;
+    var wantMonth = cal.month;
+    var p = API.list({ date: date, branch: wantBranch, limit: 200 }).then(function (res) {
+      delete cal.dayLoading[date];
+      delete cal.dayPromise[date];
+      if (!res || res.ok === false) throw new Error((res && res.error) || '그 날 사진을 불러오지 못했습니다.');
+      var records = (res.records || []).filter(function (r) { return r.date === date; });
+      if (wantMonth === cal.month && wantBranch === cal.branch) {
+        cal.days[date] = records;
+        CACHE.write(key, { records: records });
+      }
+      if (cal.selected === date) renderDayDetail();
+      return records;
+    }).catch(function (err) {
+      delete cal.dayLoading[date];
+      delete cal.dayPromise[date];
+      cal.dayError[date] = (err && err.message) || '그 날 사진을 불러오지 못했습니다.';
+      if (cal.selected === date) renderDayDetail();
+      return cal.days[date] || [];
+    });
+    cal.dayPromise[date] = p;
+    return p;
+  }
+
+  // 요약(그 달 번들)과 이미 받아 둔 그 날 기록이 서로 맞는지
+  function dayMatchesSummary(cal, date) {
+    var full = cal.days[date] || [];
+    var light = recordsOn(date);
+    if (full.length !== light.length) return false;
+    for (var i = 0; i < light.length; i++) {
+      var hit = null;
+      for (var j = 0; j < full.length; j++) { if (full[j].id && full[j].id === light[i].id) { hit = full[j]; break; } }
+      if (!hit) return false;
+      if ((hit.photoCount || (hit.photos || []).length) !== light[i].photoCount) return false;
+      if (String(hit.registeredAt) !== String(light[i].registeredAt)) return false;
+    }
+    return true;
+  }
+
+  // 새 자료가 도착했을 때, 이미 사진을 보여 준 날짜만 다시 받아 새로 고친다
+  function refreshOpenDayIfStale() {
+    var cal = state.cal;
+    var date = cal.selected;
+    if (!date || !cal.days[date]) return;
+    if (dayMatchesSummary(cal, date)) return;
+    delete cal.days[date];
+    loadDay(date, { ignoreCache: true });
+  }
+
+  // 요약 기록에 해당하는 사진 포함 기록
+  function matchDayRecord(dateStr, record) {
+    var list = state.cal.days[dateStr] || [];
+    for (var i = 0; i < list.length; i++) {
+      if (record.id && list[i].id === record.id) return list[i];
+    }
+    for (var j = 0; j < list.length; j++) {
+      if (String(list[j].registeredAt) === String(record.registeredAt) &&
+          String(list[j].branch) === String(record.branch) &&
+          String(list[j].author) === String(record.author)) return list[j];
+    }
+    return null;
+  }
+
+  // 사진까지 받은 기록으로 실행한다 — 아직 안 받았으면 그 날 사진을 먼저 받아서
+  function withDayRecord(record, run) {
+    var full = matchDayRecord(record.date, record);
+    if (full) { run(full); return; }
+    loadDay(record.date).then(function () {
+      var hit = matchDayRecord(record.date, record);
+      if (hit) run(hit);
+      else toast('그 기록을 찾지 못했습니다. 화면을 새로 고쳐 주세요.', 'err');
+    });
   }
 
   function renderCalendar() {
@@ -2577,14 +2870,16 @@
     summary.className = 'cal-summary' + (cal.error ? ' err' : '');
     if (cal.loading) {
       summary.textContent = '불러오는 중…';
-    } else if (cal.error) {
+    } else if (cal.error && !(cal.records || []).length) {
       summary.textContent = cal.error;
     } else {
       var all = cal.records || [];
       var shots = all.reduce(function (n, r) { return n + (r.photoCount || (r.photos || []).length); }, 0);
       var planCount = (cal.plans || []).length;
       summary.textContent = '이 달 작업사진 ' + all.length + '건 · 사진 ' + shots + '장 · 작업 일정 ' + planCount + '건' +
-        (cal.branch ? ' · ' + cal.branch : '');
+        (cal.branch ? ' · ' + cal.branch : '') +
+        (cal.syncing ? ' · 동기화 중…' : '');
+      if (cal.error) summary.className = 'cal-summary err';
     }
 
     renderDayDetail();
@@ -2610,6 +2905,11 @@
           if (cal.branch === value) return;
           cal.branch = value;
           cal.loaded = false;
+          // 지점을 바꾸면 그 날 사진도 그 지점 것으로 다시 받는다
+          cal.days = {};
+          cal.dayLoading = {};
+          cal.dayError = {};
+          cal.dayPromise = {};
           loadCalendar(true);
         });
       }
@@ -2619,6 +2919,8 @@
 
   function selectDay(dateStr) {
     state.cal.selected = dateStr;
+    // 일정·글은 바로, 사진은 그 날 것만 받아 채운다 (저장본이 있으면 즉시)
+    loadDay(dateStr);
     renderCalendar();
   }
 
@@ -2636,17 +2938,19 @@
   function renderDayDetail() {
     var cal = state.cal;
     var date = cal.selected || todayStr();
-    var recs = recordsOn(date);
+    var lights = recordsOn(date);
     var plans = plansOn(date);
-    var photos = recs.reduce(function (n, r) { return n + (r.photoCount || (r.photos || []).length); }, 0);
+    var photos = lights.reduce(function (n, r) { return n + (r.photoCount || 0); }, 0);
+    var dayReady = !!cal.days[date];
 
     $('dayTitle').textContent = koreanDate(date) + ' (' + WEEKDAY[weekdayOf(date)] + ')';
-    $('daySub').textContent = '작업 일정 ' + plans.length + '건 · 작업사진 ' + recs.length + '건(사진 ' + photos + '장)';
+    $('daySub').textContent = '작업 일정 ' + plans.length + '건 · 작업사진 ' + lights.length + '건(사진 ' + photos + '장)' +
+      (cal.dayLoading[date] && !dayReady ? ' · 사진 불러오는 중…' : '');
 
     var box = $('dayDetail');
     clearNode(box);
 
-    // 1) 그 날의 작업 일정 (작업일정 시트)
+    // 1) 그 날의 작업 일정 (작업일정 시트) — 번들로 이미 받아 두어 바로 그린다
     box.appendChild(el('div', 'day-section-title', '📋 작업 일정 ' + plans.length + '건'));
     if (!plans.length) {
       box.appendChild(el('div', 'day-empty', '이 날짜에 잡힌 작업 일정이 없습니다. [+ 이 날 작업 일정]으로 적어 두면 이 날짜 칸에 표시되고, 사진을 올리면 [완료]로 바뀝니다.'));
@@ -2654,12 +2958,22 @@
       plans.forEach(function (p) { box.appendChild(workScheduleItemEl(p)); });
     }
 
-    // 2) 그 날 등록된 작업사진
-    box.appendChild(el('div', 'day-section-title', '📷 등록된 작업사진 ' + recs.length + '건'));
-    if (!recs.length) {
+    // 2) 그 날 등록된 작업사진 — 글은 바로, 사진은 날짜를 눌렀을 때 받아 채운다
+    box.appendChild(el('div', 'day-section-title', '📷 등록된 작업사진 ' + lights.length + '건'));
+    if (!lights.length) {
       box.appendChild(el('div', 'day-empty', '이 날 등록된 작업사진이 없습니다. [📷 이 날 작업사진 등록]으로 사진을 올리면 이 날짜 칸에 저절로 나타납니다.'));
-    } else {
-      recs.forEach(function (r) { box.appendChild(dayRecordEl(r)); });
+      return;
+    }
+    lights.forEach(function (light) {
+      var full = matchDayRecord(date, light);
+      if (full) {
+        box.appendChild(dayRecordEl(full));
+      } else {
+        box.appendChild(dayRecordEl(light, true));
+      }
+    });
+    if (cal.dayError[date] && !dayReady) {
+      box.appendChild(el('div', 'day-empty', cal.dayError[date]));
     }
   }
 
@@ -2846,8 +3160,8 @@
     });
   }
 
-  function dayRecordEl(record) {
-    var card = el('div', 'day-record');
+  function dayRecordEl(record, pending) {
+    var card = el('div', 'day-record' + (pending ? ' pending' : ''));
     var top = el('div', 'rec-top');
     top.appendChild(el('span', 'badge-branch', record.branch));
     if (record.author) top.appendChild(el('span', 'record-author', record.author));
@@ -2856,7 +3170,12 @@
     if (record.memo) card.appendChild(el('p', 'rec-memo', record.memo));
 
     var photos = record.photos || [];
-    if (photos.length) {
+    if (pending) {
+      // 사진은 아직 안 받았다 — 사진 자리만 '불러오는 중' 으로 보여 준다
+      var wait = el('div', 'rec-thumbs loading');
+      wait.appendChild(el('span', 'thumb-wait', '사진 불러오는 중… (' + (record.photoCount || 0) + '장)'));
+      card.appendChild(wait);
+    } else if (photos.length) {
       var thumbs = el('div', 'rec-thumbs');
       photos.slice(0, 8).forEach(function (p, i) {
         var btn = el('button', 'rec-thumb');
@@ -2873,12 +3192,13 @@
     var editBtn = el('button', 'edit do-rec-edit', '✏️ 수정');
     editBtn.setAttribute('type', 'button');
     editBtn.setAttribute('aria-label', '이 작업사진 기록 수정');
-    editBtn.addEventListener('click', function () { openEditModal(record); });
+    // 사진까지 받은 기록으로 수정 창을 연다 (아직이면 그 날 사진을 먼저 받는다)
+    editBtn.addEventListener('click', function () { withDayRecord(record, openEditModal); });
     actions.appendChild(editBtn);
     var del = el('button', 'danger do-rec-delete', '🗑️ 삭제');
     del.setAttribute('type', 'button');
     del.setAttribute('aria-label', '이 작업사진 기록 삭제');
-    del.addEventListener('click', function () { removeWorkRecord(record); });
+    del.addEventListener('click', function () { withDayRecord(record, removeWorkRecord); });
     actions.appendChild(del);
     card.appendChild(actions);
     return card;
@@ -2902,32 +3222,58 @@
     loadRequests(true);
   }
 
+  /**
+   * 📝 매장 요청 달력 — 📅 일정 및 사진등록과 같은 번들(한 번 호출)과 저장본을 같이 쓴다.
+   * 같은 달·같은 지점이면 먼저 받아 둔 번들로 바로 그리고, 서버 자료는 조용히 새로 받는다.
+   */
   function loadRequests(force) {
     var req = state.req;
     if (!force && req.loaded && req.loadedMonth === req.month) { renderRequests(); return; }
     var want = req.month;
-    req.loading = true;
+    var cached = CACHE.read(bundleCacheKey(want, req.branch));
     req.error = '';
+    if (cached) {
+      applyBundleToRequests(req, cached.data, want);
+      req.stale = true;
+      req.loaded = true;
+      req.loadedMonth = want;
+      req.loading = false;
+    } else {
+      req.stale = false;
+      req.loading = true;
+    }
+    req.syncing = true;
     renderRequests();
-    API.calendar({ yearMonth: want, branch: req.branch }).then(function (res) {
+    API.calendarBundle({ yearMonth: want, branch: req.branch }).then(function (res) {
       if (want !== req.month) return;
       req.loading = false;
+      req.syncing = false;
       if (!res || res.ok === false) throw new Error((res && res.error) || '매장 요청 달력을 불러오지 못했습니다.');
-      req.schedules = res.schedules || [];
-      if (res.branches && res.branches.length) {
-        state.branches = mergeBranches(state.branches, res.branches);
-        renderBranchChips();
-        renderDatalists();
-      }
+      applyBundleToRequests(req, res, want);
+      CACHE.write(bundleCacheKey(want, req.branch), res);
+      req.stale = false;
       req.loaded = true;
       req.loadedMonth = want;
       renderRequests();
     }).catch(function (err) {
       if (want !== req.month) return;
       req.loading = false;
-      req.error = (err && err.message) || '매장 요청 달력을 불러오지 못했습니다.';
+      req.syncing = false;
+      req.stale = !!cached;
+      if (!cached) req.error = (err && err.message) || '매장 요청 달력을 불러오지 못했습니다.';
+      else toast('새 자료를 받지 못해 저장된 화면을 보여 주고 있습니다.', 'err');
       renderRequests();
     });
+  }
+
+  function applyBundleToRequests(req, data, month) {
+    req.schedules = (data && data.schedules) || [];
+    req.month = month || req.month;
+    if (data && data.branches && data.branches.length) {
+      state.branches = mergeBranches(state.branches, data.branches);
+      renderBranchChips();
+      renderDatalists();
+    }
   }
 
   function requestsOn(dateStr) {
@@ -2980,13 +3326,15 @@
     summary.className = 'cal-summary' + (req.error ? ' err' : '');
     if (req.loading) {
       summary.textContent = '불러오는 중…';
-    } else if (req.error) {
+    } else if (req.error && !(req.schedules || []).length) {
       summary.textContent = req.error;
     } else {
       var all = req.schedules || [];
       var done = all.filter(function (p) { return p.status === '완료'; }).length;
       summary.textContent = '이 달 매장 요청 ' + all.length + '건 · 대기 ' + (all.length - done) + ' · 완료 ' + done +
-        (req.branch ? ' · ' + req.branch : '');
+        (req.branch ? ' · ' + req.branch : '') +
+        (req.syncing ? ' · 동기화 중…' : '');
+      if (req.error) summary.className = 'cal-summary err';
     }
 
     renderReqDayDetail();
