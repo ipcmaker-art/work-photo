@@ -1055,7 +1055,7 @@
       if (filters.date && r.date !== filters.date) return false;
       if (filters.from && r.date < filters.from) return false;
       if (filters.to && r.date > filters.to) return false;
-      if (filters.branch && String(r.branch).trim().indexOf(String(filters.branch).trim()) === -1) return false;
+      if (filters.branch && String(r.branch).trim().indexOf(branchFilterValue(filters.branch)) === -1) return false;
       if (filters.author && String(r.author).toLowerCase().indexOf(String(filters.author).toLowerCase()) === -1) return false;
       return true;
     });
@@ -1082,7 +1082,7 @@
   function mockCalendar(filters) {
     filters = filters || {};
     var range = mockMonthRange(filters);
-    var branch = String(filters.branch || '').trim();
+    var branch = branchFilterValue(filters.branch);
     var records = mockList({ from: range.from, to: range.to, branch: branch }).records;
     var schedules = store.get(LS.schedules, []).filter(function (s) {
       if (s.date < range.from || s.date > range.to) return false;
@@ -1274,7 +1274,7 @@
   }
 
   function exportName(filters, records) {
-    var branch = String(filters.branch || '').trim() || '전체';
+    var branch = branchFilterValue(filters.branch) || '전체';
     var period = filters.date || (filters.from && filters.to
       ? (filters.from === filters.to ? filters.from : filters.from + '~' + filters.to)
       : (filters.from || filters.to || ''));
@@ -1324,15 +1324,21 @@
 
   function mockDocHtml(records, filters) {
     var groups = mockGroupRecords(sortChronologically(records));
-    var title = (String(filters.branch || '').trim() || '전체') + ' 작업사진';
+    var branch = branchFilterValue(filters.branch);
+    var title = (branch || '전체') + ' 작업사진';
+    // 전체 지점 출력이면 묶음마다 '봉무점 · 2026년 11월 24일' 처럼 지점명과 날짜를 같이 보여 준다.
+    var showBranch = !branch;
 
     var rows = groups.map(function (g) {
       var imgs = g.photos.map(function (p) {
         return '<img src="' + esc(p.original || p.thumb) + '" style="width:6cm;height:4cm;margin:0 1.5mm 1.5mm 0" alt="작업사진">';
       }).join('');
       var memoText = !g.memos.length ? '(작업내용 없음)' : g.memos.join(', ');
+      var head = showBranch
+        ? esc(String(g.branch || '').trim() || '(지점 미지정)') + ' · ' + esc(koreanDate(g.date))
+        : esc(koreanDate(g.date));
       return '<div style="margin:0 0 14px 0">' +
-        '<p style="font-size:10pt; font-weight:700; margin:0 0 2pt 0">' + esc(koreanDate(g.date)) + '</p>' +
+        '<p style="font-size:10pt; font-weight:700; margin:0 0 2pt 0">' + head + '</p>' +
         '<p style="font-size:10pt; margin:0 0 6pt 0">' +
           esc(memoText) + '</p>' +
         '<p style="margin:0; font-size:0">' + (imgs || '<span style="font-size:10pt">(사진 없음)</span>') + '</p>' +
@@ -1348,6 +1354,14 @@
   /* ================================================================
    * 2. 작은 도우미
    * ============================================================== */
+  // '전체', '전체지점', '전체 지점' 은 지점을 고르지 않은 것(전체 지점)으로 보고 빈 값을 돌려준다.
+  function branchFilterValue(value) {
+    var v = String(value == null ? '' : value).trim();
+    var squashed = v.replace(/\s+/g, '');
+    if (!squashed || squashed === '전체' || squashed === '전체지점') return '';
+    return v;
+  }
+
   function pad(n) { return ('0' + n).slice(-2); }
   function ymd(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
   function todayStr() { return ymd(new Date()); }
@@ -1925,7 +1939,7 @@
     return {
       from: $('filterFrom').value || '',
       to: $('filterTo').value || '',
-      branch: $('filterBranch').value.trim(),
+      branch: branchFilterValue($('filterBranch').value),
       author: $('filterAuthor').value.trim()
     };
   }
@@ -1998,8 +2012,8 @@
 
       return '<article class="record">' +
         '<div class="record-top">' +
+          '<span class="badge-branch">' + esc(r.branch || '지점 미지정') + '</span>' +
           '<span class="record-date">' + esc(formatDateLabel(r.date)) + '</span>' +
-          '<span class="badge-branch">' + esc(r.branch) + '</span>' +
           '<span class="record-author">' + esc(r.author) + '</span>' +
           '<span class="record-time">' + esc(timeLabel(r.registeredAt)) + '</span>' +
         '</div>' +
