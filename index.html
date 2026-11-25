@@ -100,6 +100,17 @@
   }
   .chip.active{background:var(--brand-soft); color:var(--brand); border-color:#c7d7fe;}
 
+  /* 지점 관리 (잘못 등록된 지점 삭제) — 켜면 칩에 ✕ 가 붙는다 */
+  .branch-head{display:flex; align-items:center; justify-content:space-between; gap:8px;}
+  .btn-branch-manage{
+    padding:5px 9px; border-radius:8px; background:#f2f4f7; color:#475467;
+    font-size:11.5px; font-weight:700; border:1px solid var(--line); white-space:nowrap;
+  }
+  .btn-branch-manage.on{background:#fef3f2; color:var(--danger); border-color:#fecdca;}
+  .chips.manage .chip{background:#fff; border-color:#fecdca; color:#b42318;}
+  .chips.manage .chip.active{background:#fef3f2; border-color:#fda29b; color:#b42318;}
+  .chips.manage .chip .chip-x{margin-left:5px; font-weight:900;}
+
   .photo-actions{display:flex; gap:8px; flex-wrap:wrap;}
   .picker{
     flex:1 1 190px; display:flex; align-items:center; justify-content:center; gap:8px;
@@ -209,6 +220,8 @@
   .cal-badge.photo{background:#e7f6ef; color:#067647;}
   .cal-badge.plan{background:#fef3c7; color:#92400e; font-weight:700;}
   .cal-badge.plan.done{background:#f2f4f7; color:#98a2b3; text-decoration:line-through;}
+  .cal-badge.work{background:#e0e7ff; color:#3730a3; font-weight:700;}
+  .cal-badge.work.done{background:#f2f4f7; color:#98a2b3; text-decoration:line-through;}
   .cal-summary{font-size:11.5px; color:var(--muted); padding:10px 4px 0; line-height:1.5;}
   .cal-summary.err{color:var(--danger);}
 
@@ -278,9 +291,9 @@
   .write-head .btn-ghost{flex:0 0 auto; padding:9px 12px; font-size:12.5px;}
   .cal-hint{font-size:12px; color:var(--muted); padding:0 4px 10px; line-height:1.5;}
 
-  /* 예정작업 등록 · 작업사진 수정 모달 */
-  #schedModal,#editModal{position:fixed; inset:0; background:rgba(16,24,40,.5); z-index:110; display:flex; align-items:flex-end; justify-content:center;}
-  #schedModal[hidden],#editModal[hidden]{display:none;}
+  /* 예정작업 등록 · 작업 일정 등록 · 작업사진 수정 모달 */
+  #schedModal,#workModal,#editModal{position:fixed; inset:0; background:rgba(16,24,40,.5); z-index:110; display:flex; align-items:flex-end; justify-content:center;}
+  #schedModal[hidden],#workModal[hidden],#editModal[hidden]{display:none;}
   .modal-card{
     background:#fff; width:100%; max-width:520px; border-radius:18px 18px 0 0;
     padding:16px 16px calc(16px + env(safe-area-inset-bottom)); max-height:92vh; overflow:auto;
@@ -351,7 +364,7 @@
     .cal-cell{min-height:88px; padding:6px 5px;}
     .cal-num{font-size:12.5px;}
     .cal-badge{font-size:10.5px;}
-    #schedModal,#editModal{align-items:center; padding:20px;}
+    #schedModal,#workModal,#editModal{align-items:center; padding:20px;}
     .modal-card{border-radius:18px;}
   }
   @media (prefers-color-scheme: dark){
@@ -378,6 +391,10 @@
     .cal-badge.photo{background:#12312a; color:#6ee7b7;}
     .cal-badge.plan{background:#3b2a10; color:#fcd34d;}
     .cal-badge.plan.done{background:#232833; color:#98a2b3;}
+    .cal-badge.work{background:#1e2a4a; color:#a5b4fc;}
+    .cal-badge.work.done{background:#232833; color:#98a2b3;}
+    .btn-branch-manage{background:#232833; color:#e4e7ec; border-color:#2a2f3a;}
+    .chips.manage .chip{background:#181b21; border-color:#7a271a; color:#fda29b;}
     .sched-item{background:#1d1a12; border-color:#4a3a12;}
     .sched-item.done{background:#181b21; border-color:#2a2f3a;}
     .sched-branch{background:#3b2a10; color:#fcd34d;}
@@ -414,13 +431,13 @@
   </header>
 
   <nav class="tabs" role="tablist" aria-label="화면 전환">
-    <button class="tab active" id="tab-calendar" role="tab" aria-selected="true" data-tab="calendar">📅 작업 캘린더</button>
+    <button class="tab active" id="tab-calendar" role="tab" aria-selected="true" data-tab="calendar">📅 일정 및 사진등록</button>
     <button class="tab" id="tab-requests" role="tab" aria-selected="false" data-tab="requests">📝 매장 요청</button>
     <button class="tab" id="tab-list" role="tab" aria-selected="false" data-tab="list">📋 전체 내역 조회</button>
   </nav>
 
   <main>
-    <!-- ================== 1. 📅 작업 캘린더 (작업사진 전용) ================== -->
+    <!-- ================== 1. 📅 일정 및 사진등록 (작업 일정 + 작업사진) ================== -->
     <section id="panel-calendar" role="tabpanel" aria-labelledby="tab-calendar">
       <!-- 날짜를 골라 [📷 이 날 작업사진 등록]을 누르면 여기에 등록 칸이 열린다 -->
       <div id="writeCard" class="write-card" hidden>
@@ -444,7 +461,11 @@
               <div class="chips" id="branchChips"></div>
               <input type="text" id="inputBranch" list="branchList" placeholder="지점명을 선택하거나 직접 입력" required>
               <datalist id="branchList"></datalist>
-              <div class="hint">새 지점은 그냥 입력하시면 다음부터 목록에 나옵니다.</div>
+              <div class="branch-head">
+                <div class="hint" style="margin:0">새 지점은 그냥 입력하시면 다음부터 목록에 나옵니다.</div>
+                <button type="button" class="btn-branch-manage" id="branchManageBtn">🏷️ 지점 관리</button>
+              </div>
+              <div class="hint" id="branchManageHint" hidden style="color:#b42318">지점 칩의 ✕ 를 누르면 목록에서 지워집니다. (이미 등록된 작업사진·일정 기록은 그대로 남습니다)</div>
             </div>
 
             <div class="field">
@@ -488,13 +509,17 @@
         <div class="cal-tools">
           <div class="cal-legend">
             <span>📷 작업사진</span>
+            <span>📋 작업 일정</span>
           </div>
-          <button type="button" class="btn-ghost" id="calToday">오늘</button>
+          <div style="display:flex; gap:6px; align-items:center">
+            <button type="button" class="btn-branch-manage" id="calBranchManageBtn">🏷️ 지점 관리</button>
+            <button type="button" class="btn-ghost" id="calToday">오늘</button>
+          </div>
         </div>
         <div class="chips" id="calBranchFilter"></div>
       </div>
 
-      <div class="cal-hint">작업사진(등록기록)만 보이는 달력입니다. 매장 요청은 <b>📝 매장 요청</b> 탭에서 따로 봅니다.</div>
+      <div class="cal-hint">작업 일정과 작업사진을 함께 보는 달력입니다. 매장 요청은 <b>📝 매장 요청</b> 탭에서 따로 봅니다.</div>
 
       <div class="card cal-card">
         <div class="cal-week">
@@ -511,6 +536,7 @@
             <div class="day-sub" id="daySub"></div>
           </div>
           <div class="day-head-actions">
+            <button type="button" class="btn-add-plan" id="dayPlanAddBtn">+ 이 날 작업 일정</button>
             <button type="button" class="btn-day-photo" id="dayPhotoBtn">📷 이 날 작업사진 등록</button>
           </div>
         </div>
@@ -647,6 +673,38 @@
   </div>
 </div>
 
+<div id="workModal" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="workTitle">
+    <div class="modal-head">
+      <h2 id="workTitle">작업 일정 등록</h2>
+      <button type="button" class="modal-close" id="workClose" aria-label="닫기">✕</button>
+    </div>
+    <div class="edit-meta" id="workMeta" hidden></div>
+    <div class="field">
+      <div class="label"><span>일정 날짜</span><span class="req">필수</span></div>
+      <input type="date" id="workDate" required>
+    </div>
+    <div class="field">
+      <div class="label"><span>지점명</span><span class="req">필수</span></div>
+      <div class="chips" id="workBranchChips"></div>
+      <input type="text" id="workBranch" list="branchList" placeholder="지점명을 선택하거나 직접 입력" required>
+    </div>
+    <div class="field">
+      <div class="label"><span>작업 내용</span><span class="req">필수</span></div>
+      <textarea id="workTask" rows="2" maxlength="500" placeholder="예) 냉동고 실리콘 보수"></textarea>
+    </div>
+    <div class="field">
+      <div class="label"><span>등록자</span><span class="optional">선택</span></div>
+      <input type="text" id="workAuthor" list="authorList" placeholder="이름">
+    </div>
+    <div class="field">
+      <div class="label"><span>비고 / 메모</span><span class="optional">선택</span></div>
+      <textarea id="workMemo" rows="2" maxlength="500" placeholder="예) 자재는 현장에 있음 · 연락처 등"></textarea>
+    </div>
+    <button type="button" class="btn-primary" id="workSave">작업 일정 등록</button>
+  </div>
+</div>
+
 <div id="editModal" hidden>
   <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="editTitle">
     <div class="modal-head">
@@ -734,6 +792,10 @@
     photos: [],          // { key, dataUrl, base64, mimeType, name, bytes, width, height }
     records: [],
     branches: DEFAULT_BRANCHES.slice(),
+    // 화면에서 지운 지점 — 서버 목록·기본 지점에서 다시 더해지지 않게 따로 기억한다
+    deletedBranches: [],
+    // 지점 관리(칩에 ✕ 표시) 켜짐 여부
+    branchEdit: false,
     loading: false,
     listLoaded: false,
     listDirty: true,
@@ -744,12 +806,15 @@
     prefill: null,
     // ✏️ 수정 중인 매장 요청 (없으면 새로 등록)
     schedEdit: null,
+    // ✏️ 수정 중인 작업 일정 (없으면 새로 등록) — 📅 일정 및 사진등록 탭
+    workEdit: null,
     // 1️⃣ 📅 작업 캘린더 — 작업사진(등록기록)만
     cal: {
       month: '',          // 'YYYY-MM' (지금 보고 있는 달)
       branch: '',         // 지점 필터 ('' = 전체)
       selected: '',       // 선택한 날짜 'YYYY-MM-DD'
       records: [],        // 그 달 작업기록
+      plans: [],          // 그 달 작업 일정(작업일정 시트)
       loaded: false,
       loadedMonth: '',
       loading: false,
@@ -790,9 +855,12 @@
   var LS = {
     author: 'workphoto.author',
     branches: 'workphoto.branches',
+    branchesDeleted: 'workphoto.branches.deleted',
     authors: 'workphoto.authors',
     mock: 'workphoto.mock.records.v1',
     schedules: 'workphoto.mock.schedules.v1',
+    workSchedules: 'workphoto.mock.workschedules.v1',
+    mockBranchesDeleted: 'workphoto.mock.branches.deleted.v1',
     seeded: 'workphoto.mock.seeded.v1'
   };
 
@@ -937,6 +1005,41 @@
       if (IS_REMOTE) return remotePost({ action: 'deleteSchedule', id: id });
       return Promise.resolve(mockDeleteSchedule(id));
     },
+    // 📅 일정 및 사진등록 탭의 작업 일정 (작업일정 시트 — 매장 요청과 별도)
+    listWorkSchedules: function (filters) {
+      if (IS_GAS) return gasCall('listWorkSchedules', filters);
+      if (IS_REMOTE) {
+        filters = filters || {};
+        return remoteGet({ action: 'workschedules', yearMonth: filters.yearMonth, branch: filters.branch });
+      }
+      return Promise.resolve(mockListWorkSchedules(filters));
+    },
+    addWorkSchedule: function (payload) {
+      if (IS_GAS) return gasCall('addWorkSchedule', payload);
+      if (IS_REMOTE) return remotePost(withAction('addWorkSchedule', payload));
+      return Promise.resolve(mockAddWorkSchedule(payload));
+    },
+    updateWorkSchedule: function (payload) {
+      if (IS_GAS) return gasCall('updateWorkSchedule', payload);
+      if (IS_REMOTE) return remotePost(withAction('updateWorkSchedule', payload));
+      return Promise.resolve(mockUpdateWorkSchedule(payload));
+    },
+    updateWorkScheduleStatus: function (id, status) {
+      if (IS_GAS) return gasCall('updateWorkScheduleStatus', id, status);
+      if (IS_REMOTE) return remotePost({ action: 'updateWorkScheduleStatus', id: id, status: status });
+      return Promise.resolve(mockUpdateWorkScheduleStatus(id, status));
+    },
+    deleteWorkSchedule: function (id) {
+      if (IS_GAS) return gasCall('deleteWorkSchedule', id);
+      if (IS_REMOTE) return remotePost({ action: 'deleteWorkSchedule', id: id });
+      return Promise.resolve(mockDeleteWorkSchedule(id));
+    },
+    // 🏷️ 잘못 등록된 지점 목록에서 지우기 (기존 기록은 그대로)
+    deleteBranch: function (branch) {
+      if (IS_GAS) return gasCall('deleteBranch', branch);
+      if (IS_REMOTE) return remotePost({ action: 'deleteBranch', branch: branch });
+      return Promise.resolve(mockDeleteBranch(branch));
+    },
     // 작업사진 기록 삭제 (시트 행 + 드라이브 사진 파일)
     deleteRecord: function (id, expect) {
       if (IS_GAS) return gasCall('deleteWorkLog', id, expect || {});
@@ -990,6 +1093,19 @@
       });
       store.set(LS.schedules, plans);
     }
+    // 📅 일정 및 사진등록 탭의 작업 일정 샘플 (매장 요청과 별도 저장소)
+    if (store.get(LS.workSchedules, null) === null) {
+      var works = (window.__PREVIEW_WORK_SCHEDULES__ || []).map(function (s, i) {
+        return {
+          id: 'WS-' + ('0000000' + (i + 1)).slice(-8) + '-' + ('00' + (i + 1)).slice(-3),
+          date: s.date, branch: s.branch, task: s.task, author: s.author || '',
+          status: s.status === '완료' ? '완료' : '예정',
+          createdAt: s.createdAt || (s.date + ' 09:00:00'),
+          memo: s.memo || ''
+        };
+      });
+      store.set(LS.workSchedules, works);
+    }
   }
 
   function mockSave(payload) {
@@ -1021,6 +1137,18 @@
         store.set(LS.schedules, plans);
         record.scheduleId = payload.scheduleId;
       }
+      // 작업 일정에서 넘어와 등록한 경우 그 일정을 완료로 바꾼다
+      if (payload.workScheduleId) {
+        var works = store.get(LS.workSchedules, []);
+        works = works.map(function (p) {
+          if (p.id === payload.workScheduleId) p.status = '완료';
+          return p;
+        });
+        store.set(LS.workSchedules, works);
+        record.workScheduleId = payload.workScheduleId;
+      }
+      // 이 지점으로 기록을 남겼으니 지운 지점 목록에서 뺀다
+      reviveMockBranch(payload.branch);
       var all = store.get(LS.mock, []);
       all.unshift(record);
       var ok = store.set(LS.mock, all);
@@ -1063,9 +1191,7 @@
       if (a.date !== b.date) return a.date < b.date ? 1 : -1;
       return String(a.registeredAt) < String(b.registeredAt) ? 1 : -1;
     });
-    var branches = [];
-    all.forEach(function (r) { if (branches.indexOf(r.branch) === -1) branches.push(r.branch); });
-    DEFAULT_BRANCHES.forEach(function (b) { if (branches.indexOf(b) === -1) branches.push(b); });
+    var branches = mockBranchNames();
     return { ok: true, count: out.length, total: out.length, records: out, branches: branches };
   }
 
@@ -1092,21 +1218,154 @@
       if (a.date !== b.date) return a.date < b.date ? -1 : 1;
       return String(a.createdAt) < String(b.createdAt) ? -1 : 1;
     });
+    var workSchedules = store.get(LS.workSchedules, []).filter(function (s) {
+      if (s.date < range.from || s.date > range.to) return false;
+      if (branch && String(s.branch).trim().indexOf(branch) === -1) return false;
+      return true;
+    }).sort(function (a, b) {
+      if (a.date !== b.date) return a.date < b.date ? -1 : 1;
+      return String(a.createdAt) < String(b.createdAt) ? -1 : 1;
+    });
     return {
       ok: true, yearMonth: range.month, from: range.from, to: range.to,
-      records: records, schedules: schedules, branches: mockBranchNames()
+      records: records, schedules: schedules, workSchedules: workSchedules, branches: mockBranchNames()
     };
+  }
+
+  function mockListWorkSchedules(filters) {
+    filters = filters || {};
+    var range = mockMonthRange(filters);
+    var branch = branchFilterValue(filters.branch);
+    var list = store.get(LS.workSchedules, []).filter(function (s) {
+      if (s.date < range.from || s.date > range.to) return false;
+      if (branch && String(s.branch).trim().indexOf(branch) === -1) return false;
+      return true;
+    });
+    return { ok: true, yearMonth: range.month, from: range.from, to: range.to, count: list.length, schedules: list, branches: mockBranchNames() };
+  }
+
+  function mockAddWorkSchedule(payload) {
+    payload = payload || {};
+    var date = String(payload.date || '').trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return { ok: false, error: '일정 날짜를 YYYY-MM-DD 형식으로 넣어 주세요.' };
+    var branch = String(payload.branch || '').trim();
+    if (!branch) return { ok: false, error: '지점명을 입력해 주세요.' };
+    var task = String(payload.task || '').trim();
+    if (!task) return { ok: false, error: '작업내용을 입력해 주세요.' };
+
+    var all = store.get(LS.workSchedules, []);
+    var maxSeq = 0;
+    all.forEach(function (s) {
+      var m = String(s.id || '').match(/-(\d{3})$/);
+      if (m) maxSeq = Math.max(maxSeq, Number(m[1]));
+    });
+    var now = new Date();
+    var stamp = ymd(now) + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
+    var schedule = {
+      id: 'WS-' + ymd(now).replace(/-/g, '') + '-' + ('00' + (maxSeq + 1)).slice(-3),
+      date: date, branch: branch, task: task,
+      author: String(payload.author || '').trim(),
+      status: '예정', createdAt: stamp,
+      memo: String(payload.memo || '').trim()
+    };
+    all.push(schedule);
+    store.set(LS.workSchedules, all);
+    reviveMockBranch(branch);
+    return { ok: true, schedule: schedule };
+  }
+
+  function mockUpdateWorkSchedule(payload) {
+    payload = payload || {};
+    var id = String(payload.id || '').trim();
+    if (!id) return { ok: false, error: '수정할 작업 일정 ID가 없습니다.' };
+    var date = String(payload.date || '').trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return { ok: false, error: '일정 날짜를 YYYY-MM-DD 형식으로 넣어 주세요.' };
+    var branch = String(payload.branch || '').trim();
+    if (!branch) return { ok: false, error: '지점명을 입력해 주세요.' };
+    var task = String(payload.task || '').trim();
+    if (!task) return { ok: false, error: '작업내용을 입력해 주세요.' };
+
+    var all = store.get(LS.workSchedules, []);
+    var hit = null;
+    all.forEach(function (s) { if (s.id === id) hit = s; });
+    if (!hit) return { ok: false, error: '해당 작업 일정을 찾지 못했습니다. (이미 지워졌을 수 있습니다)' };
+
+    var expect = payload.expect || {};
+    var changed = '이 작업 일정이 그 사이 바뀌었습니다. 새로고침한 뒤 다시 시도해 주세요.';
+    if (expect.date && expect.date !== hit.date) return { ok: false, error: changed };
+    if (expect.branch && expect.branch !== hit.branch) return { ok: false, error: changed };
+    if (expect.task && expect.task !== hit.task) return { ok: false, error: changed };
+
+    hit.date = date;
+    hit.branch = branch;
+    hit.task = task;
+    hit.author = String(payload.author || '').trim();
+    hit.memo = String(payload.memo || '').trim();
+    store.set(LS.workSchedules, all);
+    reviveMockBranch(branch);
+    return { ok: true, id: id, schedule: hit };
+  }
+
+  function mockUpdateWorkScheduleStatus(id, status) {
+    if (status !== '예정' && status !== '완료') {
+      return { ok: false, error: "상태는 '예정' 또는 '완료'만 바꿀 수 있습니다." };
+    }
+    var all = store.get(LS.workSchedules, []);
+    var hit = null;
+    all.forEach(function (s) { if (s.id === id) { s.status = status; hit = s; } });
+    if (!hit) return { ok: false, error: '해당 작업 일정을 찾지 못했습니다.' };
+    store.set(LS.workSchedules, all);
+    return { ok: true, id: id, status: status };
+  }
+
+  function mockDeleteWorkSchedule(id) {
+    var all = store.get(LS.workSchedules, []);
+    var before = all.length;
+    all = all.filter(function (s) { return s.id !== id; });
+    if (all.length === before) return { ok: false, error: '해당 작업 일정을 찾지 못했습니다.' };
+    store.set(LS.workSchedules, all);
+    return { ok: true, id: id };
+  }
+
+  /* ---------- 미리보기용 지점 삭제 (지운 지점은 목록에서 빠지고, 다시 쓰면 돌아온다) ---------- */
+  function mockDeletedBranches() {
+    var list = store.get(LS.mockBranchesDeleted, []);
+    return Array.isArray(list) ? list : [];
+  }
+
+  function reviveMockBranch(name) {
+    name = String(name || '').trim();
+    if (!name) return;
+    var list = mockDeletedBranches();
+    if (list.indexOf(name) === -1) return;
+    store.set(LS.mockBranchesDeleted, list.filter(function (v) { return v !== name; }));
+  }
+
+  function mockDeleteBranch(name) {
+    name = String(name || '').trim();
+    if (!name) return { ok: false, error: '삭제할 지점명이 없습니다.' };
+    if (name === '전체' || name.replace(/\s+/g, '') === '전체지점') {
+      return { ok: false, error: "'전체' 는 지점이 아니므로 지울 수 없습니다." };
+    }
+    var list = mockDeletedBranches();
+    if (list.indexOf(name) === -1) list.push(name);
+    store.set(LS.mockBranchesDeleted, list);
+    var kept = store.get(LS.mock, []).filter(function (r) { return r.branch === name; }).length;
+    return { ok: true, branch: name, status: '삭제', recordsKept: kept, branches: mockBranchNames() };
   }
 
   function mockBranchNames() {
     var out = [];
-    store.get(LS.mock, []).forEach(function (r) {
-      if (r.branch && out.indexOf(r.branch) === -1) out.push(r.branch);
-    });
-    store.get(LS.schedules, []).forEach(function (s) {
-      if (s.branch && out.indexOf(s.branch) === -1) out.push(s.branch);
-    });
-    DEFAULT_BRANCHES.forEach(function (b) { if (out.indexOf(b) === -1) out.push(b); });
+    var deleted = mockDeletedBranches();
+    function add(name) {
+      name = String(name || '').trim();
+      if (!name || out.indexOf(name) > -1 || deleted.indexOf(name) > -1) return;
+      out.push(name);
+    }
+    store.get(LS.mock, []).forEach(function (r) { add(r.branch); });
+    store.get(LS.schedules, []).forEach(function (s) { add(s.branch); });
+    store.get(LS.workSchedules, []).forEach(function (s) { add(s.branch); });
+    DEFAULT_BRANCHES.forEach(add);
     return out;
   }
 
@@ -1136,6 +1395,7 @@
     };
     all.push(schedule);
     store.set(LS.schedules, all);
+    reviveMockBranch(branch);
     return { ok: true, schedule: schedule };
   }
 
@@ -1169,6 +1429,7 @@
     hit.author = String(payload.author || '').trim();
     hit.memo = String(payload.memo || '').trim();
     store.set(LS.schedules, all);
+    reviveMockBranch(branch);
     return { ok: true, id: id, schedule: hit };
   }
 
@@ -1477,6 +1738,7 @@
     state.req.month = nowMonth();
     state.req.selected = today;
 
+    state.deletedBranches = (store.get(LS.branchesDeleted, []) || []).slice();
     state.branches = mergeBranches(store.get(LS.branches, []), DEFAULT_BRANCHES);
     renderBranchChips();
     renderDatalists();
@@ -1493,11 +1755,13 @@
 
   function mergeBranches(a, b) {
     var out = [];
+    var deleted = state.deletedBranches || [];
     [].concat(a || [], b || []).forEach(function (v) {
       v = String(v || '').trim();
-      if (v && out.indexOf(v) === -1) out.push(v);
+      if (!v || deleted.indexOf(v) > -1 || out.indexOf(v) > -1) return;
+      out.push(v);
     });
-    return out.slice(0, 20);
+    return out.slice(0, 30);
   }
 
   function rememberBranch(name) {
@@ -1523,6 +1787,38 @@
     renderDatalists();
   }
 
+  // 지점 관리에서 지웠던 지점을 새 기록에 다시 쓰면 목록에 되살린다.
+  function reviveBranch(name) {
+    name = String(name || '').trim();
+    if (!name) return;
+    var deleted = state.deletedBranches || [];
+    if (deleted.indexOf(name) > -1) {
+      state.deletedBranches = deleted.filter(function (v) { return v !== name; });
+      store.set(LS.branchesDeleted, state.deletedBranches);
+    }
+    state.branches = mergeBranches(state.branches.concat([name]), DEFAULT_BRANCHES);
+    renderBranchChips();
+    renderDatalists();
+  }
+
+  // 지점 관리(칩에 ✕ 표시) 켜기/끄기 — 등록 칸과 달력 지점 필터가 함께 바뀐다.
+  function setBranchEdit(on) {
+    state.branchEdit = (on === undefined) ? !state.branchEdit : !!on;
+    var label = state.branchEdit ? '✕ 지점 관리 끝내기' : '🏷️ 지점 관리';
+    ['branchManageBtn', 'calBranchManageBtn'].forEach(function (id) {
+      var btn = $(id);
+      if (!btn) return;
+      btn.classList.toggle('on', state.branchEdit);
+      btn.textContent = label;
+    });
+    var hint = $('branchManageHint');
+    if (hint) hint.hidden = !state.branchEdit;
+    renderBranchChips();
+    renderCalBranchFilter();
+    renderDatalists();
+    if (state.branchEdit) toast('지점 관리: 칩의 ✕ 를 누르면 목록에서 지울 수 있습니다.', 'ok');
+  }
+
   function refreshBranchListFromServer() {
     if (!IS_GAS) return;
     gasCall('getBranchList', null).then(function (res) {
@@ -1538,18 +1834,71 @@
 
   function renderBranchChips() {
     var box = $('branchChips');
+    if (!box) return;
     var current = $('inputBranch').value.trim();
-    box.innerHTML = '';
-    state.branches.slice(0, 9).forEach(function (name) {
+    clearNode(box);
+    box.className = 'chips' + (state.branchEdit ? ' manage' : '');
+    var names = state.branchEdit ? state.branches.slice(0, 30) : state.branches.slice(0, 9);
+    names.forEach(function (name) {
       var b = document.createElement('button');
       b.type = 'button';
       b.className = 'chip' + (name === current ? ' active' : '');
       b.textContent = name;
-      b.addEventListener('click', function () {
-        $('inputBranch').value = name;
-        renderBranchChips();
-      });
+      b.setAttribute('data-branch', name);
+      if (state.branchEdit) {
+        b.setAttribute('aria-label', name + ' 지점 목록에서 지우기');
+        b.appendChild(el('span', 'chip-x', '✕'));
+        b.addEventListener('click', function () { askDeleteBranch(name); });
+      } else {
+        b.addEventListener('click', function () {
+          $('inputBranch').value = name;
+          renderBranchChips();
+        });
+      }
       box.appendChild(b);
+    });
+  }
+
+  // 지점 칩의 ✕ — 확인을 받은 뒤에만 목록에서 지운다 (잘못 눌러도 기록은 그대로).
+  function askDeleteBranch(name) {
+    name = String(name || '').trim();
+    if (!name) return;
+    var ask = "지점 '" + name + "' 을(를) 목록에서 지울까요?\n\n" +
+      '이미 등록된 작업사진·작업 일정·매장 요청 기록은 그대로 남고, ' +
+      '이 지점을 새 기록에 다시 입력하면 목록에 돌아옵니다.';
+    if (typeof confirm === 'function' && !confirm(ask)) return;
+
+    API.deleteBranch(name).then(function (res) {
+      if (!res || res.ok === false) throw new Error((res && res.error) || '지점을 지우지 못했습니다.');
+
+      var deleted = (state.deletedBranches || []).slice();
+      if (deleted.indexOf(name) === -1) deleted.push(name);
+      state.deletedBranches = deleted;
+      store.set(LS.branchesDeleted, deleted);
+
+      // 화면에 기억해 둔 지점 목록에서도 지운다
+      var local = store.get(LS.branches, []).filter(function (v) { return v !== name; });
+      store.set(LS.branches, local);
+      var server = (res && Array.isArray(res.branches)) ? res.branches.concat(local) : state.branches;
+      state.branches = mergeBranches(server, []).filter(function (v) { return v !== name; });
+
+      if ($('inputBranch').value.trim() === name) $('inputBranch').value = '';
+      if (state.cal.branch === name) { state.cal.branch = ''; state.cal.loaded = false; }
+      if (state.req.branch === name) { state.req.branch = ''; state.req.loaded = false; }
+
+      renderBranchChips();
+      renderDatalists();
+      renderCalBranchFilter();
+      renderReqBranchFilter();
+
+      var kept = Number((res && res.recordsKept) || 0);
+      toast("'" + name + "' 지점을 목록에서 지웠습니다." + (kept ? ' 기존 기록 ' + kept + '건은 그대로입니다.' : ''), 'ok');
+
+      if (state.tab === 'list') loadList(true);
+      else if (state.tab === 'requests') loadRequests(true);
+      else loadCalendar(true);
+    }).catch(function (err) {
+      toast((err && err.message) || '지점을 지우지 못했습니다.', 'err');
     });
   }
 
@@ -1579,7 +1928,7 @@
 
   /* ================================================================
    * 4. 화면 전환
-   *   1) 📅 작업 캘린더 — 작업사진(등록기록)만 보이는 달력
+   *   1) 📅 일정 및 사진등록 — 작업 일정 + 작업사진 달력
    *   2) 📝 매장 요청   — 매장 요청(예정작업 시트)만 보이는 별도 달력
    *   3) 📋 전체 내역 조회
    * ============================================================== */
@@ -1624,11 +1973,23 @@
     $('tab-requests').addEventListener('click', function () { switchTab('requests'); });
     $('tab-list').addEventListener('click', function () { switchTab('list'); });
 
-    // 📅 작업 캘린더 — 달 이동 / 오늘
+    // 📅 일정 및 사진등록 — 달 이동 / 오늘 / 작업 일정·작업사진 등록 / 지점 관리
     $('calPrev').addEventListener('click', function () { goToMonth(shiftMonth(state.cal.month, -1)); });
     $('calNext').addEventListener('click', function () { goToMonth(shiftMonth(state.cal.month, 1)); });
     $('calToday').addEventListener('click', function () { goToMonth(nowMonth(), todayStr()); });
     $('dayPhotoBtn').addEventListener('click', registerPhotoForSelectedDate);
+    $('dayPlanAddBtn').addEventListener('click', function () { openWorkScheduleModal(null, state.cal.selected); });
+    $('branchManageBtn').addEventListener('click', function () { setBranchEdit(); });
+    $('calBranchManageBtn').addEventListener('click', function () { setBranchEdit(); });
+    $('inputBranch').addEventListener('input', renderBranchChips);
+
+    // 작업 일정 등록·수정 창
+    $('workClose').addEventListener('click', closeWorkScheduleModal);
+    $('workSave').addEventListener('click', saveWorkScheduleFromForm);
+    $('workBranch').addEventListener('input', renderWorkBranchChips);
+    $('workModal').addEventListener('click', function (e) {
+      if (e && e.target === $('workModal')) closeWorkScheduleModal();
+    });
     $('writeClose').addEventListener('click', function () {
       state.prefill = null;
       renderPlanLink();
@@ -1711,6 +2072,7 @@
     $('lbPrev').addEventListener('click', function () { stepLightbox(-1); });
     $('lbNext').addEventListener('click', function () { stepLightbox(1); });
     document.addEventListener('keydown', function (e) {
+      if (!$('workModal').hidden && e.key === 'Escape') { closeWorkScheduleModal(); return; }
       if (!$('editModal').hidden && e.key === 'Escape') { closeEditModal(); return; }
       if (!$('schedModal').hidden && e.key === 'Escape') { closeRequestModal(); return; }
       if ($('lightbox').hidden) return;
@@ -1883,7 +2245,8 @@
       branch: branch,
       author: author,
       memo: memo,
-      scheduleId: (state.prefill && state.prefill.id) || '',
+      scheduleId: (state.prefill && state.prefill.kind !== 'work' && state.prefill.id) || '',
+      workScheduleId: (state.prefill && state.prefill.kind === 'work' && state.prefill.id) || '',
       images: state.photos.map(function (p) {
         return { name: p.name, mimeType: p.mimeType, base64: p.base64 };
       })
@@ -1906,6 +2269,7 @@
       toast('등록 완료! 사진 ' + saved + '장이 저장되었습니다.', 'ok');
       if (warnings.length) setTimeout(function () { toast(warnings[0], 'err'); }, 1800);
 
+      reviveBranch(branch);
       state.photos = [];
       renderPhotos();
       $('inputMemo').value = '';
@@ -2104,7 +2468,7 @@
   }
 
   /* ================================================================
-   * 7-2. 📅 작업 캘린더 — 작업사진(등록기록)만 보이는 달력
+   * 7-2. 📅 일정 및 사진등록 — 작업 일정(작업일정 시트) + 작업사진
    * ============================================================== */
   function openCalendar() {
     var cal = state.cal;
@@ -2133,6 +2497,7 @@
       cal.loading = false;
       if (!res || res.ok === false) throw new Error((res && res.error) || '작업 캘린더를 불러오지 못했습니다.');
       cal.records = res.records || [];
+      cal.plans = res.workSchedules || [];
       if (res.branches && res.branches.length) {
         state.branches = mergeBranches(state.branches, res.branches);
         renderBranchChips();
@@ -2151,6 +2516,10 @@
 
   function recordsOn(dateStr) {
     return (state.cal.records || []).filter(function (r) { return r.date === dateStr; });
+  }
+
+  function plansOn(dateStr) {
+    return (state.cal.plans || []).filter(function (p) { return p.date === dateStr; });
   }
 
   function renderCalendar() {
@@ -2182,13 +2551,20 @@
       cell.setAttribute('aria-label', formatDateLabel(dateStr));
       cell.appendChild(el('span', 'cal-num', String(d)));
 
-      // 작업사진(등록기록)만 표시한다. 매장 요청은 📝 매장 요청 탭의 달력에서 따로 본다.
+      // 작업사진(등록기록)과 작업 일정(작업일정 시트)만 표시한다. 매장 요청은 📝 매장 요청 탭의 달력에서 따로 본다.
       var recs = recordsOn(dateStr);
       if (recs.length) {
         var photos = recs.reduce(function (n, r) { return n + (r.photoCount || (r.photos || []).length); }, 0);
         var photoLabel = recs.length === 1 ? recs[0].branch : recs.length + '건';
         cell.appendChild(el('span', 'cal-badge photo', '📷 ' + photoLabel));
         if (photos > 1 && recs.length === 1) cell.appendChild(el('span', 'cal-badge photo', '사진 ' + photos + '장'));
+      }
+
+      var plans = plansOn(dateStr);
+      if (plans.length) {
+        var allDone = plans.every(function (p) { return p.status === '완료'; });
+        var planLabel = plans.length === 1 ? plans[0].branch : plans.length + '건';
+        cell.appendChild(el('span', 'cal-badge work' + (allDone ? ' done' : ''), '📋 ' + planLabel));
       }
 
       (function (ds) {
@@ -2206,7 +2582,8 @@
     } else {
       var all = cal.records || [];
       var shots = all.reduce(function (n, r) { return n + (r.photoCount || (r.photos || []).length); }, 0);
-      summary.textContent = '이 달 작업사진 ' + all.length + '건 · 사진 ' + shots + '장' +
+      var planCount = (cal.plans || []).length;
+      summary.textContent = '이 달 작업사진 ' + all.length + '건 · 사진 ' + shots + '장 · 작업 일정 ' + planCount + '건' +
         (cal.branch ? ' · ' + cal.branch : '');
     }
 
@@ -2216,17 +2593,26 @@
   function renderCalBranchFilter() {
     var cal = state.cal;
     var box = $('calBranchFilter');
+    if (!box) return;
     clearNode(box);
-    var names = [''].concat(state.branches.slice(0, 8));
+    box.className = 'chips' + (state.branchEdit ? ' manage' : '');
+    var names = [''].concat(state.branchEdit ? state.branches.slice(0, 30) : state.branches.slice(0, 8));
     names.forEach(function (value) {
       var chip = el('button', 'chip' + (value === cal.branch ? ' active' : ''), value || '전체');
       chip.setAttribute('type', 'button');
-      chip.addEventListener('click', function () {
-        if (cal.branch === value) return;
-        cal.branch = value;
-        cal.loaded = false;
-        loadCalendar(true);
-      });
+      chip.setAttribute('data-branch', value || '전체');
+      if (value && state.branchEdit) {
+        chip.setAttribute('aria-label', value + ' 지점 목록에서 지우기');
+        chip.appendChild(el('span', 'chip-x', '✕'));
+        chip.addEventListener('click', function () { askDeleteBranch(value); });
+      } else {
+        chip.addEventListener('click', function () {
+          if (cal.branch === value) return;
+          cal.branch = value;
+          cal.loaded = false;
+          loadCalendar(true);
+        });
+      }
       box.appendChild(chip);
     });
   }
@@ -2251,20 +2637,213 @@
     var cal = state.cal;
     var date = cal.selected || todayStr();
     var recs = recordsOn(date);
+    var plans = plansOn(date);
     var photos = recs.reduce(function (n, r) { return n + (r.photoCount || (r.photos || []).length); }, 0);
 
     $('dayTitle').textContent = koreanDate(date) + ' (' + WEEKDAY[weekdayOf(date)] + ')';
-    $('daySub').textContent = '작업사진 ' + recs.length + '건(사진 ' + photos + '장)';
+    $('daySub').textContent = '작업 일정 ' + plans.length + '건 · 작업사진 ' + recs.length + '건(사진 ' + photos + '장)';
 
     var box = $('dayDetail');
     clearNode(box);
 
+    // 1) 그 날의 작업 일정 (작업일정 시트)
+    box.appendChild(el('div', 'day-section-title', '📋 작업 일정 ' + plans.length + '건'));
+    if (!plans.length) {
+      box.appendChild(el('div', 'day-empty', '이 날짜에 잡힌 작업 일정이 없습니다. [+ 이 날 작업 일정]으로 적어 두면 이 날짜 칸에 표시되고, 사진을 올리면 [완료]로 바뀝니다.'));
+    } else {
+      plans.forEach(function (p) { box.appendChild(workScheduleItemEl(p)); });
+    }
+
+    // 2) 그 날 등록된 작업사진
     box.appendChild(el('div', 'day-section-title', '📷 등록된 작업사진 ' + recs.length + '건'));
     if (!recs.length) {
       box.appendChild(el('div', 'day-empty', '이 날 등록된 작업사진이 없습니다. [📷 이 날 작업사진 등록]으로 사진을 올리면 이 날짜 칸에 저절로 나타납니다.'));
     } else {
       recs.forEach(function (r) { box.appendChild(dayRecordEl(r)); });
     }
+  }
+
+  /* ---------- 작업 일정 카드 (📅 일정 및 사진등록 탭) ---------- */
+  function workScheduleItemEl(plan) {
+    var done = plan.status === '완료';
+    var item = el('div', 'sched-item work-item' + (done ? ' done' : ''));
+    var top = el('div', 'sched-top');
+    top.appendChild(el('span', 'sched-branch', plan.branch));
+    top.appendChild(el('span', 'sched-status' + (done ? ' done' : ''), done ? '✓ 완료' : '일정 예정'));
+    item.appendChild(top);
+    if (plan.task) item.appendChild(el('p', 'sched-task', plan.task));
+    if (plan.memo) item.appendChild(el('p', 'sched-memo', plan.memo));
+    var meta = [];
+    if (plan.author) meta.push(plan.author);
+    if (plan.createdAt) meta.push(timeLabel(plan.createdAt) + ' 등록');
+    if (plan.id) meta.push(plan.id);
+    if (meta.length) item.appendChild(el('div', 'sched-meta', meta.join(' · ')));
+
+    var actions = el('div', 'sched-actions');
+    var photoBtn = el('button', 'primary do-work-photo', '📷 작업완료(사진등록)');
+    photoBtn.setAttribute('type', 'button');
+    photoBtn.addEventListener('click', function () { startPhotoFromWorkSchedule(plan); });
+    actions.appendChild(photoBtn);
+
+    var editBtn = el('button', 'edit do-work-edit', '✏️ 수정');
+    editBtn.setAttribute('type', 'button');
+    editBtn.setAttribute('aria-label', '이 작업 일정 수정');
+    editBtn.addEventListener('click', function () { openWorkScheduleModal(plan); });
+    actions.appendChild(editBtn);
+
+    var toggle = el('button', 'do-work-toggle', done ? '↩ 예정으로 되돌리기' : '✅ 완료 처리');
+    toggle.setAttribute('type', 'button');
+    toggle.addEventListener('click', function () { setWorkScheduleStatus(plan, done ? '예정' : '완료'); });
+    actions.appendChild(toggle);
+
+    var del = el('button', 'danger do-work-delete', '🗑️ 삭제');
+    del.setAttribute('type', 'button');
+    del.addEventListener('click', function () { removeWorkSchedule(plan); });
+    actions.appendChild(del);
+
+    item.appendChild(actions);
+    return item;
+  }
+
+  // 작업 일정 → 작업사진 등록 칸으로 날짜·지점·작업내용을 채워 넘어간다 (저장하면 그 일정은 완료)
+  function startPhotoFromWorkSchedule(plan) {
+    state.prefill = {
+      kind: 'work',
+      id: plan.id || '',
+      date: plan.date,
+      branch: plan.branch,
+      task: plan.task || ''
+    };
+    $('inputDate').value = plan.date;
+    $('inputBranch').value = plan.branch;
+    if (plan.task) $('inputMemo').value = plan.task;
+    if (!$('inputAuthor').value.trim()) $('inputAuthor').value = store.get(LS.author, '') || plan.author || '';
+    renderBranchChips();
+    renderPlanLink();
+    switchTab('calendar');
+    showWriteCard(true);
+    toast('작업 일정 내용을 채웠습니다. 사진을 올리고 [등록하기]를 누르면 이 일정이 완료로 바뀝니다.', 'ok');
+  }
+
+  function setWorkScheduleStatus(plan, status) {
+    API.updateWorkScheduleStatus(plan.id, status).then(function (res) {
+      if (!res || res.ok === false) throw new Error((res && res.error) || '상태를 바꾸지 못했습니다.');
+      plan.status = status;
+      toast(status === '완료' ? '작업 일정을 완료로 표시했습니다.' : '다시 일정 예정으로 되돌렸습니다.', 'ok');
+      state.cal.loaded = false;
+      loadCalendar(true);
+    }).catch(function (err) {
+      toast((err && err.message) || '상태를 바꾸지 못했습니다.', 'err');
+    });
+  }
+
+  function removeWorkSchedule(plan) {
+    var ask = '이 작업 일정을 지울까요?\n\n' + plan.branch + ' · ' + formatDateLabel(plan.date) +
+      (plan.task ? '\n' + plan.task : '') + '\n\n(이미 올린 작업사진은 그대로 남습니다)';;
+    if (typeof confirm === 'function' && !confirm(ask)) return;
+    API.deleteWorkSchedule(plan.id).then(function (res) {
+      if (!res || res.ok === false) throw new Error((res && res.error) || '작업 일정을 지우지 못했습니다.');
+      toast('작업 일정을 지웠습니다.', 'ok');
+      state.cal.loaded = false;
+      loadCalendar(true);
+    }).catch(function (err) {
+      toast((err && err.message) || '작업 일정을 지우지 못했습니다.', 'err');
+    });
+  }
+
+  /* ---------- 작업 일정 등록·수정 창 ---------- */
+  function openWorkScheduleModal(plan, dateStr) {
+    state.workEdit = plan || null;
+    var date = plan ? plan.date : (dateStr || state.cal.selected || todayStr());
+    $('workTitle').textContent = plan ? '작업 일정 수정' : '작업 일정 등록';
+    $('workSave').textContent = plan ? '💾 수정 저장' : '작업 일정 등록';
+    $('workMeta').hidden = !plan;
+    $('workMeta').textContent = plan
+      ? '일정 ' + (plan.id || '') + ' · ' + (plan.status === '완료' ? '완료' : '일정 예정')
+      : '';
+    $('workDate').value = date;
+    $('workBranch').value = plan ? (plan.branch || '') : (state.cal.branch || $('inputBranch').value.trim() || state.branches[0] || '');
+    $('workTask').value = plan ? (plan.task || '') : '';
+    $('workAuthor').value = plan ? (plan.author || '') : (store.get(LS.author, '') || $('inputAuthor').value.trim());
+    $('workMemo').value = plan ? (plan.memo || '') : '';
+    $('workSave').disabled = false;
+    renderWorkBranchChips();
+    $('workModal').hidden = false;
+  }
+
+  function closeWorkScheduleModal() {
+    $('workModal').hidden = true;
+    state.workEdit = null;
+  }
+
+  function renderWorkBranchChips() {
+    var box = $('workBranchChips');
+    if (!box) return;
+    clearNode(box);
+    var current = $('workBranch').value.trim();
+    var names = state.branches.slice();
+    if (current && names.indexOf(current) === -1) names.unshift(current);
+    names.slice(0, 9).forEach(function (name) {
+      var chip = el('button', 'chip' + (name === current ? ' active' : ''), name);
+      chip.setAttribute('type', 'button');
+      chip.addEventListener('click', function () {
+        $('workBranch').value = name;
+        renderWorkBranchChips();
+      });
+      box.appendChild(chip);
+    });
+  }
+
+  function saveWorkScheduleFromForm() {
+    var payload = {
+      date: $('workDate').value,
+      branch: $('workBranch').value.trim(),
+      task: $('workTask').value.trim(),
+      author: $('workAuthor').value.trim(),
+      memo: $('workMemo').value.trim()
+    };
+    if (!payload.date) { toast('일정 날짜를 선택해 주세요.', 'err'); return; }
+    if (!payload.branch) { toast('지점명을 입력해 주세요.', 'err'); return; }
+    if (!payload.task) { toast('작업내용을 입력해 주세요.', 'err'); return; }
+
+    var editing = state.workEdit;
+    var btn = $('workSave');
+    if (btn.disabled) return;
+    btn.disabled = true;
+
+    var call;
+    if (editing) {
+      call = API.updateWorkSchedule({
+        id: editing.id,
+        expect: { date: editing.date, branch: editing.branch, task: editing.task },
+        date: payload.date,
+        branch: payload.branch,
+        task: payload.task,
+        author: payload.author,
+        memo: payload.memo
+      });
+    } else {
+      call = API.addWorkSchedule(payload);
+    }
+
+    call.then(function (res) {
+      btn.disabled = false;
+      if (!res || res.ok === false) throw new Error((res && res.error) || '작업 일정을 저장하지 못했습니다.');
+      closeWorkScheduleModal();
+      reviveBranch(payload.branch);
+      rememberBranch(payload.branch);
+      if (payload.author) rememberAuthor(payload.author);
+      state.cal.month = payload.date.substring(0, 7);
+      state.cal.selected = payload.date;
+      state.cal.loaded = false;
+      state.cal.loadedMonth = '';
+      toast((editing ? '작업 일정을 수정했습니다. (' : '작업 일정을 등록했습니다. (') + formatDateLabel(payload.date) + ')', 'ok');
+      if (state.tab === 'calendar') loadCalendar(true);
+      else switchTab('calendar');
+    }).catch(function (err) {
+      btn.disabled = false;
+      toast((err && err.message) || '작업 일정을 저장하지 못했습니다.', 'err');
+    });
   }
 
   function dayRecordEl(record) {
@@ -2501,6 +3080,7 @@
   // 매장 요청 → 작업사진 등록 칸으로 날짜·지점·요청 내용을 채워 넘어간다 (저장하면 그 요청은 완료)
   function startPhotoFromSchedule(plan) {
     state.prefill = {
+      kind: 'request',
       id: plan.id || '',
       date: plan.date,
       branch: plan.branch,
@@ -2527,7 +3107,11 @@
     }
     box.hidden = false;
     clearNode(box);
-    box.appendChild(el('span', '', '📝 ' + plan.branch + ' 매장 요청과 연결됨 — 등록하면 이 요청이 [완료]로 바뀝니다.'));
+    if (plan.kind === 'work') {
+      box.appendChild(el('span', '', '📋 ' + plan.branch + ' 작업 일정과 연결됨 — 등록하면 이 일정이 [완료]로 바뀝니다.'));
+    } else {
+      box.appendChild(el('span', '', '📝 ' + plan.branch + ' 매장 요청과 연결됨 — 등록하면 이 요청이 [완료]로 바뀝니다.'));
+    }
     var clear = el('button', 'btn-link', '연결 해제');
     clear.setAttribute('type', 'button');
     clear.addEventListener('click', function () {
@@ -2614,6 +3198,7 @@
       btn.disabled = false;
       if (!res || res.ok === false) throw new Error((res && res.error) || '매장 요청을 저장하지 못했습니다.');
       closeRequestModal();
+      reviveBranch(payload.branch);
       rememberBranch(payload.branch);
       if (payload.author) rememberAuthor(payload.author);
       state.req.month = payload.date.substring(0, 7);
@@ -2860,6 +3445,7 @@
 
       hideLoading();
       closeEditModal();
+      reviveBranch(branch);
       rememberBranch(branch);
       if (author) rememberAuthor(author);
 
