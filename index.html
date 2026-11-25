@@ -168,6 +168,19 @@
   .btn-export:active{transform:translateY(1px);}
   .btn-export:disabled{opacity:.55; box-shadow:none; cursor:default;}
 
+  /* 📝 매장 요청 인쇄(워드) 막대 */
+  .req-print{padding:12px 14px;}
+  .req-print-row{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+  .req-print-row .chips{margin:0; padding-bottom:0; overflow:visible;}
+  .req-print-row .chip{padding:7px 12px; font-size:12.5px;}
+  .req-print-label{font-size:12.5px; font-weight:800; color:#344054;}
+  .req-print select{
+    padding:8px 10px; border-radius:10px; border:1px solid var(--line); background:#fff;
+    font-size:13px; font-weight:700; color:#344054;
+  }
+  .req-print .btn-export{margin-left:auto;}
+  .req-print .hint{margin-top:8px;}
+
   .record{background:#fff; border-radius:var(--radius); box-shadow:var(--shadow); padding:14px 15px; margin-bottom:12px;}
   .record-top{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
   .record-date{font-weight:800; font-size:14.5px;}
@@ -570,6 +583,21 @@
 
       <div class="cal-hint">매장에서 들어온 요청만 따로 보는 달력입니다. 요청을 등록해 두고, 작업을 마치면 그 요청에서 <b>📷 작업완료(사진등록)</b>으로 사진을 올리면 됩니다.</div>
 
+      <!-- 🖨️ 매장 요청 인쇄(워드) — 지금 보고 있는 달·지점·상태 그대로 A4 표로 -->
+      <div class="card req-print">
+        <div class="req-print-row">
+          <span class="req-print-label">상태</span>
+          <div class="chips" id="reqStatusFilter"></div>
+          <label class="req-print-label" for="reqPrintPeriod">기간</label>
+          <select id="reqPrintPeriod" aria-label="인쇄할 기간">
+            <option value="month">이 달</option>
+            <option value="all">전체 기간</option>
+          </select>
+          <button type="button" class="btn-export" id="reqExportBtn" title="지금 보고 있는 달·지점·상태의 매장 요청을 A4 표 워드 파일로 내려받습니다 (여백 10mm, 제목 20pt, 본문 10pt, 날짜 오름차순)">📄 인쇄(워드)</button>
+        </div>
+        <div class="hint" id="reqExportHint">이 달 매장 요청을 워드 파일로 내려받습니다.</div>
+      </div>
+
       <div class="card cal-card">
         <div class="cal-week">
           <span class="sun">일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span class="sat">토</span>
@@ -838,6 +866,8 @@
       branch: '',
       selected: '',
       schedules: [],      // 그 달 매장 요청
+      status: '',         // 인쇄할 상태 ('전체'='' / '대기' / '완료')
+      printPeriod: 'month', // 인쇄 기간 ('month' 이 달 / 'all' 전체 기간)
       syncing: false,
       stale: false,
       loaded: false,
@@ -1045,6 +1075,20 @@
         }, REMOTE_UPLOAD_TIMEOUT);
       }
       return Promise.resolve(mockExport(filters));
+    },
+    // 📝 매장 요청 인쇄(워드) — 예정작업 시트를 표로
+    exportRequestsDoc: function (filters) {
+      if (IS_GAS) return gasCall('exportStoreRequestsDoc', filters);
+      if (IS_REMOTE) {
+        filters = filters || {};
+        return remoteGet({
+          action: 'exportrequests',
+          yearMonth: filters.yearMonth,
+          from: filters.from, to: filters.to,
+          branch: filters.branch, status: filters.status
+        }, REMOTE_UPLOAD_TIMEOUT);
+      }
+      return Promise.resolve(mockExportRequests(filters));
     },
     calendar: function (filters) {
       if (IS_GAS) return gasCall('getCalendarData', filters);
@@ -1753,6 +1797,110 @@
       '<h1 style="font-size:20pt; margin:0 0 14pt 0">' + esc(title) + '</h1>' + rows + '</body></html>';
   }
 
+  /* ---------- 미리보기/로컬용 매장 요청 인쇄(워드) ---------- */
+  // 인쇄 조건에 맞는 매장 요청을 날짜 오름차순으로 골라 준다 (GAS exportStoreRequestsDoc 과 같은 규칙).
+  function mockRequestsList(filters) {
+    filters = filters || {};
+    var branch = branchFilterValue(filters.branch);
+    var status = String(filters.status || '').replace(/\s+/g, '');
+    if (status !== '대기' && status !== '완료') status = '';
+
+    var from = String(filters.from || '').trim();
+    var to = String(filters.to || '').trim();
+    if (!from && !to && /^\d{4}-\d{2}$/.test(String(filters.yearMonth || ''))) {
+      var range = mockMonthRange({ yearMonth: filters.yearMonth });
+      from = range.from;
+      to = range.to;
+    }
+
+    var list = store.get(LS.schedules, []).filter(function (s) {
+      if (!s || !s.date) return false;
+      if (from && s.date < from) return false;
+      if (to && s.date > to) return false;
+      if (branch && String(s.branch || '').trim().indexOf(branch) === -1) return false;
+      var st = s.status === '완료' ? '완료' : '대기';
+      if (status && st !== status) return false;
+      return true;
+    }).map(function (s) {
+      return {
+        id: s.id || '',
+        date: s.date,
+        branch: String(s.branch || '').trim(),
+        task: singleLineMemo(s.task),
+        status: s.status === '완료' ? '완료' : '대기',
+        createdAt: String(s.createdAt || '')
+      };
+    });
+    list.sort(function (a, b) {
+      if (a.date !== b.date) return a.date < b.date ? -1 : 1;
+      if (a.createdAt !== b.createdAt) return a.createdAt < b.createdAt ? -1 : 1;
+      return String(a.id) < String(b.id) ? -1 : 1;
+    });
+    return list;
+  }
+
+  function mockRequestsDocName(filters, list) {
+    var branch = branchFilterValue(filters.branch) || '전체';
+    var from = String(filters.from || '').trim();
+    var to = String(filters.to || '').trim();
+    var period = '';
+    if (from || to) {
+      period = from && to ? (from === to ? from : from + '~' + to) : (from || to);
+    } else if (/^\d{4}-\d{2}$/.test(String(filters.yearMonth || ''))) {
+      period = filters.yearMonth;
+    } else {
+      var dates = (list || []).map(function (r) { return r.date; }).sort();
+      period = dates.length
+        ? (dates[0] === dates[dates.length - 1] ? dates[0] : dates[0] + '~' + dates[dates.length - 1])
+        : todayStr();
+    }
+    return ('매장요청_' + branch + '_' + period).replace(/[\\\/:*?"<>|]/g, '') + '.doc';
+  }
+
+  // 매장 요청 인쇄 문서 — 날짜 · (전체일 때만) 지점 · 요청 내용 · 상태 를 칸으로 나눈 표 (본문 10pt)
+  function mockRequestsDocHtml(list, filters) {
+    var branch = branchFilterValue(filters.branch);
+    var showBranch = !branch;
+    var title = (branch || '전체') + ' 매장 요청';
+    var headers = ['날짜'];
+    if (showBranch) headers.push('지점');
+    headers.push('요청 내용', '상태');
+
+    var cellStyle = 'border:1px solid #b0b7c3; padding:2pt 3pt; font-size:10pt; vertical-align:middle;';
+    var head = '<tr>' + headers.map(function (h) {
+      return '<th style="' + cellStyle + ' background:#e8eef9; font-weight:700; text-align:center;">' + esc(h) + '</th>';
+    }).join('') + '</tr>';
+    var rows = list.map(function (r) {
+      var cells = [koreanDate(r.date)];
+      if (showBranch) cells.push(r.branch || '(지점 미지정)');
+      cells.push(r.task || '(내용 없음)');
+      cells.push(r.status);
+      var last = cells.length - 1;
+      return '<tr>' + cells.map(function (c, i) {
+        var align = (i === 0 || i === last || (showBranch && i === 1)) ? 'text-align:center;' : 'text-align:left;';
+        return '<td style="' + cellStyle + ' ' + align + '">' + esc(c) + '</td>';
+      }).join('') + '</tr>';
+    }).join('');
+
+    return '<html><head><meta charset="utf-8"><title>' + esc(title) + '</title>' +
+      '<style>@page{size:A4;margin:10mm} table{border-collapse:collapse; width:100%;}</style></head><body>' +
+      '<h1 style="font-size:20pt; margin:0 0 12pt 0">' + esc(title) + '</h1>' +
+      '<table>' + head + rows + '</table></body></html>';
+  }
+
+  function mockExportRequests(filters) {
+    filters = filters || {};
+    var list = mockRequestsList(filters);
+    if (!list.length) return { ok: false, error: '출력할 매장 요청이 없습니다.' };
+    return {
+      ok: true,
+      filename: mockRequestsDocName(filters, list),
+      mimeType: 'application/msword',
+      html: mockRequestsDocHtml(list, filters),
+      count: list.length
+    };
+  }
+
 
   /* ================================================================
    * 2. 작은 도우미
@@ -2133,11 +2281,16 @@
       showWriteCard(false);
     });
 
-    // 📝 매장 요청 — 달 이동 / 오늘 / 요청 등록
+    // 📝 매장 요청 — 달 이동 / 오늘 / 요청 등록 / 인쇄(워드)
     $('reqPrev').addEventListener('click', function () { goToReqMonth(shiftMonth(state.req.month, -1)); });
     $('reqNext').addEventListener('click', function () { goToReqMonth(shiftMonth(state.req.month, 1)); });
     $('reqToday').addEventListener('click', function () { goToReqMonth(nowMonth(), todayStr()); });
     $('reqDayAddBtn').addEventListener('click', function () { openRequestModal(null, state.req.selected); });
+    $('reqExportBtn').addEventListener('click', onExportRequests);
+    $('reqPrintPeriod').addEventListener('change', function () {
+      state.req.printPeriod = $('reqPrintPeriod').value === 'all' ? 'all' : 'month';
+      renderReqExportBar();
+    });
 
     // 매장 요청 등록·수정 창
     $('schedClose').addEventListener('click', closeRequestModal);
@@ -3284,6 +3437,7 @@
     var req = state.req;
     $('reqMonth').textContent = monthLabel(req.month);
     renderReqBranchFilter();
+    renderReqExportBar();
 
     var grid = $('reqGrid');
     clearNode(grid);
@@ -3361,6 +3515,76 @@
   function selectReqDay(dateStr) {
     state.req.selected = dateStr;
     renderRequests();
+  }
+
+  /**
+   * 🖨️ 매장 요청 인쇄 막대 — 상태 칩(전체/대기/완료)과 기간(이 달/전체 기간)을 고르면
+   * 지금 보고 있는 달·지점·상태 그대로 워드 파일을 내려받는다.
+   * 아래 힌트에 인쇄할 건수를 보여 준다.
+   */
+  function renderReqExportBar() {
+    var req = state.req;
+    var box = $('reqStatusFilter');
+    if (box) {
+      clearNode(box);
+      [{ value: '', label: '전체' }, { value: '대기', label: '대기' }, { value: '완료', label: '완료' }].forEach(function (opt) {
+        var chip = el('button', 'chip' + (req.status === opt.value ? ' active' : ''), opt.label);
+        chip.setAttribute('type', 'button');
+        chip.setAttribute('data-status', opt.value);
+        chip.addEventListener('click', function () {
+          if (req.status === opt.value) return;
+          req.status = opt.value;
+          renderReqExportBar();
+        });
+        box.appendChild(chip);
+      });
+    }
+
+    var select = $('reqPrintPeriod');
+    if (select && select.value !== req.printPeriod) select.value = req.printPeriod;
+
+    var hint = $('reqExportHint');
+    if (!hint) return;
+    var branch = req.branch ? req.branch + ' ' : '';
+    var scope = req.printPeriod === 'all' ? '전체 기간' : monthLabel(req.month);
+    var statusLabel = req.status ? req.status + ' ' : '';
+    if (req.printPeriod !== 'all') {
+      var list = (req.schedules || []).filter(function (s) {
+        return !req.status || (s.status === '완료' ? '완료' : '대기') === req.status;
+      });
+      hint.textContent = branch + scope + ' ' + statusLabel + '매장 요청 ' + list.length +
+        '건을 A4 표 워드로 내려받습니다 (여백 10mm · 날짜 오름차순).';
+    } else {
+      hint.textContent = branch + scope + ' ' + statusLabel +
+        '매장 요청을 A4 표 워드로 내려받습니다 (여백 10mm · 날짜 오름차순).';
+    }
+  }
+
+  /** 📄 인쇄(워드) — 지금 조건의 매장 요청을 표 문서로 내려받는다. */
+  function onExportRequests() {
+    var req = state.req;
+    var btn = $('reqExportBtn');
+    if (!btn || btn.disabled) return;
+    var all = req.printPeriod === 'all';
+    var filters = { branch: req.branch || '', status: req.status || '' };
+    if (!all) filters.yearMonth = req.month || nowMonth();
+
+    btn.disabled = true;
+    showLoading('매장 요청 워드 만드는 중…',
+      all ? '전체 기간의 매장 요청을 표로 정리하고 있어요'
+          : monthLabel(filters.yearMonth) + ' 매장 요청을 표로 정리하고 있어요');
+
+    API.exportRequestsDoc(filters).then(function (res) {
+      if (!res || res.ok === false) throw new Error((res && res.error) || '매장 요청 워드 파일을 만들지 못했습니다.');
+      saveFile(res);
+      hideLoading();
+      btn.disabled = false;
+      toast('매장 요청을 워드 파일로 내려받았습니다. (' + (res.count || 0) + '건)', 'ok');
+    }).catch(function (err) {
+      hideLoading();
+      btn.disabled = false;
+      toast((err && err.message) || '매장 요청 워드 파일을 만들지 못했습니다.', 'err');
+    });
   }
 
   function renderReqDayDetail() {

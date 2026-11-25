@@ -8,7 +8,7 @@
 - 저장된 사진과 기록은 Google Drive / Google Sheets 에 있고, 이 저장소에는 없습니다.
 - 앱은 아래 Google Apps Script API 와 통신합니다(공개 실행 주소).
   `https://script.google.com/macros/s/AKfycbzK8wDACvACdG-Pvbanuuf3Gt2Egw4qxqCz-yTq_mkQHzdBHKX68sQiFKG-O_DGUwbi/exec`
-  - 조회 `GET ?action=list|calendarbundle|calendar|workschedules|export`
+  - 조회 `GET ?action=list|calendarbundle|calendar|workschedules|export|exportrequests`
   - 저장 `POST` (JSON body, `Content-Type: text/plain`)
 - 이 주소로 열면 Apps Script 화면이 아니라 이 정적 페이지가 뜨므로
   "이 애플리케이션은 Google Apps Script 사용자가 만들었습니다" 경고 띠가 나오지 않습니다.
