@@ -273,6 +273,11 @@
   .sched-actions button.primary{background:var(--brand); border-color:var(--brand); color:#fff;}
   .sched-actions button.edit{color:var(--brand); border-color:#c7d7fe;}
   .sched-actions button.danger{color:var(--danger); border-color:#fecdca;}
+.sched-photos{display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; align-items:center;}
+.sched-photo{width:64px; height:64px; border-radius:8px; overflow:hidden; padding:0; background:#eef1f5; flex:0 0 auto; border:1px solid var(--line);}
+.sched-photo img{width:100%; height:100%; object-fit:cover; display:block;}
+.sched-photo.wait{display:flex; align-items:center; justify-content:center; font-size:10.5px; font-weight:700; color:var(--muted); text-align:center; line-height:1.2;}
+.sched-photo-more{font-size:11.5px; font-weight:700; color:var(--muted);}
   .day-record{border:1px solid var(--line); border-radius:12px; padding:10px 11px; margin-bottom:8px;}
   .day-record .rec-top{display:flex; align-items:center; gap:6px; flex-wrap:wrap;}
   .day-record .rec-memo{margin:6px 0 0; font-size:13.5px; color:#344054; white-space:pre-wrap; word-break:break-word;}
@@ -422,6 +427,7 @@
     .sched-memo{color:#98a2b3;}
     .sched-actions button{background:#181b21; color:#e4e7ec;}
     .sched-actions button.primary{background:var(--brand); color:#fff;}
+    .sched-photo{background:#232833; border-color:#2a2f3a;}
     .day-record{background:#181b21;}
     .day-record .rec-memo{color:#d0d5dd;}
     .rec-actions button{background:#181b21; color:#e4e7ec;}
@@ -703,6 +709,16 @@
       <div class="label"><span>비고 / 메모</span><span class="optional">선택</span></div>
       <textarea id="schedMemo" rows="2" maxlength="500" placeholder="예) 자재는 현장에 있음 · 연락처 등"></textarea>
     </div>
+    <div class="field">
+      <div class="label"><span>요청 사진</span><span class="optional">선택</span></div>
+      <div class="photo-grid" id="schedPhotoGrid"></div>
+      <div class="summary" id="schedPhotoSummary">사진 없이도 등록할 수 있습니다.</div>
+      <label class="picker" id="schedPickLabel" style="margin-top:10px">
+        <span>📷 사진 추가</span>
+        <input type="file" id="schedPhotoInput" accept="image/*" multiple hidden>
+      </label>
+      <div class="hint">사진은 선택입니다. 붙이면 자동으로 <b>가로 600 × 세로 400픽셀</b> JPEG로 줄여 저장하고, ✕ 를 누르면 이 요청에서 빠집니다.</div>
+    </div>
     <button type="button" class="btn-primary" id="schedSave">매장 요청 등록</button>
   </div>
 </div>
@@ -734,6 +750,16 @@
     <div class="field">
       <div class="label"><span>비고 / 메모</span><span class="optional">선택</span></div>
       <textarea id="workMemo" rows="2" maxlength="500" placeholder="예) 자재는 현장에 있음 · 연락처 등"></textarea>
+    </div>
+    <div class="field">
+      <div class="label"><span>일정 사진</span><span class="optional">선택</span></div>
+      <div class="photo-grid" id="workPhotoGrid"></div>
+      <div class="summary" id="workPhotoSummary">사진 없이도 등록할 수 있습니다.</div>
+      <label class="picker" id="workPickLabel" style="margin-top:10px">
+        <span>📷 사진 추가</span>
+        <input type="file" id="workPhotoInput" accept="image/*" multiple hidden>
+      </label>
+      <div class="hint">사진은 선택입니다. 붙이면 자동으로 <b>가로 600 × 세로 400픽셀</b> JPEG로 줄여 저장하고, ✕ 를 누르면 이 일정에서 빠집니다.</div>
     </div>
     <button type="button" class="btn-primary" id="workSave">작업 일정 등록</button>
   </div>
@@ -840,8 +866,12 @@
     prefill: null,
     // ✏️ 수정 중인 매장 요청 (없으면 새로 등록)
     schedEdit: null,
+    // 📷 매장 요청에 붙이는 사진 (선택) — keep:이미 붙어 있는 사진, newPhotos:새로 올린 사진
+    schedPhotos: { keep: [], newPhotos: [], loading: false },
     // ✏️ 수정 중인 작업 일정 (없으면 새로 등록) — 📅 일정 및 사진등록 탭
     workEdit: null,
+    // 📷 작업 일정에 붙이는 사진 (선택)
+    workPhotos: { keep: [], newPhotos: [], loading: false },
     // 1️⃣ 📅 작업 캘린더 — 작업사진(등록기록)만
     cal: {
       month: '',          // 'YYYY-MM' (지금 보고 있는 달)
@@ -850,6 +880,9 @@
       records: [],        // 그 달 작업기록 — 사진 없이 요약만 (달력 칸·글)
       plans: [],          // 그 달 작업 일정(작업일정 시트)
       days: {},           // 'YYYY-MM-DD' -> 그 날 기록(사진 URL 포함). 날짜를 눌렀을 때 받는다
+      planDays: {},       // 'YYYY-MM-DD' -> 그 날 작업 일정(사진 URL 포함)
+      planDayLoading: {},
+      planDayError: {},
       dayLoading: {},     // 'YYYY-MM-DD' -> true (그 날 사진 받는 중)
       dayError: {},       // 'YYYY-MM-DD' -> 안내 문구
       dayPromise: {},     // 'YYYY-MM-DD' -> 그 날 사진을 받는 중인 약속
@@ -866,6 +899,10 @@
       branch: '',
       selected: '',
       schedules: [],      // 그 달 매장 요청
+      days: {},           // 'YYYY-MM-DD' -> 그 날 요청(사진 URL 포함). 날짜를 눌렀을 때 받는다
+      dayLoading: {},
+      dayError: {},
+      dayPromise: {},
       status: '',         // 인쇄할 상태 ('전체'='' / '대기' / '완료')
       printPeriod: 'month', // 인쇄 기간 ('month' 이 달 / 'all' 전체 기간)
       syncing: false,
@@ -1090,6 +1127,21 @@
       }
       return Promise.resolve(mockExportRequests(filters));
     },
+    // 📝 매장 요청 상세 — 그 날·그 요청 하나의 사진 URL 까지
+    getStoreRequests: function (filters) {
+      if (IS_GAS) return gasCall('getStoreRequests', filters);
+      if (IS_REMOTE) {
+        filters = filters || {};
+        return remoteGet({
+          action: 'storerequests',
+          id: filters.id, date: filters.date,
+          yearMonth: filters.yearMonth,
+          from: filters.from, to: filters.to,
+          branch: filters.branch, status: filters.status
+        });
+      }
+      return Promise.resolve(mockGetStoreRequests(filters));
+    },
     calendar: function (filters) {
       if (IS_GAS) return gasCall('getCalendarData', filters);
       if (IS_REMOTE) {
@@ -1132,7 +1184,7 @@
       if (IS_GAS) return gasCall('listWorkSchedules', filters);
       if (IS_REMOTE) {
         filters = filters || {};
-        return remoteGet({ action: 'workschedules', yearMonth: filters.yearMonth, branch: filters.branch });
+        return remoteGet({ action: 'workschedules', yearMonth: filters.yearMonth, date: filters.date, branch: filters.branch });
       }
       return Promise.resolve(mockListWorkSchedules(filters));
     },
@@ -1197,7 +1249,14 @@
     state.cal.dayError = {};
     state.cal.loadedMonth = '';
     state.cal.dayPromise = {};
+    state.cal.planDays = {};
+    state.cal.planDayLoading = {};
+    state.cal.planDayError = {};
     state.req.loadedMonth = '';
+    state.req.days = {};
+    state.req.dayLoading = {};
+    state.req.dayError = {};
+    state.req.dayPromise = {};
   }
 
   Object.keys(API).forEach(function (name) {
@@ -1241,11 +1300,16 @@
     // 예정작업 샘플은 따로 한 번만 채운다(이미 쓰던 미리보기 저장소에도 추가)
     if (store.get(LS.schedules, null) === null) {
       var plans = (window.__PREVIEW_SCHEDULES__ || []).map(function (s, i) {
+        var photos = (s.photos || []).map(function (src, j) {
+          return { id: 'sample-req-' + i + '-' + j, thumb: src, original: src, view: src, download: src };
+        });
         return {
           id: 'SCH-' + ('0000000' + (i + 1)).slice(-8) + '-' + ('00' + (i + 1)).slice(-3),
           date: s.date, branch: s.branch, task: s.task, author: s.author || '',
           status: s.status === '완료' ? '완료' : '예정',
-          createdAt: s.createdAt || (s.date + ' 09:00:00')
+          createdAt: s.createdAt || (s.date + ' 09:00:00'),
+          memo: s.memo || '',
+          photoCount: photos.length, photos: photos
         };
       });
       store.set(LS.schedules, plans);
@@ -1253,12 +1317,16 @@
     // 📅 일정 및 사진등록 탭의 작업 일정 샘플 (매장 요청과 별도 저장소)
     if (store.get(LS.workSchedules, null) === null) {
       var works = (window.__PREVIEW_WORK_SCHEDULES__ || []).map(function (s, i) {
+        var photos = (s.photos || []).map(function (src, j) {
+          return { id: 'sample-work-' + i + '-' + j, thumb: src, original: src, view: src, download: src };
+        });
         return {
           id: 'WS-' + ('0000000' + (i + 1)).slice(-8) + '-' + ('00' + (i + 1)).slice(-3),
           date: s.date, branch: s.branch, task: s.task, author: s.author || '',
           status: s.status === '완료' ? '완료' : '예정',
           createdAt: s.createdAt || (s.date + ' 09:00:00'),
-          memo: s.memo || ''
+          memo: s.memo || '',
+          photoCount: photos.length, photos: photos
         };
       });
       store.set(LS.workSchedules, works);
@@ -1402,6 +1470,15 @@
         photoCount: (r.photos || []).length
       };
     });
+    // 달 첫 화면과 같이 매장 요청·작업 일정은 사진 장수만 담는다(URL 없이)
+    function light(list) {
+      return (list || []).map(function (s) {
+        var copy = {};
+        Object.keys(s).forEach(function (k) { if (k !== 'photos') copy[k] = s[k]; });
+        copy.photoCount = (s.photos || []).length;
+        return copy;
+      });
+    }
     var photos = records.reduce(function (n, r) { return n + r.photoCount; }, 0);
     return {
       ok: true,
@@ -1411,21 +1488,53 @@
       records: records,
       recordCount: records.length,
       photoCount: photos,
-      schedules: res.schedules || [],
-      workSchedules: res.workSchedules || [],
+      schedules: light(res.schedules),
+      workSchedules: light(res.workSchedules),
       branches: res.branches || [],
       generatedAt: todayStr() + ' ' + pad(new Date().getHours()) + ':' + pad(new Date().getMinutes()) + ':' + pad(new Date().getSeconds())
     };
   }
 
+  /* ---------- 미리보기용 사진 (선택 첨부) ---------- */
+  // 올린 사진(base64)을 브라우저 안에서만 쓰는 사진으로 바꾼다 (GAS 처럼 드라이브에 올리지 않는다)
+  function mockPhotosFromImages_(images, tag) {
+    return (images || []).filter(function (img) {
+      return img && String(img.base64 || '').trim();
+    }).slice(0, MAX_PHOTOS).map(function (img, i) {
+      var src = 'data:' + (img.mimeType || 'image/jpeg') + ';base64,' + img.base64;
+      return {
+        id: 'local-' + (tag || 'p') + '-' + Date.now() + '-' + i,
+        thumb: src, original: src, view: src, download: src
+      };
+    });
+  }
+
+  // 수정 창에서 보낸 '남길 사진' 목록 (안 보내면 기존 사진 그대로)
+  function mockKeepPhotos_(current, payload) {
+    current = current || [];
+    var provided = ('keepPhotoUrls' in (payload || {})) || ('keepPhotos' in (payload || {}));
+    if (!provided) return current.slice();
+    var keep = (payload.keepPhotoUrls != null ? payload.keepPhotoUrls : payload.keepPhotos) || [];
+    if (typeof keep === 'string') keep = keep.split(/[\r\n,]+/);
+    return current.filter(function (p) { return keep.indexOf(p.id) > -1 || keep.indexOf(p.original) > -1; });
+  }
+
   function mockListWorkSchedules(filters) {
     filters = filters || {};
     var range = mockMonthRange(filters);
+    var one = String(filters.date || '').trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(one)) range = { month: one.substring(0, 7), from: one, to: one };
     var branch = branchFilterValue(filters.branch);
     var list = store.get(LS.workSchedules, []).filter(function (s) {
       if (s.date < range.from || s.date > range.to) return false;
       if (branch && String(s.branch).trim().indexOf(branch) === -1) return false;
       return true;
+    }).map(function (s) {
+      var copy = {};
+      Object.keys(s).forEach(function (k) { copy[k] = s[k]; });
+      copy.photos = s.photos || [];
+      copy.photoCount = copy.photos.length;
+      return copy;
     });
     return { ok: true, yearMonth: range.month, from: range.from, to: range.to, count: list.length, schedules: list, branches: mockBranchNames() };
   }
@@ -1447,12 +1556,14 @@
     });
     var now = new Date();
     var stamp = ymd(now) + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
+    var photos = mockPhotosFromImages_(payload.images, 'ws');
     var schedule = {
       id: 'WS-' + ymd(now).replace(/-/g, '') + '-' + ('00' + (maxSeq + 1)).slice(-3),
       date: date, branch: branch, task: task,
       author: String(payload.author || '').trim(),
       status: '예정', createdAt: stamp,
-      memo: String(payload.memo || '').trim()
+      memo: String(payload.memo || '').trim(),
+      photoCount: photos.length, photos: photos
     };
     all.push(schedule);
     store.set(LS.workSchedules, all);
@@ -1482,11 +1593,15 @@
     if (expect.branch && expect.branch !== hit.branch) return { ok: false, error: changed };
     if (expect.task && expect.task !== hit.task) return { ok: false, error: changed };
 
+    var keep = mockKeepPhotos_(hit.photos, payload);
+    var added = mockPhotosFromImages_((payload.newPhotos != null ? payload.newPhotos : payload.images), 'ws');
     hit.date = date;
     hit.branch = branch;
     hit.task = task;
     hit.author = String(payload.author || '').trim();
     hit.memo = String(payload.memo || '').trim();
+    hit.photos = keep.concat(added);
+    hit.photoCount = hit.photos.length;
     store.set(LS.workSchedules, all);
     reviveMockBranch(branch);
     return { ok: true, id: id, schedule: hit };
@@ -1572,12 +1687,14 @@
     });
     var now = new Date();
     var stamp = ymd(now) + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
+    var photos = mockPhotosFromImages_(payload.images, 'req');
     var schedule = {
       id: 'SCH-' + ymd(now).replace(/-/g, '') + '-' + ('00' + (maxSeq + 1)).slice(-3),
       date: date, branch: branch, task: task,
       author: String(payload.author || '').trim(),
       status: '예정', createdAt: stamp,
-      memo: String(payload.memo || '').trim()
+      memo: String(payload.memo || '').trim(),
+      photoCount: photos.length, photos: photos
     };
     all.push(schedule);
     store.set(LS.schedules, all);
@@ -1609,11 +1726,17 @@
     if (expect.task && expect.task !== hit.task) return { ok: false, error: changed };
     if (expect.author != null && String(expect.author).trim() !== String(hit.author || '').trim()) return { ok: false, error: changed };
 
+    // 사진 칸을 안 보내면 기존 사진 그대로, 보내면 남길 것 + 새로 올린 것으로 맞춘다.
+    var keep = mockKeepPhotos_(hit.photos, payload);
+    var added = mockPhotosFromImages_((payload.newPhotos != null ? payload.newPhotos : payload.images), 'req');
+
     hit.date = date;
     hit.branch = branch;
     hit.task = task;
     hit.author = String(payload.author || '').trim();
     hit.memo = String(payload.memo || '').trim();
+    hit.photos = keep.concat(added);
+    hit.photoCount = hit.photos.length;
     store.set(LS.schedules, all);
     reviveMockBranch(branch);
     return { ok: true, id: id, schedule: hit };
@@ -1804,9 +1927,13 @@
     var branch = branchFilterValue(filters.branch);
     var status = String(filters.status || '').replace(/\s+/g, '');
     if (status !== '대기' && status !== '완료') status = '';
+    var wantId = String(filters.id || '').trim();
 
     var from = String(filters.from || '').trim();
     var to = String(filters.to || '').trim();
+    var one = String(filters.date || '').trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(one)) { from = one; to = one; }
+    if (wantId) { from = ''; to = ''; }
     if (!from && !to && /^\d{4}-\d{2}$/.test(String(filters.yearMonth || ''))) {
       var range = mockMonthRange({ yearMonth: filters.yearMonth });
       from = range.from;
@@ -1817,18 +1944,23 @@
       if (!s || !s.date) return false;
       if (from && s.date < from) return false;
       if (to && s.date > to) return false;
+      if (wantId && String(s.id || '') !== wantId) return false;
       if (branch && String(s.branch || '').trim().indexOf(branch) === -1) return false;
       var st = s.status === '완료' ? '완료' : '대기';
       if (status && st !== status) return false;
       return true;
     }).map(function (s) {
+      var photos = s.photos || [];
       return {
         id: s.id || '',
         date: s.date,
         branch: String(s.branch || '').trim(),
         task: singleLineMemo(s.task),
         status: s.status === '완료' ? '완료' : '대기',
-        createdAt: String(s.createdAt || '')
+        createdAt: String(s.createdAt || ''),
+        memo: String(s.memo || ''),
+        photoCount: photos.length,
+        photos: photos
       };
     });
     list.sort(function (a, b) {
@@ -1885,7 +2017,39 @@
     return '<html><head><meta charset="utf-8"><title>' + esc(title) + '</title>' +
       '<style>@page{size:A4;margin:10mm} table{border-collapse:collapse; width:100%;}</style></head><body>' +
       '<h1 style="font-size:20pt; margin:0 0 12pt 0">' + esc(title) + '</h1>' +
-      '<table>' + head + rows + '</table></body></html>';
+      '<table>' + head + rows + '</table>' + mockRequestPhotosHtml(list, showBranch) + '</body></html>';
+  }
+
+  // 표 아래에 요청 사진 (6cm x 4cm, 한 줄 세 장) — 사진이 없는 요청은 표 줄로만 남는다
+  function mockRequestPhotosHtml(list, showBranch) {
+    var withPhotos = (list || []).filter(function (r) { return (r.photos || []).length > 0; });
+    if (!withPhotos.length) return '';
+    var parts = ['<p style="font-size:10pt; font-weight:700; margin:14pt 0 4pt 0">요청 사진</p>'];
+    withPhotos.forEach(function (r) {
+      var label = koreanDate(r.date) + (showBranch ? ' · ' + (r.branch || '(지점 미지정)') : '');
+      parts.push('<p style="font-size:10pt; font-weight:700; margin:10pt 0 2pt 0">' + esc(label) + '</p>');
+      parts.push('<p style="font-size:10pt; margin:0 0 4pt 0">' + esc(r.task || '(내용 없음)') + '</p>');
+      parts.push('<p style="margin:0">' + (r.photos || []).map(function (p) {
+        return '<img src="' + esc(p.thumb || p.original || '') + '" alt="요청 사진" ' +
+          'style="width:6cm;height:4cm;object-fit:contain;margin:0 1.5mm 1.5mm 0">';
+      }).join('') + '</p>');
+    });
+    return parts.join('');
+  }
+
+  // 매장 요청 상세 — 그 날·그 요청 하나의 사진 URL 까지 (GAS getStoreRequests 와 같은 모양)
+  function mockGetStoreRequests(filters) {
+    filters = filters || {};
+    var list = mockRequestsList(filters);
+    var one = String(filters.date || '').trim();
+    return {
+      ok: true,
+      count: list.length,
+      requests: list,
+      yearMonth: String(filters.yearMonth || '').trim() || (one || todayStr()).substring(0, 7),
+      from: String(filters.from || '').trim() || (/^\d{4}-\d{2}-\d{2}$/.test(one) ? one : ''),
+      to: String(filters.to || '').trim() || (/^\d{4}-\d{2}-\d{2}$/.test(one) ? one : '')
+    };
   }
 
   function mockExportRequests(filters) {
@@ -1897,7 +2061,8 @@
       filename: mockRequestsDocName(filters, list),
       mimeType: 'application/msword',
       html: mockRequestsDocHtml(list, filters),
-      count: list.length
+      count: list.length,
+      photoCount: list.reduce(function (n, r) { return n + (r.photos || []).length; }, 0)
     };
   }
 
@@ -2321,6 +2486,20 @@
       e.target.value = '';
       if (files.length) addPhotos(files);
     });
+
+    // 📷 매장 요청 · 작업 일정 창의 사진 (선택)
+    $('schedPhotoInput').addEventListener('change', function (e) {
+      var files = Array.prototype.slice.call(e.target.files || []);
+      e.target.value = '';
+      if (files.length) addModalPhotos('sched', files);
+    });
+    $('workPhotoInput').addEventListener('change', function (e) {
+      var files = Array.prototype.slice.call(e.target.files || []);
+      e.target.value = '';
+      if (files.length) addModalPhotos('work', files);
+    });
+    bindPickerDrop('schedPickLabel', function (files) { addModalPhotos('sched', files); });
+    bindPickerDrop('workPickLabel', function (files) { addModalPhotos('work', files); });
 
     // 데스크톱 끌어다 놓기
     var dz = $('pickLabel');
@@ -2772,6 +2951,9 @@
     cal.month = month;
     cal.selected = dateStr || (month === nowMonth() ? todayStr() : month + '-01');
     cal.loaded = false;
+    cal.planDays = {};
+    cal.planDayLoading = {};
+    cal.planDayError = {};
     loadCalendar(true);
   }
 
@@ -3063,6 +3245,9 @@
           cal.dayLoading = {};
           cal.dayError = {};
           cal.dayPromise = {};
+          cal.planDays = {};
+          cal.planDayLoading = {};
+          cal.planDayError = {};
           loadCalendar(true);
         });
       }
@@ -3094,11 +3279,16 @@
     var lights = recordsOn(date);
     var plans = plansOn(date);
     var photos = lights.reduce(function (n, r) { return n + (r.photoCount || 0); }, 0);
+    var planPhotos = plans.reduce(function (n, p) { return n + (p.photoCount || 0); }, 0);
     var dayReady = !!cal.days[date];
 
+    // 작업 일정에 붙은 사진도 그 날 것만 따로 받아 둔다 (일정·글은 이미 보임)
+    ensurePlanDayPhotos(date);
+
     $('dayTitle').textContent = koreanDate(date) + ' (' + WEEKDAY[weekdayOf(date)] + ')';
-    $('daySub').textContent = '작업 일정 ' + plans.length + '건 · 작업사진 ' + lights.length + '건(사진 ' + photos + '장)' +
-      (cal.dayLoading[date] && !dayReady ? ' · 사진 불러오는 중…' : '');
+    $('daySub').textContent = '작업 일정 ' + plans.length + '건' + (planPhotos ? '(사진 ' + planPhotos + '장)' : '') +
+      ' · 작업사진 ' + lights.length + '건(사진 ' + photos + '장)' +
+      ((cal.dayLoading[date] && !dayReady) || cal.planDayLoading[date] ? ' · 사진 불러오는 중…' : '');
 
     var box = $('dayDetail');
     clearNode(box);
@@ -3130,6 +3320,35 @@
     }
   }
 
+  /* ---------- 작업 일정에 붙은 사진 (날짜를 누르면 그 날 것만) ---------- */
+  function ensurePlanDayPhotos(date) {
+    var cal = state.cal;
+    if (!date || cal.planDayLoading[date]) return;
+    var plans = plansOn(date);
+    if (!plans.some(function (p) { return (p.photoCount || 0) > 0; })) return;
+    if (cal.planDays[date]) {
+      var complete = plans.filter(function (p) { return (p.photoCount || 0) > 0; })
+        .every(function (p) { return !!fullPlanFor('work', p); });
+      if (complete) return;
+      delete cal.planDays[date];
+    }
+    var wantBranch = cal.branch;
+    cal.planDayLoading[date] = true;
+    delete cal.planDayError[date];
+    API.listWorkSchedules({ date: date, branch: wantBranch }).then(function (res) {
+      delete cal.planDayLoading[date];
+      if (!res || res.ok === false) throw new Error((res && res.error) || '일정 사진을 불러오지 못했습니다.');
+      if (wantBranch !== cal.branch) return;
+      cal.planDays[date] = res.schedules || [];
+      if (cal.selected === date) renderDayDetail();
+    }).catch(function (err) {
+      delete cal.planDayLoading[date];
+      if (wantBranch !== cal.branch) return;
+      cal.planDayError[date] = (err && err.message) || '일정 사진을 불러오지 못했습니다.';
+      if (cal.selected === date) renderDayDetail();
+    });
+  }
+
   /* ---------- 작업 일정 카드 (📅 일정 및 사진등록 탭) ---------- */
   function workScheduleItemEl(plan) {
     var done = plan.status === '완료';
@@ -3140,6 +3359,12 @@
     item.appendChild(top);
     if (plan.task) item.appendChild(el('p', 'sched-task', plan.task));
     if (plan.memo) item.appendChild(el('p', 'sched-memo', plan.memo));
+
+    // 📷 일정에 붙은 사진 — 아직 안 받았으면 '불러오는 중' 자리
+    var full = fullPlanFor('work', plan);
+    if (full && (full.photos || []).length) item.appendChild(schedPhotoRow_(full));
+    else if ((plan.photoCount || 0) > 0) item.appendChild(schedPhotoWaitEl_(plan.photoCount));
+
     var meta = [];
     if (plan.author) meta.push(plan.author);
     if (plan.createdAt) meta.push(timeLabel(plan.createdAt) + ' 등록');
@@ -3235,12 +3460,14 @@
     $('workMemo').value = plan ? (plan.memo || '') : '';
     $('workSave').disabled = false;
     renderWorkBranchChips();
+    loadModalKeepPhotos('work', plan);
     $('workModal').hidden = false;
   }
 
   function closeWorkScheduleModal() {
     $('workModal').hidden = true;
     state.workEdit = null;
+    resetModalPhotos('work');
   }
 
   function renderWorkBranchChips() {
@@ -3262,12 +3489,17 @@
   }
 
   function saveWorkScheduleFromForm() {
+    var photos = state.workPhotos;
+    if (photos.loading) { toast('사진을 불러오는 중입니다. 잠시만 기다려 주세요.', 'err'); return; }
+    if (photos.loadError) { toast('기존 사진을 불러오지 못했습니다. 창을 닫았다가 다시 열어 주세요.', 'err'); return; }
+    var photoData = modalPhotoPayload('work');
     var payload = {
       date: $('workDate').value,
       branch: $('workBranch').value.trim(),
       task: $('workTask').value.trim(),
       author: $('workAuthor').value.trim(),
-      memo: $('workMemo').value.trim()
+      memo: $('workMemo').value.trim(),
+      images: photoData.newPhotos
     };
     if (!payload.date) { toast('일정 날짜를 선택해 주세요.', 'err'); return; }
     if (!payload.branch) { toast('지점명을 입력해 주세요.', 'err'); return; }
@@ -3287,15 +3519,24 @@
         branch: payload.branch,
         task: payload.task,
         author: payload.author,
-        memo: payload.memo
+        memo: payload.memo,
+        keepPhotoUrls: photoData.keepIds,
+        newPhotos: photoData.newPhotos
       });
     } else {
       call = API.addWorkSchedule(payload);
     }
 
+    if (photoData.newPhotos.length) {
+      showLoading(editing ? '작업 일정 수정 중…' : '작업 일정 등록 중…', '사진 ' + photoData.newPhotos.length + '장을 함께 올리고 있어요');
+    }
+
     call.then(function (res) {
+      hideLoadingSoon();
       btn.disabled = false;
       if (!res || res.ok === false) throw new Error((res && res.error) || '작업 일정을 저장하지 못했습니다.');
+      var warnings = (res && res.warnings) || [];
+      var savedCount = (res.schedule && res.schedule.photoCount) || 0;
       closeWorkScheduleModal();
       reviveBranch(payload.branch);
       rememberBranch(payload.branch);
@@ -3304,10 +3545,14 @@
       state.cal.selected = payload.date;
       state.cal.loaded = false;
       state.cal.loadedMonth = '';
-      toast((editing ? '작업 일정을 수정했습니다. (' : '작업 일정을 등록했습니다. (') + formatDateLabel(payload.date) + ')', 'ok');
+      state.cal.planDays = {};
+      toast((editing ? '작업 일정을 수정했습니다. (' : '작업 일정을 등록했습니다. (') + formatDateLabel(payload.date) +
+        (savedCount ? ' · 사진 ' + savedCount + '장' : '') + ')', 'ok');
+      if (warnings.length) setTimeout(function () { toast(warnings[0], 'err'); }, 1800);
       if (state.tab === 'calendar') loadCalendar(true);
       else switchTab('calendar');
     }).catch(function (err) {
+      hideLoading();
       btn.disabled = false;
       toast((err && err.message) || '작업 일정을 저장하지 못했습니다.', 'err');
     });
@@ -3372,6 +3617,10 @@
     req.month = month;
     req.selected = dateStr || (month === nowMonth() ? todayStr() : month + '-01');
     req.loaded = false;
+    req.days = {};
+    req.dayLoading = {};
+    req.dayError = {};
+    req.dayPromise = {};
     loadRequests(true);
   }
 
@@ -3506,6 +3755,10 @@
         if (req.branch === value) return;
         req.branch = value;
         req.loaded = false;
+        req.days = {};
+        req.dayLoading = {};
+        req.dayError = {};
+        req.dayPromise = {};
         loadRequests(true);
       });
       box.appendChild(chip);
@@ -3592,10 +3845,16 @@
     var date = req.selected || todayStr();
     var plans = requestsOn(date);
     var done = plans.filter(function (p) { return p.status === '완료'; }).length;
+    var photoTotal = plans.reduce(function (n, p) { return n + (p.photoCount || 0); }, 0);
+
+    // 사진이 붙은 요청이 있으면 그 날 것만 받아 둔다 (글은 이미 보임)
+    ensureRequestDayPhotos(date);
 
     $('reqDayTitle').textContent = koreanDate(date) + ' (' + WEEKDAY[weekdayOf(date)] + ')';
     $('reqDaySub').textContent = '매장 요청 ' + plans.length + '건' +
-      (plans.length ? ' (대기 ' + (plans.length - done) + ' · 완료 ' + done + ')' : '');
+      (plans.length ? ' (대기 ' + (plans.length - done) + ' · 완료 ' + done + ')' : '') +
+      (photoTotal ? ' · 사진 ' + photoTotal + '장' : '') +
+      (req.dayLoading[date] ? ' · 사진 불러오는 중…' : '');
 
     var box = $('reqDayDetail');
     clearNode(box);
@@ -3605,6 +3864,69 @@
       return;
     }
     plans.forEach(function (p) { box.appendChild(requestItemEl(p)); });
+    if (req.dayError[date] && !req.days[date]) {
+      box.appendChild(el('div', 'day-empty', req.dayError[date]));
+    }
+  }
+
+  /* ---------- 매장 요청에 붙은 사진 (날짜를 누르면 그 날 것만) ---------- */
+  function fullPlanFor(kind, plan) {
+    var list = kind === 'work' ? state.cal.planDays[plan.date] : state.req.days[plan.date];
+    if (!list) return null;
+    for (var i = 0; i < list.length; i++) { if (list[i].id === plan.id) return list[i]; }
+    return null;
+  }
+
+  function ensureRequestDayPhotos(date) {
+    var req = state.req;
+    if (!date || req.dayLoading[date]) return;
+    var plans = requestsOn(date);
+    if (!plans.some(function (p) { return (p.photoCount || 0) > 0; })) return;
+    if (req.days[date]) {
+      var complete = plans.filter(function (p) { return (p.photoCount || 0) > 0; })
+        .every(function (p) { return !!fullPlanFor('request', p); });
+      if (complete) return;
+      delete req.days[date];
+    }
+    var wantBranch = req.branch;
+    req.dayLoading[date] = true;
+    delete req.dayError[date];
+    API.getStoreRequests({ date: date, branch: wantBranch }).then(function (res) {
+      delete req.dayLoading[date];
+      if (!res || res.ok === false) throw new Error((res && res.error) || '요청 사진을 불러오지 못했습니다.');
+      if (wantBranch !== req.branch) return;
+      req.days[date] = res.requests || [];
+      if (req.selected === date) renderReqDayDetail();
+    }).catch(function (err) {
+      delete req.dayLoading[date];
+      if (wantBranch !== req.branch) return;
+      req.dayError[date] = (err && err.message) || '요청 사진을 불러오지 못했습니다.';
+      if (req.selected === date) renderReqDayDetail();
+    });
+  }
+
+  // 카드 안 사진 줄 — 누르면 크게 보기
+  function schedPhotoRow_(record) {
+    var box = el('div', 'sched-photos');
+    (record.photos || []).slice(0, 8).forEach(function (p, i) {
+      var btn = el('button', 'sched-photo');
+      btn.setAttribute('type', 'button');
+      btn.setAttribute('aria-label', '사진 크게 보기');
+      btn.innerHTML = '<img loading="lazy" src="' + esc(p.thumb || p.original || '') + '" alt="첨부 사진" onerror="this.style.opacity=.15">';
+      btn.addEventListener('click', function () { openLightbox(record, i); });
+      box.appendChild(btn);
+    });
+    if ((record.photos || []).length > 8) {
+      box.appendChild(el('span', 'sched-photo-more', '+' + (record.photos.length - 8) + '장'));
+    }
+    return box;
+  }
+
+  function schedPhotoWaitEl_(count) {
+    var box = el('div', 'sched-photos');
+    box.appendChild(el('div', 'sched-photo wait', '사진 불러오는 중'));
+    box.appendChild(el('span', 'sched-photo-more', (count || 0) + '장'));
+    return box;
   }
 
   function requestItemEl(plan) {
@@ -3616,6 +3938,12 @@
     item.appendChild(top);
     if (plan.task) item.appendChild(el('p', 'sched-task', plan.task));
     if (plan.memo) item.appendChild(el('p', 'sched-memo', plan.memo));
+
+    // 📷 요청에 붙은 사진 — 아직 안 받았으면 '불러오는 중' 자리
+    var full = fullPlanFor('request', plan);
+    if (full && (full.photos || []).length) item.appendChild(schedPhotoRow_(full));
+    else if ((plan.photoCount || 0) > 0) item.appendChild(schedPhotoWaitEl_(plan.photoCount));
+
     var meta = [];
     if (plan.author) meta.push(plan.author);
     if (plan.createdAt) meta.push(timeLabel(plan.createdAt) + ' 등록');
@@ -3693,6 +4021,160 @@
     box.appendChild(clear);
   }
 
+  /* ---------- 📷 매장 요청 · 작업 일정 사진 (선택, 600×400 JPEG) ---------- */
+  function photoBag(kind) { return kind === 'work' ? state.workPhotos : state.schedPhotos; }
+  function photoGridId(kind) { return kind === 'work' ? 'workPhotoGrid' : 'schedPhotoGrid'; }
+  function photoSummaryId(kind) { return kind === 'work' ? 'workPhotoSummary' : 'schedPhotoSummary'; }
+  function photoSaveId(kind) { return kind === 'work' ? 'workSave' : 'schedSave'; }
+
+  // 컴퓨터에서 사진을 끌어다 놓아도 붙는다
+  function bindPickerDrop(labelId, handler) {
+    var dz = $(labelId);
+    if (!dz || !dz.addEventListener) return;
+    ['dragenter', 'dragover'].forEach(function (ev) {
+      dz.addEventListener(ev, function (e) { e.preventDefault(); dz.style.background = '#e8f0ff'; });
+    });
+    ['dragleave', 'drop'].forEach(function (ev) {
+      dz.addEventListener(ev, function (e) { e.preventDefault(); dz.style.background = ''; });
+    });
+    dz.addEventListener('drop', function (e) {
+      var files = Array.prototype.slice.call((e.dataTransfer && e.dataTransfer.files) || [])
+        .filter(function (f) { return /^image\//.test(f.type); });
+      if (files.length) handler(files);
+    });
+  }
+
+  // 창 안 사진 칸 — 기존 사진(✕ 로 빼기) + 새로 올린 사진
+  function renderModalPhotos(kind) {
+    var bag = photoBag(kind);
+    var grid = $(photoGridId(kind));
+    if (!grid) return;
+    clearNode(grid);
+    bag.keep.forEach(function (p) {
+      grid.appendChild(editPhotoItem_(p.thumb || p.original || '', '기존', 'existing', function () {
+        bag.keep = bag.keep.filter(function (x) { return x !== p; });
+        renderModalPhotos(kind);
+      }));
+    });
+    bag.newPhotos.forEach(function (p) {
+      grid.appendChild(editPhotoItem_(p.dataUrl || '', bytesLabel(p.bytes), 'added', function () {
+        bag.newPhotos = bag.newPhotos.filter(function (x) { return x !== p; });
+        renderModalPhotos(kind);
+      }));
+    });
+
+    var total = bag.keep.length + bag.newPhotos.length;
+    var summary = $(photoSummaryId(kind));
+    if (summary) {
+      if (bag.loading) summary.textContent = '사진 불러오는 중…';
+      else if (bag.loadError) summary.textContent = '기존 사진을 불러오지 못했습니다.' + bag.loadError;
+      else if (!total) summary.textContent = '사진 없이도 등록할 수 있습니다.';
+      else summary.textContent = '사진 ' + total + '장 (기존 ' + bag.keep.length + '장' +
+        (bag.newPhotos.length ? ' · 새로 추가 ' + bag.newPhotos.length + '장 · ' + PHOTO_W + '×' + PHOTO_H + ' 변환됨' : '') + ')';
+    }
+    var btn = $(photoSaveId(kind));
+    if (btn) btn.disabled = !!bag.loading;   // 사진을 모르는 채로 저장해 기존 사진을 지우지 않게
+  }
+
+  function resetModalPhotos(kind) {
+    var bag = photoBag(kind);
+    bag.keep = [];
+    bag.newPhotos = [];
+    bag.loading = false;
+    bag.loadError = '';
+    renderModalPhotos(kind);
+  }
+
+  function addModalPhotos(kind, files) {
+    var bag = photoBag(kind);
+    var room = MAX_PHOTOS - (bag.keep.length + bag.newPhotos.length);
+    if (room <= 0) { toast('사진은 ' + MAX_PHOTOS + '장까지입니다.', 'err'); return; }
+    var accepted = files.slice(0, room);
+    if (files.length > room) toast('사진은 최대 ' + MAX_PHOTOS + '장까지라 ' + room + '장만 추가했어요.', 'err');
+    accepted = accepted.filter(function (f) { return !f.size || f.size <= MAX_FILE_MB * 1024 * 1024; });
+    if (!accepted.length) return;
+
+    showLoading('사진 준비 중…', '0 / ' + accepted.length);
+    var done = 0;
+    var failed = 0;
+    var chain = Promise.resolve();
+    accepted.forEach(function (file) {
+      chain = chain.then(function () {
+        return compressImage(file).then(function (photo) {
+          photo.key = kind + Date.now() + Math.random().toString(36).slice(2, 7);
+          bag.newPhotos.push(photo);
+          renderModalPhotos(kind);
+          done++;
+          $('loadingSub').textContent = done + ' / ' + accepted.length;
+        }).catch(function (err) {
+          failed++;
+          console.warn('modal photo failed', err);
+        });
+      });
+    });
+    chain.then(function () {
+      hideLoading();
+      if (failed) toast(failed + '장은 사진을 읽지 못해 제외했어요.', 'err');
+      else toast('사진 ' + accepted.length + '장 준비 완료', 'ok');
+    });
+  }
+
+  // 달력에서 이미 받아 둔 그 날 사진이 있으면 바로, 없으면 서버에서 그 요청·일정 것만 받는다
+  function loadModalKeepPhotos(kind, plan) {
+    var bag = photoBag(kind);
+    bag.keep = [];
+    bag.newPhotos = [];
+    bag.loading = false;
+    bag.loadError = '';
+    if (!plan) { renderModalPhotos(kind); return; }
+
+    var date = plan.date;
+    var cached = kind === 'work' ? state.cal.planDays[date] : state.req.days[date];
+    var hit = null;
+    if (cached) {
+      for (var i = 0; i < cached.length; i++) { if (cached[i].id === plan.id) { hit = cached[i]; break; } }
+    }
+    if (hit) {
+      bag.keep = (hit.photos || []).slice();
+      renderModalPhotos(kind);
+      return;
+    }
+
+    bag.loading = true;
+    renderModalPhotos(kind);
+    var call = kind === 'work'
+      ? API.listWorkSchedules({ date: date, branch: state.cal.branch })
+      : API.getStoreRequests({ id: plan.id });
+    call.then(function (res) {
+      if (!res || res.ok === false) throw new Error((res && res.error) || '사진을 불러오지 못했습니다.');
+      var list = res.requests || res.schedules || [];
+      var found = null;
+      for (var j = 0; j < list.length; j++) { if (list[j].id === plan.id) { found = list[j]; break; } }
+      // 그 사이 창을 닫았거나 다른 항목을 열었으면 버린다
+      if ((kind === 'work' ? state.workEdit : state.schedEdit) !== plan) return;
+      bag.keep = ((found && found.photos) || []).slice();
+      bag.loading = false;
+      renderModalPhotos(kind);
+    }).catch(function (err) {
+      if ((kind === 'work' ? state.workEdit : state.schedEdit) !== plan) return;
+      bag.loading = false;
+      bag.loadError = ' (' + ((err && err.message) || '사진을 불러오지 못했습니다.') + ') 창을 닫았다가 다시 열어 주세요.';
+      renderModalPhotos(kind);
+    });
+  }
+
+  // 저장할 사진 칸 — 새로 올린 사진과 남길 사진
+  function modalPhotoPayload(kind) {
+    var bag = photoBag(kind);
+    return {
+      keepIds: bag.keep.map(function (p) { return p.id || p.original || ''; }),
+      newPhotos: bag.newPhotos.map(function (p) {
+        return { name: p.name, mimeType: p.mimeType, base64: p.base64 };
+      }),
+      count: bag.keep.length + bag.newPhotos.length
+    };
+  }
+
   function openRequestModal(plan, dateStr) {
     state.schedEdit = plan || null;
     var date = plan ? plan.date : (dateStr || state.req.selected || todayStr());
@@ -3709,12 +4191,14 @@
     $('schedMemo').value = plan ? (plan.memo || '') : '';
     $('schedSave').disabled = false;
     renderRequestBranchChips();
+    loadModalKeepPhotos('sched', plan);
     $('schedModal').hidden = false;
   }
 
   function closeRequestModal() {
     $('schedModal').hidden = true;
     state.schedEdit = null;
+    resetModalPhotos('sched');
   }
 
   function renderRequestBranchChips() {
@@ -3735,12 +4219,17 @@
   }
 
   function saveRequestFromForm() {
+    var photos = state.schedPhotos;
+    if (photos.loading) { toast('사진을 불러오는 중입니다. 잠시만 기다려 주세요.', 'err'); return; }
+    if (photos.loadError) { toast('기존 사진을 불러오지 못했습니다. 창을 닫았다가 다시 열어 주세요.', 'err'); return; }
+    var photoData = modalPhotoPayload('sched');
     var payload = {
       date: $('schedDate').value,
       branch: $('schedBranch').value.trim(),
       task: $('schedTask').value.trim(),
       author: $('schedAuthor').value.trim(),
-      memo: $('schedMemo').value.trim()
+      memo: $('schedMemo').value.trim(),
+      images: photoData.newPhotos
     };
     if (!payload.date) { toast('요청 날짜를 선택해 주세요.', 'err'); return; }
     if (!payload.branch) { toast('지점명을 입력해 주세요.', 'err'); return; }
@@ -3760,15 +4249,24 @@
         branch: payload.branch,
         task: payload.task,
         author: payload.author,
-        memo: payload.memo
+        memo: payload.memo,
+        keepPhotoUrls: photoData.keepIds,
+        newPhotos: photoData.newPhotos
       });
     } else {
       call = API.saveSchedule(payload);
     }
 
+    if (photoData.newPhotos.length) {
+      showLoading(editing ? '매장 요청 수정 중…' : '매장 요청 등록 중…', '사진 ' + photoData.newPhotos.length + '장을 함께 올리고 있어요');
+    }
+
     call.then(function (res) {
+      hideLoadingSoon();
       btn.disabled = false;
       if (!res || res.ok === false) throw new Error((res && res.error) || '매장 요청을 저장하지 못했습니다.');
+      var warnings = (res && res.warnings) || [];
+      var savedCount = (res.schedule && res.schedule.photoCount) || 0;
       closeRequestModal();
       reviveBranch(payload.branch);
       rememberBranch(payload.branch);
@@ -3777,9 +4275,13 @@
       state.req.selected = payload.date;
       state.req.loaded = false;
       state.req.loadedMonth = '';
-      toast((editing ? '매장 요청을 수정했습니다. (' : '매장 요청을 등록했습니다. (') + formatDateLabel(payload.date) + ')', 'ok');
+      state.req.days = {};
+      toast((editing ? '매장 요청을 수정했습니다. (' : '매장 요청을 등록했습니다. (') + formatDateLabel(payload.date) +
+        (savedCount ? ' · 사진 ' + savedCount + '장' : '') + ')', 'ok');
+      if (warnings.length) setTimeout(function () { toast(warnings[0], 'err'); }, 1800);
       if (state.tab === 'requests') loadRequests(true);
     }).catch(function (err) {
+      hideLoading();
       btn.disabled = false;
       toast((err && err.message) || '매장 요청을 저장하지 못했습니다.', 'err');
     });
