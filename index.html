@@ -5104,7 +5104,9 @@
     $('schedDate').value = date;
     $('schedBranch').value = plan ? (plan.branch || '') : (state.req.branch || $('inputBranch').value.trim() || state.branches[0] || '');
     $('schedTask').value = plan ? (plan.task || '') : '';
-    $('schedAuthor').value = plan ? (plan.author || '') : (store.get(LS.author, '') || $('inputAuthor').value.trim());
+    // 새 요청의 요청자 — 직원은 자기 이름으로(서버도 그렇게 저장한다), 관리자는 마지막에 쓴 이름
+    $('schedAuthor').value = plan ? (plan.author || '')
+      : (isAdmin() ? (store.get(LS.author, '') || $('inputAuthor').value.trim()) : AUTH.name);
     $('schedMemo').value = plan ? (plan.memo || '') : '';
     $('schedSave').disabled = false;
     renderRequestBranchChips();
