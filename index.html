@@ -167,27 +167,29 @@
   .btn-export:active{transform:translateY(1px);}
   .btn-export:disabled{opacity:.55; box-shadow:none; cursor:default;}
 
-  /* 기간 지정 바 — 달력 바로 위 한 줄 (📅·📝 공통) */
+  /* 기간 지정 바 — 달력 바로 위 (📅·📝 공통)
+     ─ 날짜칸이 짤리지 않도록 좁은 화면에서는 두 줄로 — 1줄: 시작일 ~ 종료일, 2줄: 조회·인쇄 */
   .period-bar{
-    display:flex; align-items:center; gap:4px; padding:6px 7px; margin-bottom:8px;
+    display:flex; flex-wrap:wrap; align-items:center; gap:6px; padding:7px 8px; margin-bottom:8px;
     background:#fff; border-radius:12px; box-shadow:var(--shadow);
   }
   .period-bar input[type="date"]{
-    flex:1 1 0; width:0; min-width:0; min-height:30px; height:30px; padding:2px 3px;
-    font-size:11.5px; font-weight:700; text-align:center; border-radius:8px; background:#fff;
+    flex:1 1 128px; width:auto; min-width:118px; min-height:34px; height:34px; padding:2px 6px;
+    font-size:13px; font-weight:700; text-align:center; border-radius:8px; background:#fff;
   }
-  .period-sep{flex:0 0 auto; font-size:11px; font-weight:800; color:#98a2b3;}
+  .period-sep{flex:0 0 auto; font-size:12px; font-weight:800; color:#98a2b3;}
   .btn-period{
-    flex:0 0 auto; display:inline-flex; align-items:center; justify-content:center; gap:2px;
-    padding:6px 8px; border-radius:8px; border:1px solid var(--line); background:#fff;
-    font-size:11.5px; font-weight:800; color:#344054; white-space:nowrap;
+    flex:1 1 auto; display:inline-flex; align-items:center; justify-content:center; gap:3px;
+    padding:8px 10px; border-radius:8px; border:1px solid var(--line); background:#fff;
+    font-size:12.5px; font-weight:800; color:#344054; white-space:nowrap;
   }
   .btn-period.search{color:var(--brand); border-color:#c7d7fe; background:#f8faff;}
   .btn-period:disabled{opacity:.5;}
-  @media (min-width:420px){
-    .period-bar input[type="date"]{font-size:13px; height:34px;}
-    .btn-period{font-size:13px; padding:7px 11px;}
-    .period-sep{font-size:12px;}
+  @media (min-width:600px){
+    .period-bar{flex-wrap:nowrap; gap:4px; padding:6px 7px;}
+    .period-bar input[type="date"]{flex:1 1 0; width:0; min-width:0; min-height:30px; height:30px; padding:2px 3px; font-size:12px;}
+    .btn-period{flex:0 0 auto; padding:6px 8px; font-size:12px;}
+    .period-sep{font-size:11px;}
   }
 
   /* 📝 매장 요청 — 인쇄 상태 칩 (달력 아래 얇은 줄) */
@@ -350,9 +352,9 @@
   .write-head .btn-ghost{flex:0 0 auto; padding:9px 12px; font-size:12.5px;}
   .cal-hint{font-size:12px; color:var(--muted); padding:0 4px 10px; line-height:1.5;}
 
-  /* 예정작업 등록 · 작업 일정 등록 · 작업사진 수정 모달 */
-  #schedModal,#workModal,#editModal{position:fixed; inset:0; background:rgba(16,24,40,.5); z-index:110; display:flex; align-items:flex-end; justify-content:center;}
-  #schedModal[hidden],#workModal[hidden],#editModal[hidden]{display:none;}
+  /* 예정작업 등록 · 작업 일정 등록 · 작업사진 수정 · 업무일지 출력 · 지점 관리 모달 */
+  #schedModal,#workModal,#editModal,#printModal,#branchModal{position:fixed; inset:0; background:rgba(16,24,40,.5); z-index:110; display:flex; align-items:flex-end; justify-content:center;}
+  #schedModal[hidden],#workModal[hidden],#editModal[hidden],#printModal[hidden],#branchModal[hidden]{display:none;}
   .modal-card{
     background:#fff; width:100%; max-width:520px; border-radius:18px 18px 0 0;
     padding:16px 16px calc(16px + env(safe-area-inset-bottom)); max-height:92vh; overflow:auto;
@@ -452,7 +454,7 @@
 
   /* toast */
   #toast{
-    position:fixed; left:50%; bottom:24px; transform:translate(-50%,20px); z-index:100;
+    position:fixed; left:50%; bottom:24px; transform:translate(-50%,20px); z-index:160;
     background:rgba(16,24,40,.94); color:#fff; padding:12px 18px; border-radius:12px; font-size:14px;
     opacity:0; pointer-events:none; transition:opacity .2s, transform .2s; max-width:calc(100vw - 40px);
     box-shadow:0 8px 24px rgba(0,0,0,.22); text-align:center;
@@ -462,7 +464,7 @@
   #toast.err{background:#b42318;}
 
   /* loading */
-  #loading{position:fixed; inset:0; background:rgba(16,24,40,.45); z-index:90; display:flex; align-items:center; justify-content:center; backdrop-filter:blur(2px);}
+  #loading{position:fixed; inset:0; background:rgba(16,24,40,.45); z-index:150; display:flex; align-items:center; justify-content:center; backdrop-filter:blur(2px);}
   #loading[hidden]{display:none;}
   .loading-box{background:#fff; border-radius:16px; padding:22px 26px; text-align:center; min-width:210px; box-shadow:0 20px 50px rgba(0,0,0,.25);}
   .spinner{
@@ -506,7 +508,7 @@
     .cal-cell{min-height:112px; padding:6px 5px;}
     .cal-num{font-size:13px;}
     .cal-badge{font-size:10px; padding:2px 4px;}
-    #schedModal,#workModal,#editModal{align-items:center; padding:20px;}
+    #schedModal,#workModal,#editModal,#printModal,#branchModal{align-items:center; padding:20px;}
     .modal-card{border-radius:18px;}
   }
   @media (prefers-color-scheme: dark){
@@ -692,7 +694,7 @@
         <span class="period-sep">~</span>
         <input type="date" id="calTo" aria-label="종료일">
         <button type="button" class="btn-period search" id="calSearch" title="이 기간으로 달력을 맞추고 내역을 조회합니다">🔍 조회</button>
-        <button type="button" class="btn-period print" id="calPrint" title="지점과 기간을 골라 공사완료 업무일지를 워드(.docx)로 내려받습니다 (사진 없음, 날짜 내림차순)">📄 업무일지 출력</button>
+        <button type="button" class="btn-period print" id="calPrint" title="지점과 기간을 골라 공사완료 업무일지를 워드(.docx)로 내려받습니다 (사진 없음, 날짜 내림차순)">📄 일지출력</button>
       </div>
 
       <div class="card cal-card">
@@ -719,8 +721,7 @@
             <div class="day-sub" id="daySub"></div>
           </div>
           <div class="day-head-actions">
-            <button type="button" class="btn-add-plan admin-only" id="dayPlanAddBtn">+ 이 날 예정작업</button>
-            <button type="button" class="btn-day-photo" id="dayPhotoBtn">📷 이 날 업무일지 등록</button>
+            <button type="button" class="btn-add-plan admin-only" id="dayPlanAddBtn">+ 이 날 예정작업</button>            <button type="button" class="btn-day-photo" id="dayPhotoBtn">📷 이 날 업무일지 등록</button>
           </div>
         </div>
         <div id="dayDetail"></div>
@@ -4411,7 +4412,8 @@
   // 번들(지점·기록 요약·일정)을 화면 상태에 앉힌다
   function applyBundleToCalendar(cal, data, month) {
     cal.records = (data && data.records) || [];
-    cal.plans = (data && data.workSchedules) || [];
+    // 완료처리된 예정작업은 달력·날짜 상세에 남기지 않는다 — 업무일지(사진 아이콘)로만 보인다.
+    cal.plans = ((data && data.workSchedules) || []).filter(function (p) { return String(p && p.status) !== '완료'; });
     cal.month = month || cal.month;
     if (data && data.branches && data.branches.length) {
       state.branches = mergeBranches(state.branches, data.branches);
