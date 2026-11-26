@@ -260,6 +260,7 @@
   }
   .cal-badge-ico{flex:0 0 auto; font-size:7.5px; line-height:1.45;}
   .cal-badge-name{min-width:0; overflow-wrap:anywhere;}
+  .cal-badge-tag{flex:0 0 auto; font-size:7px; font-weight:800; margin-left:2px;}
   .cal-badge.photo{background:#e7f6ef; color:#067647;}
   .cal-badge.plan{background:#fef3c7; color:#92400e;}
   .cal-badge.plan.done{background:#f2f4f7; color:#98a2b3; text-decoration:line-through;}
@@ -298,6 +299,10 @@
   .sched-item.done .sched-task{color:#667085;}
   .sched-memo{margin:5px 0 0; font-size:12.5px; color:#667085; white-space:pre-wrap; word-break:break-word;}
   .sched-meta{font-size:11.5px; color:#98a2b3; margin-top:4px;}
+  .sched-done-note{font-size:11.5px; font-weight:700; color:#067647; background:#ecfdf3; border:1px solid #a6f4c5; border-radius:8px; padding:6px 9px; margin-top:8px;}
+  .rec-facts{display:flex; flex-wrap:wrap; gap:6px; margin:6px 0 0;}
+  .rec-fact{font-size:11.5px; color:#344054; background:#f2f4f7; border:1px solid #e4e7ec; border-radius:999px; padding:2px 8px;}
+  .rec-fact b{color:#101828; font-weight:700;}
   .sched-actions{display:flex; gap:6px; flex-wrap:wrap; margin-top:9px;}
   .sched-actions button{padding:7px 10px; border-radius:9px; font-size:12px; font-weight:700; background:#fff; border:1px solid var(--line); color:#344054;}
   .sched-actions button.primary{background:var(--brand); border-color:var(--brand); color:#fff;}
@@ -587,6 +592,7 @@
       <span class="who-name" id="whoName"></span>
       <span class="role-pill" id="whoRole"></span>
       <button type="button" class="btn-mini staff admin-only" id="staffManageBtn">👥 직원 관리</button>
+      <button type="button" class="btn-mini staff admin-only" id="topBranchManageBtn">🏷️ 지점 관리</button>
       <button type="button" class="btn-mini" id="logoutBtn">로그아웃</button>
     </div>
     <div class="mode-pill" id="modePill">🧪 미리보기 모드 · 이 브라우저에만 저장됩니다</div>
@@ -607,8 +613,8 @@
           <div class="card">
             <div class="write-head">
               <div>
-                <h2>📷 작업사진 등록</h2>
-                <div class="write-sub" id="writeSub">날짜 · 지점 · 작성자 · 작업사진</div>
+                <h2>📷 공사완료 업무일지</h2>
+                <div class="write-sub" id="writeSub">날짜 · 지점 · 작업내용 · 작업인원 · 소요자재 · 노무비</div>
               </div>
               <button type="button" class="btn-ghost" id="writeClose">닫기</button>
             </div>
@@ -623,29 +629,47 @@
               <div class="chips" id="branchChips"></div>
               <input type="text" id="inputBranch" list="branchList" placeholder="지점명을 선택하거나 직접 입력" required>
               <datalist id="branchList"></datalist>
-              <div class="branch-head">
-                <div class="hint" style="margin:0">새 지점은 그냥 입력하시면 다음부터 목록에 나옵니다.</div>
-                <button type="button" class="btn-branch-manage admin-only" id="branchManageBtn">🏷️ 지점 관리</button>
-              </div>
-              <div class="hint" id="branchManageHint" hidden style="color:#b42318">지점 칩의 ✕ 를 누르면 목록에서 지워집니다. (이미 등록된 작업사진·일정 기록은 그대로 남습니다)</div>
+              <div class="hint" style="margin:0">새 지점은 그냥 입력하시면 다음부터 목록에 나옵니다.</div>
             </div>
 
-            <div class="field">
-              <div class="label"><span>작성자</span><span class="req">자동</span></div>
-              <input type="text" id="inputAuthor" list="authorList" placeholder="로그인한 이름" required>
+            <div class="field" hidden>
+              <div class="label"><span>작성자</span><span class="optional">자동</span></div>
+              <input type="text" id="inputAuthor" list="authorList" tabindex="-1" aria-hidden="true">
               <datalist id="authorList"></datalist>
-              <div class="hint" id="authorHint">작성자는 로그인한 사람으로 자동 입력됩니다.</div>
             </div>
+            <div class="hint" id="authorHint" style="margin:-8px 0 14px">작성자는 로그인한 사람으로 자동 저장됩니다.</div>
 
             <div class="field">
               <div class="label"><span>작업 내용</span><span class="optional">선택</span></div>
               <textarea id="inputMemo" rows="2" maxlength="1000" placeholder="예) 냉동고 2대 설치, 진열대 높이 조정"></textarea>
             </div>
+
+            <div class="filter-grid">
+              <div class="field" style="margin:0">
+                <div class="label"><span>작업인원</span><span class="optional">선택</span></div>
+                <input type="text" id="inputWorkPeople" maxlength="60" placeholder="예) 3명">
+              </div>
+              <div class="field" style="margin:0">
+                <div class="label"><span>작업소요시간</span><span class="optional">선택</span></div>
+                <input type="text" id="inputWorkHours" maxlength="60" placeholder="예) 4시간">
+              </div>
+            </div>
+
+            <div class="field" style="margin-top:16px">
+              <div class="label"><span>소요자재</span><span class="optional">선택</span></div>
+              <input type="text" id="inputMaterials" maxlength="200" placeholder="예) 홑강판 2장, 실리콘 3통">
+            </div>
+
+            <div class="field">
+              <div class="label"><span>노무비</span><span class="optional">선택</span></div>
+              <input type="text" id="inputLaborCost" maxlength="40" inputmode="numeric" placeholder="예) 150000 → 150,000원">
+              <div class="hint">숫자만 적으면 <b>150,000원</b> 처럼 자동으로 바꿉니다. 글자(예: 일당 15만)로 적어도 됩니다.</div>
+            </div>
           </div>
 
           <div class="card">
             <div class="field">
-              <div class="label"><span>작업사진</span><span class="req">필수 · 여러 장 가능</span></div>
+              <div class="label"><span>작업사진</span><span class="optional">선택 · 여러 장 가능</span></div>
               <div class="photo-actions">
                 <label class="picker" id="pickLabel">
                   <span>📷 사진 찍기 / 앨범</span>
@@ -653,8 +677,8 @@
                 </label>
               </div>
               <div class="photo-grid" id="photoGrid"></div>
-              <div class="summary" id="photoSummary">아직 선택한 사진이 없습니다.</div>
-              <div class="hint">올릴 때 자동으로 <b>가로 600 × 세로 400픽셀</b> JPEG로 변환해 저장합니다 (출력 시 6×4cm).</div>
+              <div class="summary" id="photoSummary">사진 없이도 등록할 수 있습니다.</div>
+              <div class="hint">올릴 때 자동으로 <b>가로 1024 × 세로 768픽셀</b> JPEG로 변환해 저장합니다 (출력 시 6×4cm).</div>
             </div>
           </div>
 
@@ -668,7 +692,7 @@
         <span class="period-sep">~</span>
         <input type="date" id="calTo" aria-label="종료일">
         <button type="button" class="btn-period search" id="calSearch" title="이 기간으로 달력을 맞추고 내역을 조회합니다">🔍 조회</button>
-        <button type="button" class="btn-period print" id="calPrint" title="이 기간의 작업사진을 워드(.docx)로 내려받습니다 (여백 10mm, 사진 한 줄 3장, 날짜 오름차순)">📄 인쇄</button>
+        <button type="button" class="btn-period print" id="calPrint" title="지점과 기간을 골라 공사완료 업무일지를 워드(.docx)로 내려받습니다 (사진 없음, 날짜 내림차순)">📄 업무일지 출력</button>
       </div>
 
       <div class="card cal-card">
@@ -695,9 +719,8 @@
             <div class="day-sub" id="daySub"></div>
           </div>
           <div class="day-head-actions">
-            <button type="button" class="btn-add-plan admin-only" id="dayPlanAddBtn">+ 이 날 작업 일정</button>
-            <button type="button" class="btn-day-photo" id="dayPhotoBtn">📷 이 날 작업사진 등록</button>
-            <button type="button" class="btn-branch-manage admin-only" id="calBranchManageBtn">🏷️ 지점 관리</button>
+            <button type="button" class="btn-add-plan admin-only" id="dayPlanAddBtn">+ 이 날 예정작업</button>
+            <button type="button" class="btn-day-photo" id="dayPhotoBtn">📷 이 날 업무일지 등록</button>
           </div>
         </div>
         <div id="dayDetail"></div>
@@ -786,7 +809,8 @@
         <h2>등록 내역</h2>
         <div class="list-tools">
           <span class="count" id="listCount">–</span>
-          <button type="button" class="btn-export" id="exportBtn" title="지금 조회된 내역을 날짜·작업내용·사진 순서의 워드 파일로 내려받습니다 (여백 10mm, 사진 한 줄에 세 장, 작업내용은 쉼표로 이어 한 줄)">📄 출력(워드)</button>
+          <button type="button" class="btn-export" id="exportBtn" title="지금 조회 조건의 날짜·작업내용·사진만 워드 파일로 내려받습니다 (여백 10mm, 사진 6×4cm, 한 줄에 세 장)">📄 출력(워드)</button>
+          <button type="button" class="btn-export" id="exportFullBtn" title="지금 조회 조건의 지점·날짜·작업내용·작업인원·작업소요시간·소요자재·노무비와 사진까지 모두 담은 워드 파일을 내려받습니다">📄 전체 상세 워드 출력</button>
         </div>
       </div>
       <div id="listBody"></div>
@@ -841,7 +865,7 @@
         <span>📷 사진 추가</span>
         <input type="file" id="schedPhotoInput" accept="image/*" multiple hidden>
       </label>
-      <div class="hint">사진은 선택입니다. 붙이면 자동으로 <b>가로 600 × 세로 400픽셀</b> JPEG로 줄여 저장하고, ✕ 를 누르면 이 요청에서 빠집니다.</div>
+      <div class="hint">사진은 선택입니다. 붙이면 자동으로 <b>가로 1024 × 세로 768픽셀</b> JPEG로 줄여 저장하고, ✕ 를 누르면 이 요청에서 빠집니다.</div>
     </div>
     <button type="button" class="btn-primary" id="schedSave">매장 요청 등록</button>
   </div>
@@ -850,12 +874,12 @@
 <div id="workModal" hidden>
   <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="workTitle">
     <div class="modal-head">
-      <h2 id="workTitle">작업 일정 등록</h2>
+      <h2 id="workTitle">예정작업 등록</h2>
       <button type="button" class="modal-close" id="workClose" aria-label="닫기">✕</button>
     </div>
     <div class="edit-meta" id="workMeta" hidden></div>
     <div class="field">
-      <div class="label"><span>일정 날짜</span><span class="req">필수</span></div>
+      <div class="label"><span>예정 날짜</span><span class="req">필수</span></div>
       <input type="date" id="workDate" required>
     </div>
     <div class="field">
@@ -864,12 +888,12 @@
       <input type="text" id="workBranch" list="branchList" placeholder="지점명을 선택하거나 직접 입력" required>
     </div>
     <div class="field">
-      <div class="label"><span>작업 내용</span><span class="req">필수</span></div>
+      <div class="label"><span>작업 내용</span><span class="optional">선택</span></div>
       <textarea id="workTask" rows="2" maxlength="500" placeholder="예) 냉동고 실리콘 보수"></textarea>
     </div>
-    <div class="field">
-      <div class="label"><span>등록자</span><span class="optional">선택</span></div>
-      <input type="text" id="workAuthor" list="authorList" placeholder="이름">
+    <div class="field" hidden>
+      <div class="label"><span>등록자</span><span class="optional">자동</span></div>
+      <input type="text" id="workAuthor" list="authorList" tabindex="-1" aria-hidden="true">
     </div>
     <div class="field">
       <div class="label"><span>비고 / 메모</span><span class="optional">선택</span></div>
@@ -883,16 +907,16 @@
         <span>📷 사진 추가</span>
         <input type="file" id="workPhotoInput" accept="image/*" multiple hidden>
       </label>
-      <div class="hint">사진은 선택입니다. 붙이면 자동으로 <b>가로 600 × 세로 400픽셀</b> JPEG로 줄여 저장하고, ✕ 를 누르면 이 일정에서 빠집니다.</div>
+      <div class="hint">사진은 선택입니다. 붙이면 자동으로 <b>가로 1024 × 세로 768픽셀</b> JPEG로 줄여 저장하고, ✕ 를 누르면 이 일정에서 빠집니다. 완료처리할 때 이 사진이 업무일지로 그대로 들어갑니다.</div>
     </div>
-    <button type="button" class="btn-primary" id="workSave">작업 일정 등록</button>
+    <button type="button" class="btn-primary" id="workSave">예정작업 등록</button>
   </div>
 </div>
 
 <div id="editModal" hidden>
   <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="editTitle">
     <div class="modal-head">
-      <h2 id="editTitle">작업사진 기록 수정</h2>
+      <h2 id="editTitle">공사완료 업무일지 수정</h2>
       <button type="button" class="modal-close" id="editClose" aria-label="닫기">✕</button>
     </div>
     <div class="edit-meta" id="editMeta"></div>
@@ -906,23 +930,41 @@
       <input type="text" id="editBranch" list="branchList" placeholder="지점명을 선택하거나 직접 입력" required>
       <div class="hint">새 지점은 그냥 입력하시면 다음부터 목록에 나옵니다.</div>
     </div>
-    <div class="field">
-      <div class="label"><span>작성자</span><span class="req">필수</span></div>
-      <input type="text" id="editAuthor" list="authorList" placeholder="이름" required>
+    <div class="field" hidden>
+      <div class="label"><span>작성자</span><span class="optional">자동</span></div>
+      <input type="text" id="editAuthor" list="authorList" tabindex="-1" aria-hidden="true">
     </div>
     <div class="field">
       <div class="label"><span>작업 내용</span><span class="optional">선택</span></div>
       <textarea id="editMemo" rows="2" maxlength="1000" placeholder="예) 냉동고 2대 설치, 진열대 높이 조정"></textarea>
     </div>
+    <div class="filter-grid">
+      <div class="field" style="margin:0">
+        <div class="label"><span>작업인원</span><span class="optional">선택</span></div>
+        <input type="text" id="editWorkPeople" maxlength="60" placeholder="예) 3명">
+      </div>
+      <div class="field" style="margin:0">
+        <div class="label"><span>작업소요시간</span><span class="optional">선택</span></div>
+        <input type="text" id="editWorkHours" maxlength="60" placeholder="예) 4시간">
+      </div>
+    </div>
+    <div class="field" style="margin-top:16px">
+      <div class="label"><span>소요자재</span><span class="optional">선택</span></div>
+      <input type="text" id="editMaterials" maxlength="200" placeholder="예) 홑강판 2장, 실리콘 3통">
+    </div>
     <div class="field">
-      <div class="label"><span>작업사진</span><span class="req">1장 이상</span></div>
+      <div class="label"><span>노무비</span><span class="optional">선택</span></div>
+      <input type="text" id="editLaborCost" maxlength="40" inputmode="numeric" placeholder="예) 150000 → 150,000원">
+    </div>
+    <div class="field">
+      <div class="label"><span>작업사진</span><span class="optional">선택 · 0장 가능</span></div>
       <div class="photo-grid" id="editPhotoGrid"></div>
       <div class="summary" id="editPhotoSummary">사진을 불러오는 중…</div>
       <label class="picker" id="editPickLabel" style="margin-top:10px">
         <span>📷 사진 추가</span>
         <input type="file" id="editPhotoInput" accept="image/*" multiple hidden>
       </label>
-      <div class="hint">사진의 ✕ 를 누르면 그 사진이 이 기록에서 빠집니다(드라이브 휴지통으로 이동). 새로 추가한 사진은 자동으로 <b>가로 600 × 세로 400픽셀</b> JPEG로 변환합니다.</div>
+      <div class="hint">사진의 ✕ 를 누르면 그 사진이 이 기록에서 빠집니다(드라이브 휴지통으로 이동). 새로 추가한 사진은 자동으로 <b>가로 1024 × 세로 768픽셀</b> JPEG로 변환합니다. 사진을 모두 빼도 저장됩니다.</div>
     </div>
     <div class="edit-actions">
       <button type="button" class="btn-ghost" id="editCancel">취소</button>
@@ -963,6 +1005,49 @@
   </div>
 </div>
 
+<div id="printModal" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="printTitle">
+    <div class="modal-head">
+      <h2 id="printTitle">📄 공사완료 업무일지 출력</h2>
+      <button type="button" class="modal-close" id="printClose" aria-label="닫기">✕</button>
+    </div>
+    <div class="edit-meta">고른 지점·기간의 업무일지만 <b>날짜 최신순</b>으로 워드(.docx)에 담습니다.<br>사진은 들어가지 않고, 지점명·날짜·작업내용·소요인원·소요시간·소요자재·노무비가 표로 나갑니다.</div>
+    <div class="field">
+      <div class="label"><span>기간</span><span class="optional">시작일 ~ 종료일</span></div>
+      <div class="filter-grid">
+        <input type="date" id="printFrom" aria-label="시작일">
+        <input type="date" id="printTo" aria-label="종료일">
+      </div>
+      <div class="quick" id="printQuick" style="margin-top:8px">
+        <button type="button" class="chip" data-range="this_month">이번 달</button>
+        <button type="button" class="chip" data-range="last_month">지난달</button>
+        <button type="button" class="chip" data-range="30">최근 30일</button>
+        <button type="button" class="chip" data-range="all">전체 기간</button>
+      </div>
+    </div>
+    <div class="field">
+      <div class="label"><span>지점</span><span class="optional">전체 지점 / 한 지점</span></div>
+      <select id="printBranch" class="cal-branch-pick" style="width:100%">
+        <option value="">전체 지점</option>
+      </select>
+    </div>
+    <div class="summary" id="printSummary">기간과 지점을 고른 뒤 [워드로 내려받기]를 눌러 주세요.</div>
+    <button type="button" class="btn-primary" id="printGo">📄 워드로 내려받기</button>
+  </div>
+</div>
+
+<div id="branchModal" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="branchTitle">
+    <div class="modal-head">
+      <h2 id="branchTitle">🏷️ 지점 관리</h2>
+      <button type="button" class="modal-close" id="branchClose" aria-label="닫기">✕</button>
+    </div>
+    <div class="edit-meta">지점 칩의 <b>✕</b> 를 누르면 목록에서 지워집니다.<br>이미 등록된 업무일지·예정작업·매장 요청 기록은 그대로 남고, 같은 이름을 새 기록에 다시 쓰면 목록에 돌아옵니다.</div>
+    <div class="chips manage" id="branchManageChips"></div>
+    <div class="hint" id="branchManageEmpty" hidden>등록된 지점이 없습니다.</div>
+  </div>
+</div>
+
 <div id="lightbox" hidden>
   <div class="lb-top">
     <span class="title" id="lbTitle">사진</span>
@@ -996,9 +1081,9 @@
   var REMOTE_UPLOAD_TIMEOUT = 240000;  // 사진 등록·워드 출력 대기 (ms)
   var MAX_PHOTOS = 15;
   var MAX_FILE_MB = 25;
-  var PHOTO_W = 600;        // 저장할 사진 가로(픽셀)
-  var PHOTO_H = 400;        // 저장할 사진 세로(픽셀)
-  var PHOTO_QUALITY = 0.82; // JPEG 품질(선명하면서 용량은 작게)
+  var PHOTO_W = 1024;       // 저장할 사진 가로(픽셀) — v25: 1024×768 로 올렸다
+  var PHOTO_H = 768;        // 저장할 사진 세로(픽셀)
+  var PHOTO_QUALITY = 0.8;  // JPEG 품질(선명도와 업로드 속도의 절충)
   var DEFAULT_BRANCHES = ['진천점', '월성점', '본리점', '중리점', '봉무점'];
   var WEEKDAY = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -1006,6 +1091,8 @@
   var state = {
     tab: 'calendar',
     photos: [],          // { key, dataUrl, base64, mimeType, name, bytes, width, height }
+    // ✅ 완료처리로 넘어올 때 예정작업에 붙어 있던 사진 — 저장할 때 드라이브로 복사해 업무일지 사진이 된다
+    copyPhotos: [],
     records: [],
     branches: DEFAULT_BRANCHES.slice(),
     // 화면에서 지운 지점 — 서버 목록·기본 지점에서 다시 더해지지 않게 따로 기억한다
@@ -1354,6 +1441,32 @@
       }
       return Promise.resolve(mockExport(filters));
     },
+    exportSummary: function (filters) {
+      if (IS_GAS) return gasCall('exportWorkSummaryDoc', withToken(filters));
+      if (IS_REMOTE) {
+        filters = filters || {};
+        return remoteGet({
+          action: 'exportsummary', token: authToken(),
+          date: filters.date,
+          from: filters.from, to: filters.to,
+          branch: filters.branch
+        }, REMOTE_UPLOAD_TIMEOUT);
+      }
+      return Promise.resolve(mockExportSummary(filters));
+    },
+    exportFullDoc: function (filters) {
+      if (IS_GAS) return gasCall('exportWorkLogsFullDoc', withToken(filters));
+      if (IS_REMOTE) {
+        filters = filters || {};
+        return remoteGet({
+          action: 'exportfull', token: authToken(),
+          date: filters.date,
+          from: filters.from, to: filters.to,
+          branch: filters.branch, author: filters.author
+        }, REMOTE_UPLOAD_TIMEOUT);
+      }
+      return Promise.resolve(mockExportFull(filters));
+    },
     // 📝 매장 요청 인쇄(워드) — 예정작업 시트를 표로
     exportRequestsDoc: function (filters) {
       if (IS_GAS) return gasCall('exportStoreRequestsDoc', withToken(filters));
@@ -1662,6 +1775,14 @@
 
   function mockSave(payload) {
     if (!isAdmin() && authToken()) payload.author = AUTH.name;   // 직원은 자기 이름으로 고정
+    // 완료처리로 넘어온 예정작업 사진(복사 대상) — 사진을 새로 올린 것처럼 그대로 실어 준다
+    var copies = (payload.copyPhotoIds || []).map(function (id) {
+      var found = null;
+      store.get(LS.workSchedules, []).forEach(function (p) {
+        (p.photos || []).forEach(function (ph) { if (ph.id === id) found = ph; });
+      });
+      return found;
+    }).filter(function (p) { return !!p; });
     return Promise.all((payload.images || []).map(function (img) {
       return shrinkForLocal('data:' + (img.mimeType || 'image/jpeg') + ';base64,' + img.base64);
     })).then(function (locals) {
@@ -1670,6 +1791,12 @@
       var photos = locals.map(function (src, i) {
         return { thumb: src, original: src, view: src, download: src, id: 'local-' + Date.now() + '-' + i };
       });
+      copies.forEach(function (p, i) {
+        photos.push({
+          thumb: p.thumb, original: p.original, view: p.view || p.original, download: p.download || p.original,
+          id: 'local-copy-' + Date.now() + '-' + i
+        });
+      });
       var record = {
         id: 'local-' + Date.now(),
         registeredAt: stamp,
@@ -1677,6 +1804,10 @@
         branch: payload.branch,
         author: payload.author,
         memo: payload.memo || '',
+        workPeople: payload.workPeople || '',
+        workHours: payload.workHours || '',
+        materials: payload.materials || '',
+        laborCost: formatLaborInput(payload.laborCost || ''),
         photoCount: photos.length,
         photos: photos
       };
@@ -1690,9 +1821,14 @@
         store.set(LS.schedules, plans);
         record.scheduleId = payload.scheduleId;
       }
-      // 작업 일정에서 넘어와 등록한 경우 그 일정을 완료로 바꾼다
+      // 예정작업등록에서 넘어와 완료처리한 경우 — 이미 완료면 막는다(중복 방지)
       if (payload.workScheduleId) {
         var works = store.get(LS.workSchedules, []);
+        var target = null;
+        works.forEach(function (p) { if (p.id === payload.workScheduleId) target = p; });
+        if (target && target.status === '완료') {
+          return { ok: false, code: 'already-done', error: '이미 완료처리된 예정작업입니다. 새 업무일지는 [📷 이 날 업무일지 등록]으로 따로 적어 주세요.' };
+        }
         works = works.map(function (p) {
           if (p.id === payload.workScheduleId) p.status = '완료';
           return p;
@@ -2132,8 +2268,10 @@
       return { thumb: src, original: src, view: src, download: src, id: 'local-' + Date.now() + '-' + i };
     });
     photos = photos.concat(added);
-    if (!photos.length) return { ok: false, error: '작업사진을 1장 이상 남겨 주세요.' };
 
+    var pick = function (key, fallback) {
+      return Object.prototype.hasOwnProperty.call(payload, key) ? (payload[key] || '') : (fallback || '');
+    };
     var updated = {
       id: hit.id,
       registeredAt: hit.registeredAt,
@@ -2141,6 +2279,10 @@
       branch: payload.branch,
       author: payload.author,
       memo: payload.memo != null ? payload.memo : (payload.content || ''),
+      workPeople: pick('workPeople', hit.workPeople),
+      workHours: pick('workHours', hit.workHours),
+      materials: pick('materials', hit.materials),
+      laborCost: Object.prototype.hasOwnProperty.call(payload, 'laborCost') ? formatLaborInput(payload.laborCost || '') : (hit.laborCost || ''),
       photoCount: photos.length,
       photos: photos
     };
@@ -2150,6 +2292,83 @@
       ok: true, updatedId: hit.id, record: updated,
       trashedFiles: (hit.photos || []).length - photos.length + added.length,
       addedFiles: added.length, warnings: []
+    };
+  }
+
+  /* ---------- 미리보기/로컬용 업무일지 워드(HTML .doc) 출력 ---------- */
+  function mockExportSummary(filters) {
+    filters = filters || {};
+    var query = { from: filters.from || '', to: filters.to || '', branch: filters.branch || '', author: filters.author || '' };
+    var list = mockList(query).records;
+    if (!list.length) return { ok: false, error: '출력할 공사완료 업무일지가 없습니다.' };
+    // 날짜 내림차순(최신이 위), 같은 날짜는 먼저 적은 것부터
+    list = list.slice().sort(function (a, b) {
+      if (String(a.date) !== String(b.date)) return String(a.date) < String(b.date) ? 1 : -1;
+      return String(a.registeredAt) < String(b.registeredAt) ? -1 : 1;
+    });
+    var branch = branchFilterValue(filters.branch) || '전체';
+    var period = (filters.from && filters.to) ? filters.from + '~' + filters.to : '전체';
+    var rows = list.map(function (r) {
+      return '<tr>' +
+        '<td>' + esc(koreanDate(r.date)) + '</td>' +
+        '<td>' + esc(r.branch || '') + '</td>' +
+        '<td>' + esc(singleLineMemo(r.memo)) + '</td>' +
+        '<td>' + esc(r.workPeople || '') + '</td>' +
+        '<td>' + esc(r.workHours || '') + '</td>' +
+        '<td>' + esc(singleLineMemo(r.materials)) + '</td>' +
+        '<td style="text-align:right">' + esc(r.laborCost || '') + '</td>' +
+      '</tr>';
+    }).join('');
+    var html = '<html><head><meta charset="utf-8"><style>@page{size:A4;margin:10mm}' +
+      'body{font-family:\'Malgun Gothic\',sans-serif;font-size:10pt}' +
+      'h1{font-size:20pt;color:#1d4ed8;margin:0 0 10pt}' +
+      'table{border-collapse:collapse;width:100%;font-size:10pt}' +
+      'td,th{border:1px solid #b0b7c3;padding:3px 5px}' +
+      'th{background:#e8eef9}</style></head><body>' +
+      '<h1>' + esc(branch + ' 공사완료 업무일지') + '</h1>' +
+      '<table><tr><th>날짜</th><th>지점</th><th>작업내용</th><th>소요인원</th><th>소요시간</th><th>소요자재</th><th>노무비</th></tr>' +
+      rows + '</table></body></html>';
+    return {
+      ok: true,
+      filename: ('업무일지_' + branch + '_' + period).replace(/[\\\/:*?"<>|]/g, '') + '.doc',
+      mimeType: 'application/msword',
+      html: html,
+      count: list.length
+    };
+  }
+
+  /* ---------- 미리보기/로컬용 업무일지 상세 워드(HTML .doc) 출력 — 모든 항목 + 사진 ---------- */
+  function mockExportFull(filters) {
+    filters = filters || {};
+    var list = mockList(filters || {}).records;
+    if (!list.length) return { ok: false, error: '출력할 내역이 없습니다.' };
+    var branch = branchFilterValue(filters.branch);
+    var groups = mockGroupRecords(sortChronologically(list));
+    var rows = groups.map(function (g) {
+      var imgs = g.photos.map(function (p) {
+        return '<img src="' + esc(p.original || p.thumb) + '" style="width:6cm;height:4cm;object-fit:fill;margin:0 1.5mm 1.5mm 0" alt="작업사진">';
+      }).join('');
+      var facts = [['작업인원', g.workPeople], ['작업소요시간', g.workHours], ['소요자재', g.materials], ['노무비', g.laborCost]]
+        .filter(function (f) { return (f[1] || []).length; })
+        .map(function (f) { return f[0] + ' ' + f[1].join(', '); }).join(' · ');
+      return '<div style="margin:0 0 14px 0">' +
+        '<p style="font-size:10pt; font-weight:700; margin:0 0 2pt 0">' +
+          esc(String(g.branch || '').trim() || '(지점 미지정)') + ' · ' + esc(koreanDate(g.date)) + '</p>' +
+        '<p style="font-size:10pt; margin:0 0 4pt 0">' + esc(g.memos.length ? g.memos.join(', ') : '(작업내용 없음)') + '</p>' +
+        (facts ? '<p style="font-size:10pt; margin:0 0 6pt 0">' + esc(facts) + '</p>' : '') +
+        '<p style="margin:0; font-size:0">' + (imgs || '<span style="font-size:10pt">(사진 없음)</span>') + '</p>' +
+      '</div>';
+    }).join('');
+    var title = (branch || '전체') + ' 업무일지 상세';
+    return {
+      ok: true,
+      filename: ('업무일지상세_' + (branch || '전체') + '_' + (filters.from && filters.to ? filters.from + '~' + filters.to : '전체'))
+        .replace(/[\\\/:*?"<>|]/g, '') + '.doc',
+      mimeType: 'application/msword',
+      html: '<html><head><meta charset="utf-8"><title>' + esc(title) + '</title>' +
+        '<style>@page{size:A4;margin:10mm}</style></head><body>' +
+        '<h1 style="font-size:20pt; margin:0 0 14pt 0">' + esc(title) + '</h1>' + rows + '</body></html>',
+      count: list.length
     };
   }
 
@@ -2198,7 +2417,8 @@
       var key = String(r.date || '') + '|' + String(r.branch || '');
       var g = byKey[key];
       if (!g) {
-        g = { date: r.date || '', branch: r.branch || '', authors: [], memos: [], photos: [], count: 0 };
+        g = { date: r.date || '', branch: r.branch || '', authors: [], memos: [], photos: [], count: 0,
+              workPeople: [], workHours: [], materials: [], laborCost: [] };
         byKey[key] = g;
         groups.push(g);
       }
@@ -2208,6 +2428,11 @@
       var memo = singleLineMemo(r.memo);
       if (memo && g.memos.indexOf(memo) === -1) g.memos.push(memo);
       (r.photos || []).forEach(function (p) { g.photos.push(p); });
+      [['workPeople', r.workPeople], ['workHours', r.workHours], ['materials', r.materials], ['laborCost', r.laborCost]]
+        .forEach(function (pair) {
+          var text = singleLineMemo(pair[1]);
+          if (text && g[pair[0]].indexOf(text) === -1) g[pair[0]].push(text);
+        });
     });
     return groups;
   }
@@ -2230,12 +2455,12 @@
     var groups = mockGroupRecords(sortChronologically(records));
     var branch = branchFilterValue(filters.branch);
     var title = (branch || '전체') + ' 작업사진';
-    // 전체 지점 출력이면 묶음마다 '봉무점 · 2026년 11월 24일' 처럼 지점명과 날짜를 같이 보여 준다.
-    var showBranch = !branch;
+    // 지점을 고르든 전체 지점이든 똑같이 '지점명 · 날짜'로 적는다 (v25 — 지점별·전체별 모양 같게).
+    var showBranch = true;
 
     var rows = groups.map(function (g) {
       var imgs = g.photos.map(function (p) {
-        return '<img src="' + esc(p.original || p.thumb) + '" style="width:6cm;height:4cm;margin:0 1.5mm 1.5mm 0" alt="작업사진">';
+        return '<img src="' + esc(p.original || p.thumb) + '" style="width:6cm;height:4cm;object-fit:fill;margin:0 1.5mm 1.5mm 0" alt="작업사진">';
       }).join('');
       var memoText = !g.memos.length ? '(작업내용 없음)' : g.memos.join(', ');
       var head = showBranch
@@ -2441,6 +2666,18 @@
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
+  // 노무비 입력칸 표시 — 숫자만 적었으면 150,000원 처럼 바꾸고, 글자가 섞이면 그대로 둔다.
+  function formatLaborInput(value) {
+    var s = String(value == null ? '' : value).trim();
+    if (!s) return '';
+    if (s.length > 40) s = s.substring(0, 40);
+    var numeric = s.replace(/[\s,]/g, '').replace(/원$/, '').replace(/^₩/, '');
+    if (!/^\d+(\.\d+)?$/.test(numeric)) return s;
+    var parts = numeric.split('.');
+    var head = parts[0].replace(/^0+(?=\d)/, '').replace(/\B(?=(\d{3})+(?!\d))/g, ',') || '0';
+    return head + (parts[1] ? '.' + parts[1] : '') + '원';
+  }
+
   function bytesLabel(bytes) {
     if (!bytes) return '';
     if (bytes < 1024) return bytes + 'B';
@@ -2505,8 +2742,26 @@
 
   function apiError(result) {
     if (!result) return '응답이 없습니다. 잠시 후 다시 시도해 주세요.';
-    if (result.ok === false) return result.error || '저장에 실패했습니다.';
+    if (result.ok === false) {
+      // 서버가 '로그인이 필요합니다'라고 했을 때만 세션을 다시 확인한다
+      // (통신이 잠깐 안 되거나 서버가 다른 이유로 실패한 경우에는 로그인을 풀지 않는다)
+      if (result.code === 'auth') maybeSessionExpired();
+      return result.error || '저장에 실패했습니다.';
+    }
     return '';
+  }
+
+  // '인증 실패' 응답이 와도 바로 로그아웃하지 않고, 세션이 아직 살아 있는지 서버에 한 번 더 묻는다.
+  var authProbe = false;
+  function maybeSessionExpired() {
+    if (authProbe || !authToken()) return;
+    authProbe = true;
+    API.session().then(function (res) {
+      authProbe = false;
+      if (!res || res.ok === false) {
+        if (!res || res.code === 'auth') onSessionExpired();
+      }
+    }).catch(function () { authProbe = false; });
   }
 
   /* ================================================================
@@ -2595,7 +2850,8 @@
 
     var savedAuthor = store.get(LS.author, '');
     if (savedAuthor && isAdmin()) $('inputAuthor').value = savedAuthor;
-    if (!isAdmin()) $('inputAuthor').value = AUTH.name;
+    // 작성자 칸은 화면에 보이지 않는다 — 항상 로그인한 사람 이름으로 저장된다.
+    $('inputAuthor').value = AUTH.name || savedAuthor || '';
 
     state.cal.month = nowMonth();
     state.cal.selected = today;
@@ -2635,7 +2891,7 @@
     $('whoRole').className = 'role-pill' + (admin ? '' : ' staff');
 
     // 관리자 전용 버튼은 id 로도 한 번 더 확실히 숨긴다 (클래스 표시 + id 두 겹)
-    ['dayPlanAddBtn', 'calBranchManageBtn', 'branchManageBtn', 'staffManageBtn'].forEach(function (id) {
+    ['dayPlanAddBtn', 'topBranchManageBtn', 'branchManageBtn', 'calBranchManageBtn', 'staffManageBtn'].forEach(function (id) {
       var node = $(id);
       if (node) node.hidden = !admin;
     });
@@ -2647,10 +2903,8 @@
     var tabs = $('tabs');
     if (tabs) tabs.classList.remove('two');
 
-    // 직원은 작성자가 자기 이름으로 고정 (입력칸은 보이되 바꿀 수 없다)
-    $('inputAuthor').readOnly = !admin;
-    $('editAuthor').readOnly = false;   // 수정 창은 열 때 기록에 맞춰 다시 정한다
-    $('inputAuthor').title = admin ? '' : '작성자는 로그인한 이름으로 고정됩니다.';
+    // 작성자 칸은 화면에 보이지 않는다 — 로그인한 사람 이름이 자동으로 들어간다.
+    $('inputAuthor').value = AUTH.name || '';
 
 
     renderBranchChips();
@@ -2806,9 +3060,13 @@
     // 세션이 이미 끊겼으면 첫 자료 요청이 '로그인이 필요합니다'로 돌아오며 로그인 화면으로 간다.
     startApp();
     API.session().then(function (res) {
-      if (!res || res.ok === false) {
-        clearSession();
-        showLogin((res && res.error) || '로그인이 필요합니다. 다시 로그인해 주세요.');
+      if (!res) { return; }
+      if (res.ok === false) {
+        // 서버가 '인증 아님'이라고 밝힌 경우에만 세션을 지운다. 다른 오류면 저장된 세션으로 계속 쓴다.
+        if (res.code === 'auth') {
+          clearSession();
+          showLogin((res && res.error) || '로그인이 필요합니다. 다시 로그인해 주세요.');
+        }
         return;
       }
       AUTH.name = res.name || AUTH.name;
@@ -2878,22 +3136,44 @@
     renderDatalists();
   }
 
-  // 지점 관리(칩에 ✕ 표시) 켜기/끄기 — 등록 칸과 달력 지점 필터가 함께 바뀐다.
+  // 🏷️ 지점 관리 (관리자 · 직원관리 옆 버튼) — 잘못 등록된 지점을 목록에서 지운다.
+  //    기존 기록은 그대로 두고, 같은 이름을 새 기록에 다시 쓰면 목록에 돌아온다.
+  function openBranchModal() {
+    if (!isAdmin()) { toast('지점 관리는 관리자만 할 수 있습니다.', 'err'); return; }
+    $('branchModal').hidden = false;
+    renderBranchManageChips();
+  }
+
+  function closeBranchModal() {
+    $('branchModal').hidden = true;
+  }
+
+  function renderBranchManageChips() {
+    var box = $('branchManageChips');
+    if (!box) return;
+    clearNode(box);
+    var names = (state.branches || []).slice(0, 40);
+    $('branchManageEmpty').hidden = names.length > 0;
+    names.forEach(function (name) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'chip';
+      b.setAttribute('data-branch', name);
+      b.setAttribute('aria-label', name + ' 지점 목록에서 지우기');
+      b.textContent = name;
+      b.appendChild(el('span', 'chip-x', '✕'));
+      b.addEventListener('click', function () { askDeleteBranch(name); });
+      box.appendChild(b);
+    });
+  }
+
+  // 예전 화면의 '지점 관리' 토글 이름 — 이제 지점 관리 창을 연다.
   function setBranchEdit(on) {
     if (!isAdmin()) { toast('지점 관리는 관리자만 할 수 있습니다.', 'err'); return; }
-    state.branchEdit = (on === undefined) ? !state.branchEdit : !!on;
-    var label = state.branchEdit ? '✕ 지점 관리 끝내기' : '🏷️ 지점 관리';
-    ['branchManageBtn', 'calBranchManageBtn'].forEach(function (id) {
-      var btn = $(id);
-      if (!btn) return;
-      btn.classList.toggle('on', state.branchEdit);
-      btn.textContent = label;
-    });
-    var hint = $('branchManageHint');
-    if (hint) hint.hidden = !state.branchEdit;
-    renderBranchChips();
-    renderDatalists();
-    if (state.branchEdit) toast('지점 관리: 칩의 ✕ 를 누르면 목록에서 지울 수 있습니다.', 'ok');
+    var next = (on === undefined) ? !state.branchEdit : !!on;
+    state.branchEdit = next;
+    if (next) openBranchModal();
+    else closeBranchModal();
   }
 
   function renderBranchChips() {
@@ -2960,6 +3240,7 @@
       renderBranchChips();
       renderDatalists();
       refreshBranchPicks();
+      renderBranchManageChips();
 
       var kept = Number((res && res.recordsKept) || 0);
       toast("'" + name + "' 지점을 목록에서 지웠습니다." + (kept ? ' 기존 기록 ' + kept + '건은 그대로입니다.' : ''), 'ok');
@@ -3024,7 +3305,7 @@
     if (tab === 'requests') openRequests();
   }
 
-  // 작업사진 등록 칸 열기/닫기 (📅 작업 캘린더 안에서 열린다)
+  // 공사완료 업무일지 등록 칸 열기/닫기 (📅 일정 및 사진등록 안에서 열린다)
   function showWriteCard(on) {
     var card = $('writeCard');
     card.hidden = !on;
@@ -3032,7 +3313,10 @@
     var parts = [];
     if ($('inputDate').value) parts.push(formatDateLabel($('inputDate').value));
     if ($('inputBranch').value.trim()) parts.push($('inputBranch').value.trim());
-    $('writeSub').textContent = parts.length ? parts.join(' · ') + ' · 작업사진' : '날짜 · 지점 · 작성자 · 작업사진';
+    $('writeSub').textContent = parts.length
+      ? parts.join(' · ') + ' · 공사완료 업무일지'
+      : '날짜 · 지점 · 작업내용 · 작업인원 · 소요자재 · 노무비';
+    $('inputAuthor').value = AUTH.name || $('inputAuthor').value;
     if (typeof card.scrollIntoView === 'function') {
       try { card.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { card.scrollIntoView(); }
     }
@@ -3049,7 +3333,26 @@
     $('calBranchPick').addEventListener('change', function () { onBranchPick('cal'); });
     attachMonthSwipe('calGrid', function () { stepCalendarMonth(-1); }, function () { stepCalendarMonth(1); });
     $('calSearch').addEventListener('click', searchCalendarRange);
-    $('calPrint').addEventListener('click', onExportCalendarPeriod);
+    $('calPrint').addEventListener('click', openPrintModal);
+    $('printClose').addEventListener('click', closePrintModal);
+    $('printGo').addEventListener('click', onExportCalendarPeriod);
+    $('printBranch').addEventListener('change', updatePrintSummary);
+    ['printFrom', 'printTo'].forEach(function (id) {
+      $(id).addEventListener('change', updatePrintSummary);
+    });
+    $('printQuick').addEventListener('click', function (e) {
+      var chip = e.target && e.target.closest ? e.target.closest('.chip') : null;
+      if (!chip) return;
+      applyPrintQuick(chip.getAttribute('data-range'));
+    });
+    $('printModal').addEventListener('click', function (e) {
+      if (e && e.target === $('printModal')) closePrintModal();
+    });
+    // 노무비 — 숫자만 적으면 150,000원 으로 바꿔 보여 준다(글자는 그대로)
+    ['inputLaborCost', 'editLaborCost'].forEach(function (id) {
+      if (!$(id)) return;
+      $(id).addEventListener('blur', function () { $(id).value = formatLaborInput($(id).value); });
+    });
     ['calFrom', 'calTo'].forEach(function (id) {
       $(id).addEventListener('keydown', function (e) {
         if (e.key === 'Enter') { e.preventDefault(); searchCalendarRange(); }
@@ -3057,8 +3360,11 @@
     });
     $('dayPhotoBtn').addEventListener('click', registerPhotoForSelectedDate);
     $('dayPlanAddBtn').addEventListener('click', function () { openWorkScheduleModal(null, state.cal.selected); });
-    $('branchManageBtn').addEventListener('click', function () { setBranchEdit(); });
-    $('calBranchManageBtn').addEventListener('click', function () { setBranchEdit(); });
+    $('topBranchManageBtn').addEventListener('click', openBranchModal);
+    $('branchClose').addEventListener('click', closeBranchModal);
+    $('branchModal').addEventListener('click', function (e) {
+      if (e && e.target === $('branchModal')) closeBranchModal();
+    });
     $('inputBranch').addEventListener('input', renderBranchChips);
 
     // 작업 일정 등록·수정 창
@@ -3070,7 +3376,9 @@
     });
     $('writeClose').addEventListener('click', function () {
       state.prefill = null;
+      state.copyPhotos = [];
       renderPlanLink();
+      renderPhotos();
       showWriteCard(false);
     });
 
@@ -3150,6 +3458,7 @@
 
     $('searchBtn').addEventListener('click', function () { loadList(true); });
     $('exportBtn').addEventListener('click', onExport);
+    $('exportFullBtn').addEventListener('click', onExportFull);
     $('resetBtn').addEventListener('click', function () {
       $('filterBranch').value = '';
       $('filterAuthor').value = '';
@@ -3308,6 +3617,20 @@
   function renderPhotos() {
     var grid = $('photoGrid');
     grid.innerHTML = '';
+    // 완료처리로 넘어온 예정작업 사진 — 저장할 때 드라이브로 복사되어 이 업무일지 사진이 된다
+    (state.copyPhotos || []).forEach(function (p) {
+      var d = document.createElement('div');
+      d.className = 'photo-item existing';
+      d.innerHTML =
+        '<img src="' + esc(p.thumb || p.original || '') + '" alt="예정작업 사진">' +
+        '<button type="button" class="del" aria-label="사진 빼기">✕</button>' +
+        '<span class="badge-size">예정작업</span>';
+      d.querySelector('.del').addEventListener('click', function () {
+        state.copyPhotos = state.copyPhotos.filter(function (x) { return x !== p; });
+        renderPhotos();
+      });
+      grid.appendChild(d);
+    });
     state.photos.forEach(function (p) {
       var d = document.createElement('div');
       d.className = 'photo-item';
@@ -3322,16 +3645,18 @@
       grid.appendChild(d);
     });
 
-    var total = state.photos.reduce(function (s, p) { return s + (p.bytes || 0); }, 0);
-    if (!state.photos.length) {
-      $('photoSummary').textContent = '아직 선택한 사진이 없습니다.';
+    var copies = (state.copyPhotos || []).length;
+    var total = copies + state.photos.reduce(function (s, p) { return s + (p.bytes || 0); }, 0);
+    if (!copies && !state.photos.length) {
+      $('photoSummary').textContent = '사진 없이도 등록할 수 있습니다.';
     } else {
-      $('photoSummary').textContent = '사진 ' + state.photos.length + '장 · 약 ' + bytesLabel(total) +
-        ' (' + PHOTO_W + '×' + PHOTO_H + ' 변환됨)';
+      var parts = [];
+      if (copies) parts.push('예정작업 사진 ' + copies + '장');
+      if (state.photos.length) parts.push('새 사진 ' + state.photos.length + '장 · ' + PHOTO_W + '×' + PHOTO_H + ' 변환됨 · 약 ' + bytesLabel(total));
+      $('photoSummary').textContent = '사진 ' + (copies + state.photos.length) + '장 (' + parts.join(' · ') + ')';
     }
-    $('submitBtn').textContent = state.photos.length
-      ? '사진 ' + state.photos.length + '장 등록하기'
-      : '등록하기';
+    var count = copies + state.photos.length;
+    $('submitBtn').textContent = count ? '사진 ' + count + '장 포함해 등록하기' : '등록하기';
   }
 
   /* ================================================================
@@ -3343,22 +3668,28 @@
 
     var date = $('inputDate').value;
     var branch = $('inputBranch').value.trim();
-    var author = $('inputAuthor').value.trim();
+    // 작성자는 화면에 보이지 않는다 — 항상 로그인한 사람 이름으로 저장된다.
+    var author = AUTH.name || $('inputAuthor').value.trim();
     var memo = $('inputMemo').value.trim();
 
+    // 날짜·지점만 고르면 나머지(작업내용·인원·시간·자재·노무비·사진)는 비어 있어도 저장된다.
     if (!date) { toast('작업 날짜를 선택해 주세요.', 'err'); $('inputDate').focus(); return; }
     if (!branch) { toast('지점명을 입력해 주세요.', 'err'); $('inputBranch').focus(); return; }
-    if (!author) { toast('작성자 이름을 입력해 주세요.', 'err'); $('inputAuthor').focus(); return; }
-    if (!state.photos.length) { toast('작업사진을 1장 이상 올려 주세요.', 'err'); return; }
 
     rememberAuthor(author);
     rememberBranch(branch);
+    $('inputAuthor').value = author;
 
     var payload = {
       date: date,
       branch: branch,
       author: author,
       memo: memo,
+      workPeople: $('inputWorkPeople').value.trim(),
+      workHours: $('inputWorkHours').value.trim(),
+      materials: $('inputMaterials').value.trim(),
+      laborCost: $('inputLaborCost').value.trim(),
+      copyPhotoIds: (state.copyPhotos || []).map(function (p) { return p.id || ''; }).filter(function (v) { return v; }),
       scheduleId: (state.prefill && state.prefill.kind !== 'work' && state.prefill.id) || '',
       workScheduleId: (state.prefill && state.prefill.kind === 'work' && state.prefill.id) || '',
       images: state.photos.map(function (p) {
@@ -3368,7 +3699,8 @@
 
     state.loading = true;
     $('submitBtn').disabled = true;
-    showLoading('등록하는 중…', '사진 ' + state.photos.length + '장을 저장하고 있어요');
+    var photoTotal = payload.images.length + payload.copyPhotoIds.length;
+    showLoading('등록하는 중…', photoTotal ? '사진 ' + photoTotal + '장을 저장하고 있어요' : '업무일지를 저장하고 있어요');
 
     API.save(payload).then(function (res) {
       var err = apiError(res);
@@ -3379,14 +3711,17 @@
       state.loading = false;
       $('submitBtn').disabled = false;
 
-      var saved = (res && res.record && res.record.photoCount) || state.photos.length;
-      toast('등록 완료! 사진 ' + saved + '장이 저장되었습니다.', 'ok');
+      var saved = (res && res.record && res.record.photoCount) || 0;
+      toast('등록 완료! ' + (saved ? '사진 ' + saved + '장이 저장되었습니다.' : '공사완료 업무일지를 저장했습니다.'), 'ok');
       if (warnings.length) setTimeout(function () { toast(warnings[0], 'err'); }, 1800);
 
       reviveBranch(branch);
       state.photos = [];
+      state.copyPhotos = [];
       renderPhotos();
-      $('inputMemo').value = '';
+      ['inputMemo', 'inputWorkPeople', 'inputWorkHours', 'inputMaterials', 'inputLaborCost'].forEach(function (id) {
+        if ($(id)) $(id).value = '';
+      });
       state.listDirty = true;
       state.listLoaded = false;
       // 매장 요청 연결은 풀고, 등록한 날짜가 보이는 📅 작업 캘린더로 돌아가 새 기록을 바로 보여 준다
@@ -3496,10 +3831,18 @@
           '<span class="record-time">' + esc(timeLabel(r.registeredAt)) + '</span>' +
         '</div>' +
         (r.memo ? '<p class="record-memo">' + esc(r.memo) + '</p>' : '') +
+        (function () {
+          var facts = [['작업인원', r.workPeople], ['작업소요시간', r.workHours], ['소요자재', r.materials], ['노무비', r.laborCost]]
+            .filter(function (f) { return String(f[1] || '').trim(); });
+          if (!facts.length) return '';
+          return '<div class="rec-facts">' + facts.map(function (f) {
+            return '<span class="rec-fact">' + esc(f[0]) + ' <b>' + esc(String(f[1]).trim()) + '</b></span>';
+          }).join('') + '</div>';
+        })() +
         (thumbs ? '<div class="thumbs">' + thumbs + '</div>' : '') +
         '<div class="record-actions">' +
-          (canEditRecord(r) ? '<button type="button" class="rec-edit" data-record="' + ri + '" aria-label="이 작업사진 기록 수정">✏️ 수정</button>' : '') +
-          (isAdmin() ? '<button type="button" class="rec-del" data-record="' + ri + '" aria-label="이 작업사진 기록 삭제">🗑️ 삭제</button>' : '') +
+          (canEditRecord(r) ? '<button type="button" class="rec-edit" data-record="' + ri + '" aria-label="이 공사완료 업무일지 수정">✏️ 수정</button>' : '') +
+          (canEditRecord(r) ? '<button type="button" class="rec-del" data-record="' + ri + '" aria-label="이 공사완료 업무일지 삭제">🗑️ 삭제</button>' : '') +
         '</div>' +
       '</article>';
     }).join('');
@@ -3547,6 +3890,31 @@
       hideLoading();
       btn.disabled = false;
       toast('워드 파일을 내려받았습니다. (' + (res.count || records.length) + '건)', 'ok');
+    }).catch(function (err) {
+      hideLoading();
+      btn.disabled = false;
+      toast((err && err.message) || '워드 파일을 만들지 못했습니다.', 'err');
+    });
+  }
+
+  // 📄 전체 상세 워드 — 지점·날짜·작업내용·작업인원·작업소요시간·소요자재·노무비 + 사진
+  function onExportFull() {
+    if (state.loading) return;
+    var records = state.records || [];
+    if (state.listSearched && !records.length) { toast('출력할 내역이 없습니다.', 'err'); return; }
+
+    var btn = $('exportFullBtn');
+    btn.disabled = true;
+    showLoading('업무일지 상세 만드는 중…',
+      records.length ? records.length + '건의 항목과 사진을 문서에 담고 있어요'
+                    : '조회 조건에 맞는 항목과 사진을 문서에 담고 있어요');
+
+    API.exportFullDoc(currentFilters()).then(function (res) {
+      if (!res || res.ok === false) throw new Error((res && res.error) || '워드 파일을 만들지 못했습니다.');
+      saveFile(res);
+      hideLoading();
+      btn.disabled = false;
+      toast('업무일지 상세 워드 파일을 내려받았습니다. (' + (res.count || records.length) + '건)', 'ok');
     }).catch(function (err) {
       hideLoading();
       btn.disabled = false;
@@ -3866,28 +4234,109 @@
     toast(from + ' ~ ' + to + ' 기간으로 조회했습니다.', 'ok');
   }
 
-  // 📄 인쇄 — 지금 기간의 작업사진을 워드(.docx)로 내려받는다
-  function onExportCalendarPeriod() {
+  /* ------------------------------------------------------------------
+   * 📄 업무일지 출력 — 지점(전체/한 지점)과 기간(월·일·전체)을 직접 골라
+   *    그 조건의 공사완료 업무일지만 날짜 내림차순으로 워드에 담는다(사진 없음).
+   * ------------------------------------------------------------------ */
+  function openPrintModal() {
     var cal = state.cal;
-    var btn = $('calPrint');
-    if (!btn || btn.disabled) return;
-    // 인쇄는 지금 입력칸에 적힌 기간을 따른다 (조회를 누르지 않았어도 그 기간으로)
-    var from = $('calFrom').value || cal.from;
-    var to = $('calTo').value || cal.to;
-    if (!from || !to) { toast('기간을 먼저 골라 주세요.', 'err'); return; }
-    if (from > to) { var t = from; from = to; to = t; }
-    btn.disabled = true;
-    showLoading('워드 파일 만드는 중…', from + ' ~ ' + to + ' 작업사진을 문서에 담고 있어요');
-    API.exportDoc({ from: from, to: to, branch: cal.branch || '' }).then(function (res) {
-      if (!res || res.ok === false) throw new Error((res && res.error) || '워드 파일을 만들지 못했습니다.');
+    $('printFrom').value = $('calFrom').value || cal.from || '';
+    $('printTo').value = $('calTo').value || cal.to || '';
+    renderPrintBranchPick();
+    updatePrintSummary();
+    $('printGo').disabled = false;
+    $('printModal').hidden = false;
+  }
+
+  function closePrintModal() {
+    $('printModal').hidden = true;
+  }
+
+  function renderPrintBranchPick() {
+    var pick = $('printBranch');
+    if (!pick) return;
+    pick.innerHTML = '';
+    var all = document.createElement('option');
+    all.value = '';
+    all.textContent = '전체 지점';
+    pick.appendChild(all);
+    (state.branches || []).forEach(function (name) {
+      var opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = name;
+      pick.appendChild(opt);
+    });
+    var want = state.cal.branch || '';
+    pick.value = want;
+    // 목록에 없던 지점이 달력에 걸려 있으면 한 번 더 넣어 준다
+    if (want && pick.value !== want) {
+      var extra = document.createElement('option');
+      extra.value = want;
+      extra.textContent = want;
+      pick.appendChild(extra);
+      pick.value = want;
+    }
+  }
+
+  // 이번 달 / 지난달 / 최근 30일 / 전체 기간
+  function applyPrintQuick(kind) {
+    var today = todayStr();
+    var month = nowMonth();
+    if (kind === 'this_month') {
+      $('printFrom').value = month + '-01';
+      $('printTo').value = month + '-' + pad(daysInMonth(month));
+    } else if (kind === 'last_month') {
+      var prev = shiftMonth(month, -1);
+      $('printFrom').value = prev + '-01';
+      $('printTo').value = prev + '-' + pad(daysInMonth(prev));
+    } else if (kind === '30') {
+      $('printFrom').value = addDays(today, -29);
+      $('printTo').value = today;
+    } else if (kind === 'all') {
+      $('printFrom').value = '';
+      $('printTo').value = '';
+    }
+    var box = $('printQuick');
+    if (box && box.querySelectorAll) {
+      Array.prototype.forEach.call(box.querySelectorAll('.chip'), function (chip) {
+        chip.classList.toggle('active', chip.getAttribute('data-range') === kind);
+      });
+    }
+    updatePrintSummary();
+  }
+
+  function updatePrintSummary() {
+    var from = $('printFrom').value || '';
+    var to = $('printTo').value || '';
+    var branch = $('printBranch').value || '';
+    var period = (!from && !to) ? '전체 기간'
+      : (from && to ? (from === to ? formatDateLabel(from) : formatDateLabel(from) + ' ~ ' + formatDateLabel(to))
+        : formatDateLabel(from || to) + ' 부터');
+    $('printSummary').textContent = '선택: ' + period + ' · ' + (branch || '전체 지점') +
+      ' — 이 조건의 공사완료 업무일지만 날짜 최신순으로 나갑니다.';
+  }
+
+  // 📄 인쇄 — 고른 지점·기간의 공사완료 업무일지를 워드(.docx)로 내려받는다
+  function onExportCalendarPeriod() {
+    var btn = $('printGo');
+    if (btn && btn.disabled) return;
+    var from = $('printFrom').value || '';
+    var to = $('printTo').value || '';
+    if (from && to && from > to) { var t = from; from = to; to = t; $('printFrom').value = from; $('printTo').value = to; }
+    var branch = $('printBranch').value || '';
+    if (btn) btn.disabled = true;
+    showLoading('업무일지 만드는 중…', (branch || '전체 지점') + ' · ' + (from && to ? from + ' ~ ' + to : '전체 기간'));
+    API.exportSummary({ from: from, to: to, branch: branch }).then(function (res) {
+      if (!res || res.ok === false) throw new Error((res && res.error) || '업무일지를 만들지 못했습니다.');
       saveFile(res);
       hideLoading();
-      btn.disabled = false;
-      toast('워드 파일을 내려받았습니다. (' + (res.count || 0) + '건)', 'ok');
+      if (btn) btn.disabled = false;
+      closePrintModal();
+      toast('업무일지 워드 파일을 내려받았습니다. (' + (res.count || 0) + '건)', 'ok');
     }).catch(function (err) {
       hideLoading();
-      btn.disabled = false;
-      toast((err && err.message) || '워드 파일을 만들지 못했습니다.', 'err');
+      if (btn) btn.disabled = false;
+      toast((err && err.message) || '업무일지를 만들지 못했습니다.', 'err');
     });
   }
 
@@ -3979,11 +4428,12 @@
     return (state.cal.plans || []).filter(function (p) { return p.date === dateStr; });
   }
 
-  // 날짜 칸 배지 — 아이콘 + 지점명 (건수·말줄임 없이 이름만)
-  function calBadgeEl(kind, icon, name) {
+  // 날짜 칸 배지 — 아이콘 + 지점명 (건수·말줄임 없이 이름만), 완료면 작은 '완료' 표시
+  function calBadgeEl(kind, icon, name, tag) {
     var badge = el('span', 'cal-badge ' + kind);
     badge.appendChild(el('span', 'cal-badge-ico', icon));
     badge.appendChild(el('span', 'cal-badge-name', name));
+    if (tag) badge.appendChild(el('span', 'cal-badge-tag', tag));
     return badge;
   }
 
@@ -4142,7 +4592,7 @@
       branchNamesOf(plans).forEach(function (branch) {
         var mine = plans.filter(function (p) { return String(p.branch || '지점 미지정') === branch; });
         var allDone = mine.every(function (p) { return p.status === '완료'; });
-        cell.appendChild(calBadgeEl('work' + (allDone ? ' done' : ''), '📋', branch));
+        cell.appendChild(calBadgeEl('work' + (allDone ? ' done' : ''), '📋', branch, allDone ? '✓완료' : ''));
       });
 
       (function (ds) {
@@ -4161,7 +4611,7 @@
       var all = (cal.records || []).filter(function (r) { return inCalendarRange(r.date); });
       var shots = all.reduce(function (n, r) { return n + (r.photoCount || (r.photos || []).length); }, 0);
       var planCount = (cal.plans || []).filter(function (p) { return inCalendarRange(p.date); }).length;
-      summary.textContent = branchPrefix(cal.branch) + visiblePeriodLabel(cal) + ' 작업사진 ' + all.length + '건 · 사진 ' + shots + '장 · 작업 일정 ' + planCount + '건' +
+      summary.textContent = branchPrefix(cal.branch) + visiblePeriodLabel(cal) + ' 공사완료 업무일지 ' + all.length + '건 · 사진 ' + shots + '장 · 예정작업 ' + planCount + '건' +
         (cal.syncing ? ' · 동기화 중…' : '');
       if (cal.error) summary.className = 'cal-summary err';
     }
@@ -4179,12 +4629,14 @@
   // 캘린더에서 고른 날짜로 바로 작업사진 등록 — 등록 칸을 열고 날짜를 채운다.
   function registerPhotoForSelectedDate() {
     var date = state.cal.selected || todayStr();
-    state.prefill = null;          // 매장 요청 연결 없이 일반 등록으로 시작
+    state.prefill = null;          // 예정작업 연결 없이 일반 등록으로 시작
+    state.copyPhotos = [];
     $('inputDate').value = date;
     renderBranchChips();
     renderPlanLink();
+    renderPhotos();
     showWriteCard(true);
-    toast(formatDateLabel(date) + ' 작업사진을 등록합니다. 사진을 올리고 [등록하기]를 눌러 주세요.', 'ok');
+    toast(formatDateLabel(date) + ' 공사완료 업무일지를 적습니다. 필요한 칸만 채우고 [등록하기]를 눌러 주세요.', 'ok');
   }
 
   function renderDayDetail() {
@@ -4200,37 +4652,37 @@
     ensurePlanDayPhotos(date);
 
     $('dayTitle').textContent = koreanDate(date) + ' (' + WEEKDAY[weekdayOf(date)] + ')';
-    $('daySub').textContent = '작업 일정 ' + plans.length + '건' + (planPhotos ? '(사진 ' + planPhotos + '장)' : '') +
-      ' · 작업사진 ' + lights.length + '건(사진 ' + photos + '장)' +
-      ((cal.dayLoading[date] && !dayReady) || cal.planDayLoading[date] ? ' · 사진 불러오는 중…' : '');
+    $('daySub').textContent = '공사완료 업무일지 ' + lights.length + '건(사진 ' + photos + '장)' +
+      ' · 예정작업 ' + plans.length + '건' + (planPhotos ? '(사진 ' + planPhotos + '장)' : '') +
+      ((cal.dayLoading[date] && !dayReady) || cal.planDayLoading[date] ? ' · 불러오는 중…' : '');
 
     var box = $('dayDetail');
     clearNode(box);
 
-    // 1) 그 날의 작업 일정 (작업일정 시트) — 번들로 이미 받아 두어 바로 그린다
-    box.appendChild(el('div', 'day-section-title', '📋 작업 일정 ' + plans.length + '건'));
-    if (!plans.length) {
-      box.appendChild(el('div', 'day-empty', '이 날짜에 잡힌 작업 일정이 없습니다. [+ 이 날 작업 일정]으로 적어 두면 이 날짜 칸에 표시되고, 사진을 올리면 [완료]로 바뀝니다.'));
+    // 1) 그 날 완료한 공사완료 업무일지 — 글은 바로, 사진은 날짜를 눌렀을 때 받아 채운다
+    box.appendChild(el('div', 'day-section-title', '📷 공사완료 업무일지 ' + lights.length + '건'));
+    if (!lights.length) {
+      box.appendChild(el('div', 'day-empty', '이 날 적은 공사완료 업무일지가 없습니다. [📷 이 날 업무일지 등록]으로 바로 적을 수 있고, 예정작업을 [✅ 완료처리]해도 여기에 쌓입니다.'));
     } else {
-      plans.forEach(function (p) { box.appendChild(workScheduleItemEl(p)); });
+      lights.forEach(function (light) {
+        var full = matchDayRecord(date, light);
+        if (full) {
+          box.appendChild(dayRecordEl(full));
+        } else {
+          box.appendChild(dayRecordEl(light, true));
+        }
+      });
+      if (cal.dayError[date] && !dayReady) {
+        box.appendChild(el('div', 'day-empty', cal.dayError[date]));
+      }
     }
 
-    // 2) 그 날 등록된 작업사진 — 글은 바로, 사진은 날짜를 눌렀을 때 받아 채운다
-    box.appendChild(el('div', 'day-section-title', '📷 등록된 작업사진 ' + lights.length + '건'));
-    if (!lights.length) {
-      box.appendChild(el('div', 'day-empty', '이 날 등록된 작업사진이 없습니다. [📷 이 날 작업사진 등록]으로 사진을 올리면 이 날짜 칸에 저절로 나타납니다.'));
-      return;
-    }
-    lights.forEach(function (light) {
-      var full = matchDayRecord(date, light);
-      if (full) {
-        box.appendChild(dayRecordEl(full));
-      } else {
-        box.appendChild(dayRecordEl(light, true));
-      }
-    });
-    if (cal.dayError[date] && !dayReady) {
-      box.appendChild(el('div', 'day-empty', cal.dayError[date]));
+    // 2) 그 날의 예정작업 (작업일정 시트) — 번들로 이미 받아 두어 바로 그린다
+    box.appendChild(el('div', 'day-section-title', '📋 예정작업 ' + plans.length + '건'));
+    if (!plans.length) {
+      box.appendChild(el('div', 'day-empty', '이 날짜에 잡힌 예정작업이 없습니다. [+ 이 날 예정작업]으로 적어 두면 이 날짜 칸에 표시되고, [✅ 완료처리]하면 공사완료 업무일지로 넘어갑니다.'));
+    } else {
+      plans.forEach(function (p) { box.appendChild(workScheduleItemEl(p)); });
     }
   }
 
@@ -4263,18 +4715,18 @@
     });
   }
 
-  /* ---------- 작업 일정 카드 (📅 일정 및 사진등록 탭) ---------- */
+  /* ---------- 예정작업 카드 (📅 일정 및 사진등록 탭) ---------- */
   function workScheduleItemEl(plan) {
     var done = plan.status === '완료';
     var item = el('div', 'sched-item work-item' + (done ? ' done' : ''));
     var top = el('div', 'sched-top');
     top.appendChild(el('span', 'sched-branch', plan.branch));
-    top.appendChild(el('span', 'sched-status' + (done ? ' done' : ''), done ? '✓ 완료' : '일정 예정'));
+    top.appendChild(el('span', 'sched-status' + (done ? ' done' : ''), done ? '✓ 완료' : '예정'));
     item.appendChild(top);
     if (plan.task) item.appendChild(el('p', 'sched-task', plan.task));
     if (plan.memo) item.appendChild(el('p', 'sched-memo', plan.memo));
 
-    // 📷 일정에 붙은 사진 — 아직 안 받았으면 '불러오는 중' 자리
+    // 📷 예정작업에 붙은 사진 — 아직 안 받았으면 '불러오는 중' 자리
     var full = fullPlanFor('work', plan);
     if (full && (full.photos || []).length) item.appendChild(schedPhotoRow_(full));
     else if ((plan.photoCount || 0) > 0) item.appendChild(schedPhotoWaitEl_(plan.photoCount));
@@ -4286,22 +4738,30 @@
     if (meta.length) item.appendChild(el('div', 'sched-meta', meta.join(' · ')));
 
     var actions = el('div', 'sched-actions');
-    var photoBtn = el('button', 'primary do-work-photo', '📷 작업완료(사진등록)');
-    photoBtn.setAttribute('type', 'button');
-    photoBtn.addEventListener('click', function () { startPhotoFromWorkSchedule(plan); });
-    actions.appendChild(photoBtn);
+    if (!done) {
+      // 완료처리 → 지점·날짜·작업내용·붙은 사진이 그대로 채워진 확인 입력창이 열린다(공사완료 업무일지)
+      var doneBtn = el('button', 'primary do-work-photo do-work-done', '✅ 완료처리');
+      doneBtn.setAttribute('type', 'button');
+      doneBtn.setAttribute('title', '지점·날짜·작업내용·사진이 채워진 업무일지 확인창이 열립니다. 인원·시간·자재·노무비를 적고 저장하면 완료됩니다.');
+      doneBtn.addEventListener('click', function () { startCompletionFromWorkSchedule(plan); });
+      actions.appendChild(doneBtn);
+    } else {
+      item.appendChild(el('div', 'sched-done-note', '✓ 완료처리됨 — 공사완료 업무일지에 기록되었습니다. (같은 예정작업은 다시 완료처리되지 않습니다)'));
+    }
 
     if (isAdmin()) {
       var editBtn = el('button', 'edit do-work-edit', '✏️ 수정');
       editBtn.setAttribute('type', 'button');
-      editBtn.setAttribute('aria-label', '이 작업 일정 수정');
+      editBtn.setAttribute('aria-label', '이 예정작업 수정');
       editBtn.addEventListener('click', function () { openWorkScheduleModal(plan); });
       actions.appendChild(editBtn);
 
-      var toggle = el('button', 'do-work-toggle', done ? '↩ 예정으로 되돌리기' : '✅ 완료 처리');
-      toggle.setAttribute('type', 'button');
-      toggle.addEventListener('click', function () { setWorkScheduleStatus(plan, done ? '예정' : '완료'); });
-      actions.appendChild(toggle);
+      if (done) {
+        var undo = el('button', 'do-work-toggle', '↩ 예정으로 되돌리기');
+        undo.setAttribute('type', 'button');
+        undo.addEventListener('click', function () { setWorkScheduleStatus(plan, '예정'); });
+        actions.appendChild(undo);
+      }
 
       var del = el('button', 'danger do-work-delete', '🗑️ 삭제');
       del.setAttribute('type', 'button');
@@ -4313,8 +4773,16 @@
     return item;
   }
 
-  // 작업 일정 → 작업사진 등록 칸으로 날짜·지점·작업내용을 채워 넘어간다 (저장하면 그 일정은 완료)
-  function startPhotoFromWorkSchedule(plan) {
+  /**
+   * ✅ 완료처리 — 예정작업의 지점·날짜·작업내용·사진을 그대로 채운 업무일지 확인창을 연다.
+   * 여기서 작업인원·작업소요시간·소요자재·노무비를 더 적고 저장하면 그 예정작업이 [완료]가 된다.
+   */
+  function startCompletionFromWorkSchedule(plan) {
+    if (!plan) return;
+    if (plan.status === '완료') {
+      toast('이미 완료처리된 예정작업입니다. 같은 예정작업은 다시 완료처리되지 않습니다.', 'err');
+      return;
+    }
     state.prefill = {
       kind: 'work',
       id: plan.id || '',
@@ -4325,20 +4793,39 @@
     $('inputDate').value = plan.date;
     $('inputBranch').value = plan.branch;
     if (plan.task) $('inputMemo').value = plan.task;
-    if (!$('inputAuthor').value.trim()) $('inputAuthor').value = store.get(LS.author, '') || plan.author || '';
+    $('inputAuthor').value = AUTH.name || '';
+    state.copyPhotos = [];
     renderBranchChips();
     renderPlanLink();
+    renderPhotos();
     switchTab('calendar');
     showWriteCard(true);
-    toast('작업 일정 내용을 채웠습니다. 사진을 올리고 [등록하기]를 누르면 이 일정이 완료로 바뀝니다.', 'ok');
+
+    // 예정작업에 붙은 사진을 그대로 가져와 확인창에 보여 준다 (저장하면 드라이브로 복사됨)
+    var full = fullPlanFor('work', plan);
+    if (full && (full.photos || []).length) {
+      state.copyPhotos = (full.photos || []).slice();
+      renderPhotos();
+    } else if ((plan.photoCount || 0) > 0) {
+      API.listWorkSchedules({ date: plan.date, branch: state.cal.branch }).then(function (res) {
+        if (!state.prefill || state.prefill.kind !== 'work' || state.prefill.id !== plan.id) return;
+        var list = (res && (res.schedules || res.requests)) || [];
+        var hit = null;
+        for (var i = 0; i < list.length; i++) { if (list[i].id === plan.id) { hit = list[i]; break; } }
+        state.copyPhotos = ((hit && hit.photos) || []).slice();
+        renderPhotos();
+      }).catch(function () { /* 사진을 못 받아도 나머지 칸으로 저장할 수 있다 */ });
+    }
+
+    toast('예정작업 내용을 채웠습니다. 작업인원·소요시간·소요자재·노무비를 적고 [등록하기]를 누르면 완료처리됩니다.', 'ok');
   }
 
   function setWorkScheduleStatus(plan, status) {
-    if (!isAdmin()) { toast('일정 변경은 관리자만 할 수 있습니다.', 'err'); return; }
+    if (!isAdmin()) { toast('예정작업 변경은 관리자만 할 수 있습니다.', 'err'); return; }
     API.updateWorkScheduleStatus(plan.id, status).then(function (res) {
       if (!res || res.ok === false) throw new Error((res && res.error) || '상태를 바꾸지 못했습니다.');
       plan.status = status;
-      toast(status === '완료' ? '작업 일정을 완료로 표시했습니다.' : '다시 일정 예정으로 되돌렸습니다.', 'ok');
+      toast(status === '완료' ? '예정작업을 완료로 표시했습니다.' : '다시 예정으로 되돌렸습니다.', 'ok');
       state.cal.loaded = false;
       loadCalendar(true);
     }).catch(function (err) {
@@ -4347,35 +4834,35 @@
   }
 
   function removeWorkSchedule(plan) {
-    if (!isAdmin()) { toast('일정 삭제는 관리자만 할 수 있습니다.', 'err'); return; }
-    var ask = '이 작업 일정을 지울까요?\n\n' + plan.branch + ' · ' + formatDateLabel(plan.date) +
-      (plan.task ? '\n' + plan.task : '') + '\n\n(이미 올린 작업사진은 그대로 남습니다)';;
+    if (!isAdmin()) { toast('예정작업 삭제는 관리자만 할 수 있습니다.', 'err'); return; }
+    var ask = '이 예정작업을 지울까요?\n\n' + plan.branch + ' · ' + formatDateLabel(plan.date) +
+      (plan.task ? '\n' + plan.task : '') + '\n\n(이미 적은 공사완료 업무일지는 그대로 남습니다)';
     if (typeof confirm === 'function' && !confirm(ask)) return;
     API.deleteWorkSchedule(plan.id).then(function (res) {
-      if (!res || res.ok === false) throw new Error((res && res.error) || '작업 일정을 지우지 못했습니다.');
-      toast('작업 일정을 지웠습니다.', 'ok');
+      if (!res || res.ok === false) throw new Error((res && res.error) || '예정작업을 지우지 못했습니다.');
+      toast('예정작업을 지웠습니다.', 'ok');
       state.cal.loaded = false;
       loadCalendar(true);
     }).catch(function (err) {
-      toast((err && err.message) || '작업 일정을 지우지 못했습니다.', 'err');
+      toast((err && err.message) || '예정작업을 지우지 못했습니다.', 'err');
     });
   }
 
   /* ---------- 작업 일정 등록·수정 창 ---------- */
   function openWorkScheduleModal(plan, dateStr) {
-    if (!isAdmin()) { toast('작업 일정은 관리자만 등록·수정할 수 있습니다.', 'err'); return; }
+    if (!isAdmin()) { toast('예정작업은 관리자만 등록·수정할 수 있습니다.', 'err'); return; }
     state.workEdit = plan || null;
     var date = plan ? plan.date : (dateStr || state.cal.selected || todayStr());
-    $('workTitle').textContent = plan ? '작업 일정 수정' : '작업 일정 등록';
-    $('workSave').textContent = plan ? '💾 수정 저장' : '작업 일정 등록';
+    $('workTitle').textContent = plan ? '예정작업 수정' : '예정작업 등록';
+    $('workSave').textContent = plan ? '💾 수정 저장' : '예정작업 등록';
     $('workMeta').hidden = !plan;
     $('workMeta').textContent = plan
-      ? '일정 ' + (plan.id || '') + ' · ' + (plan.status === '완료' ? '완료' : '일정 예정')
+      ? '예정작업 ' + (plan.id || '') + ' · ' + (plan.status === '완료' ? '완료' : '예정')
       : '';
     $('workDate').value = date;
     $('workBranch').value = plan ? (plan.branch || '') : (state.cal.branch || $('inputBranch').value.trim() || state.branches[0] || '');
     $('workTask').value = plan ? (plan.task || '') : '';
-    $('workAuthor').value = plan ? (plan.author || '') : (store.get(LS.author, '') || $('inputAuthor').value.trim());
+    $('workAuthor').value = AUTH.name || (plan && plan.author) || '';
     $('workMemo').value = plan ? (plan.memo || '') : '';
     $('workSave').disabled = false;
     renderWorkBranchChips();
@@ -4416,13 +4903,12 @@
       date: $('workDate').value,
       branch: $('workBranch').value.trim(),
       task: $('workTask').value.trim(),
-      author: $('workAuthor').value.trim(),
+      author: AUTH.name || $('workAuthor').value.trim(),
       memo: $('workMemo').value.trim(),
       images: photoData.newPhotos
     };
-    if (!payload.date) { toast('일정 날짜를 선택해 주세요.', 'err'); return; }
+    if (!payload.date) { toast('예정 날짜를 선택해 주세요.', 'err'); return; }
     if (!payload.branch) { toast('지점명을 입력해 주세요.', 'err'); return; }
-    if (!payload.task) { toast('작업내용을 입력해 주세요.', 'err'); return; }
 
     var editing = state.workEdit;
     var btn = $('workSave');
@@ -4447,20 +4933,20 @@
     }
 
     if (photoData.newPhotos.length) {
-      showLoading(editing ? '작업 일정 수정 중…' : '작업 일정 등록 중…', '사진 ' + photoData.newPhotos.length + '장을 함께 올리고 있어요');
+      showLoading(editing ? '예정작업 수정 중…' : '예정작업 등록 중…', '사진 ' + photoData.newPhotos.length + '장을 함께 올리고 있어요');
     }
 
     call.then(function (res) {
       hideLoadingSoon();
       btn.disabled = false;
-      if (!res || res.ok === false) throw new Error((res && res.error) || '작업 일정을 저장하지 못했습니다.');
+      if (!res || res.ok === false) throw new Error((res && res.error) || '예정작업을 저장하지 못했습니다.');
       var warnings = (res && res.warnings) || [];
       var savedCount = (res.schedule && res.schedule.photoCount) || 0;
       closeWorkScheduleModal();
       reviveBranch(payload.branch);
       rememberBranch(payload.branch);
       if (payload.author) rememberAuthor(payload.author);
-      toast((editing ? '작업 일정을 수정했습니다. (' : '작업 일정을 등록했습니다. (') + formatDateLabel(payload.date) +
+      toast((editing ? '예정작업을 수정했습니다. (' : '예정작업을 등록했습니다. (') + formatDateLabel(payload.date) +
         (savedCount ? ' · 사진 ' + savedCount + '장' : '') + ')', 'ok');
       if (warnings.length) setTimeout(function () { toast(warnings[0], 'err'); }, 1800);
       // 수정한 날짜(미래·다른 달 포함)가 달력에 바로 보이게 그 달로 맞춘다
@@ -4469,8 +4955,27 @@
     }).catch(function (err) {
       hideLoading();
       btn.disabled = false;
-      toast((err && err.message) || '작업 일정을 저장하지 못했습니다.', 'err');
+      toast((err && err.message) || '예정작업을 저장하지 못했습니다.', 'err');
     });
+  }
+
+  // 화면 카드에 보여 줄 업무일지 값 (작업인원 · 작업소요시간 · 소요자재 · 노무비)
+  function recordFactsEl(record) {
+    var facts = [
+      ['작업인원', record.workPeople],
+      ['작업소요시간', record.workHours],
+      ['소요자재', record.materials],
+      ['노무비', record.laborCost]
+    ].filter(function (f) { return String(f[1] || '').trim(); });
+    if (!facts.length) return null;
+    var box = el('div', 'rec-facts');
+    facts.forEach(function (f) {
+      var chip = el('span', 'rec-fact');
+      chip.appendChild(el('span', '', f[0] + ' '));
+      chip.appendChild(el('b', '', String(f[1]).trim()));
+      box.appendChild(chip);
+    });
+    return box;
   }
 
   function dayRecordEl(record, pending) {
@@ -4481,6 +4986,8 @@
     top.appendChild(el('span', 'record-time', timeLabel(record.registeredAt)));
     card.appendChild(top);
     if (record.memo) card.appendChild(el('p', 'rec-memo', record.memo));
+    var facts = recordFactsEl(record);
+    if (facts) card.appendChild(facts);
 
     var photos = record.photos || [];
     if (pending) {
@@ -4505,15 +5012,15 @@
     if (canEditRecord(record)) {
       var editBtn = el('button', 'edit do-rec-edit', '✏️ 수정');
       editBtn.setAttribute('type', 'button');
-      editBtn.setAttribute('aria-label', '이 작업사진 기록 수정');
+      editBtn.setAttribute('aria-label', '이 공사완료 업무일지 수정');
       // 사진까지 받은 기록으로 수정 창을 연다 (아직이면 그 날 사진을 먼저 받는다)
       editBtn.addEventListener('click', function () { withDayRecord(record, openEditModal); });
       actions.appendChild(editBtn);
-    }
-    if (isAdmin()) {
+
+      // 직원도 본인이 쓴 글은 지울 수 있고, 관리자는 전체를 지울 수 있다.
       var del = el('button', 'danger do-rec-delete', '🗑️ 삭제');
       del.setAttribute('type', 'button');
-      del.setAttribute('aria-label', '이 작업사진 기록 삭제');
+      del.setAttribute('aria-label', '이 공사완료 업무일지 삭제');
       del.addEventListener('click', function () { withDayRecord(record, removeWorkRecord); });
       actions.appendChild(del);
     }
@@ -4901,12 +5408,14 @@
       branch: plan.branch,
       task: plan.task || ''
     };
+    state.copyPhotos = [];
     $('inputDate').value = plan.date;
     $('inputBranch').value = plan.branch;
     if (plan.task) $('inputMemo').value = plan.task;
-    if (!$('inputAuthor').value.trim()) $('inputAuthor').value = store.get(LS.author, '') || plan.author || '';
+    $('inputAuthor').value = AUTH.name || '';
     renderBranchChips();
     renderPlanLink();
+    renderPhotos();
     switchTab('calendar');
     showWriteCard(true);
     toast('매장 요청 내용을 채웠습니다. 사진을 올리고 [등록하기]를 눌러 주세요.', 'ok');
@@ -4923,7 +5432,7 @@
     box.hidden = false;
     clearNode(box);
     if (plan.kind === 'work') {
-      box.appendChild(el('span', '', '📋 ' + plan.branch + ' 작업 일정과 연결됨 — 등록하면 이 일정이 [완료]로 바뀝니다.'));
+      box.appendChild(el('span', '', '📋 ' + plan.branch + ' 예정작업과 연결됨 — 저장하면 이 예정작업이 [✅ 완료]처리됩니다.'));
     } else {
       box.appendChild(el('span', '', '📝 ' + plan.branch + ' 매장 요청과 연결됨 — 등록하면 이 요청이 [완료]로 바뀝니다.'));
     }
@@ -5230,8 +5739,9 @@
 
   function removeWorkRecord(record) {
     if (!record) return;
-    if (!isAdmin()) { toast('글 삭제는 관리자만 할 수 있습니다.', 'err'); return; }
-    var ask = '이 작업사진 기록을 삭제할까요? (시트와 사진 파일이 함께 삭제됩니다)';
+    if (!canEditRecord(record)) { toast('본인이 쓴 업무일지만 삭제할 수 있습니다.', 'err'); return; }
+    var ask = '이 공사완료 업무일지를 삭제할까요? ' +
+      (record.photoCount ? '(시트 행과 사진 파일이 함께 삭제됩니다)' : '(시트의 그 행이 지워집니다)');
     if (typeof confirm === 'function' && !confirm(ask)) return;
 
     API.deleteRecord(record.id, {
@@ -5247,7 +5757,7 @@
       state.records = (state.records || []).filter(function (r) { return r.id !== record.id; });
       state.listDirty = true;
       state.listLoaded = false;
-      toast('작업사진 기록을 삭제했습니다.', 'ok');
+      toast('공사완료 업무일지를 삭제했습니다.', 'ok');
 
       if (state.tab === 'list') {
         loadList(true);
@@ -5265,7 +5775,7 @@
    * ============================================================== */
   function openEditModal(record) {
     if (!record) return;
-    if (!canEditRecord(record)) { toast('본인이 쓴 작업사진만 수정할 수 있습니다.', 'err'); return; }
+    if (!canEditRecord(record)) { toast('본인이 쓴 업무일지만 수정할 수 있습니다.', 'err'); return; }
     state.edit = {
       record: record,
       keep: (record.photos || []).slice(),
@@ -5274,11 +5784,14 @@
     };
     $('editDate').value = record.date || todayStr();
     $('editBranch').value = record.branch || '';
-    $('editAuthor').value = isAdmin() ? (record.author || '') : AUTH.name;
-    $('editAuthor').readOnly = !isAdmin();
+    $('editAuthor').value = record.author || AUTH.name || '';
     $('editMemo').value = record.memo || '';
+    $('editWorkPeople').value = record.workPeople || '';
+    $('editWorkHours').value = record.workHours || '';
+    $('editMaterials').value = record.materials || '';
+    $('editLaborCost').value = record.laborCost || '';
     $('editMeta').textContent = formatDateLabel(record.date) + ' ' + (record.branch || '') +
-      (record.author ? ' · ' + record.author + ' 님이 등록한 기록' : '') +
+      (record.author ? ' · ' + record.author + ' 님이 등록' : '') +
       ' · 사진 ' + (record.photos || []).length + '장';
     $('editSave').disabled = false;
     renderEditBranchChips();
@@ -5358,7 +5871,7 @@
     $('editPhotoSummary').textContent = total
       ? '사진 ' + total + '장 (기존 ' + kept + '장' +
         (added ? ' · 새로 추가 ' + added + '장 · ' + PHOTO_W + '×' + PHOTO_H + ' 변환됨' : '') + ')'
-      : '사진이 하나도 없습니다. 1장 이상 남겨 주세요.';
+      : '사진 0장 — 사진 없이도 저장됩니다.';
     $('editSave').textContent = total ? '💾 수정 저장 (사진 ' + total + '장)' : '💾 수정 저장';
   }
 
@@ -5403,15 +5916,12 @@
 
     var date = $('editDate').value;
     var branch = $('editBranch').value.trim();
-    var author = $('editAuthor').value.trim();
+    // 작성자 칸은 화면에 보이지 않는다 — 직원은 자기 이름, 관리자는 원래 작성자 이름을 그대로 지킨다.
+    var author = isAdmin() ? (edit.record.author || AUTH.name) : AUTH.name;
     var memo = $('editMemo').value.trim();
 
     if (!date) { toast('작업 날짜를 선택해 주세요.', 'err'); return; }
     if (!branch) { toast('지점명을 입력해 주세요.', 'err'); return; }
-    if (!author) { toast('작성자 이름을 입력해 주세요.', 'err'); return; }
-    if (!edit.keep.length && !edit.newPhotos.length) {
-      toast('작업사진을 1장 이상 남겨 주세요.', 'err'); return;
-    }
 
     var record = edit.record;
     var photoTotal = edit.keep.length + edit.newPhotos.length;
@@ -5422,6 +5932,10 @@
       branch: branch,
       author: author,
       memo: memo,
+      workPeople: $('editWorkPeople').value.trim(),
+      workHours: $('editWorkHours').value.trim(),
+      materials: $('editMaterials').value.trim(),
+      laborCost: $('editLaborCost').value.trim(),
       keepPhotoUrls: edit.keep.map(function (p) { return p.id || p.original || ''; }),
       newPhotos: edit.newPhotos.map(function (p) {
         return { name: p.name, mimeType: p.mimeType, base64: p.base64 };
@@ -5430,7 +5944,7 @@
 
     edit.saving = true;
     $('editSave').disabled = true;
-    showLoading('수정 저장 중…', '사진 ' + photoTotal + '장을 맞추고 있어요');
+    showLoading('수정 저장 중…', photoTotal ? '사진 ' + photoTotal + '장을 맞추고 있어요' : '업무일지를 저장하고 있어요');
 
     API.updateRecord(payload).then(function (res) {
       var err = apiError(res);
