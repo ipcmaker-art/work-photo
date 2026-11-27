@@ -4262,7 +4262,10 @@
       item.appendChild(el('span', 'no', row.no));
       var who = el('div', 'who');
       who.appendChild(el('div', 'nm', row.name || '(이름 없음)'));
-      var role = el('div', 'rl' + (row.role === ROLE_SUPER ? ' super' : (row.role === '관리자' ? ' admin' : '')), row.role || '직원');
+      // 최고관리자 행은 시트에 '관리자'로 적혀 있어도 화면에는 '최고관리자'로 보여 준다(2026-11-28)
+      var mine = !!(AUTH && AUTH.no && String(row.no) === String(AUTH.no) && AUTH.role === ROLE_SUPER);
+      var shownRole = (row.role === ROLE_SUPER || mine) ? ROLE_SUPER : (row.role || '직원');
+      var role = el('div', 'rl' + (shownRole === ROLE_SUPER ? ' super' : (shownRole === '관리자' ? ' admin' : '')), shownRole);
       who.appendChild(role);
       item.appendChild(who);
 
