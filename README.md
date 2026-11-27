@@ -8,7 +8,7 @@
 - 저장된 사진과 기록은 Google Drive / Google Sheets 에 있고, 이 저장소에는 없습니다.
 - 앱은 아래 Google Apps Script API 와 통신합니다(공개 실행 주소).
   `https://script.google.com/macros/s/AKfycbzK8wDACvACdG-Pvbanuuf3Gt2Egw4qxqCz-yTq_mkQHzdBHKX68sQiFKG-O_DGUwbi/exec`
-  - 조회 `GET ?action=list|calendarbundle|calendar|workschedules|storerequests|export|exportrequests|drivestatus|uploadtoken`
+  - 조회 `GET ?action=list|calendarbundle|calendar|workschedules|storerequests|export|exportrequests|exportrequest|drivestatus|uploadtoken`
   - 사진 빠른 업로드 `POST` `action=startDriveLink|pollDriveLink|getUploadToken|attachPhotoIds` (사진은 폰에서 구글 드라이브로 직접)
   - 저장 `POST` (JSON body, `Content-Type: text/plain`)
 - 이 주소로 열면 Apps Script 화면이 아니라 이 정적 페이지가 뜨므로
