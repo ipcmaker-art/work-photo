@@ -373,9 +373,16 @@
   .write-head .btn-ghost{flex:0 0 auto; padding:9px 12px; font-size:12.5px;}
   .cal-hint{font-size:12px; color:var(--muted); padding:0 4px 10px; line-height:1.5;}
 
+  /* 🔗 사진 빠른 업로드 연결 */
+  #driveModal{position:fixed; inset:0; background:rgba(16,24,40,.5); z-index:112; display:flex; align-items:flex-end; justify-content:center;}
+  #driveModal[hidden]{display:none;}
+  #driveStatusText{white-space:pre-line;}
+  .drive-code{font-family:ui-monospace,Menlo,Consolas,monospace; font-size:27px; font-weight:800; letter-spacing:.16em; text-align:center; padding:14px 10px; border-radius:12px; background:#eef4ff; color:#1d4ed8; margin:10px 0; user-select:all;}
+  .drive-steps{font-size:12px; color:var(--muted); line-height:1.6; padding:2px 2px 10px;}
+
   /* 예정작업 등록 · 작업 일정 등록 · 작업사진 수정 · 업무일지 출력 · 지점 관리 모달 */
   #schedModal,#workModal,#editModal,#printModal,#branchModal{position:fixed; inset:0; background:rgba(16,24,40,.5); z-index:110; display:flex; align-items:flex-end; justify-content:center;}
-  #schedModal[hidden],#workModal[hidden],#editModal[hidden],#printModal[hidden],#branchModal[hidden]{display:none;}
+  #schedModal[hidden],#workModal[hidden],#editModal[hidden],#printModal[hidden],#branchModal[hidden],#driveModal[hidden]{display:none;}
   .modal-card{
     background:#fff; width:100%; max-width:520px; border-radius:18px 18px 0 0;
     padding:16px 16px calc(16px + env(safe-area-inset-bottom)); max-height:92vh; overflow:auto;
@@ -562,7 +569,7 @@
     .cal-cell{min-height:112px; padding:6px 5px;}
     .cal-num{font-size:13px;}
     .cal-badge{font-size:10px; padding:2px 4px;}
-    #schedModal,#workModal,#editModal,#printModal,#branchModal{align-items:center; padding:20px;}
+    #schedModal,#workModal,#editModal,#printModal,#branchModal,#driveModal{align-items:center; padding:20px;}
     .modal-card{border-radius:18px;}
   }
   @media (prefers-color-scheme: dark){
@@ -654,6 +661,7 @@
       <span class="role-pill" id="whoRole"></span>
       <button type="button" class="btn-mini staff admin-only" id="staffManageBtn">👥 직원 관리</button>
       <button type="button" class="btn-mini staff admin-only" id="topBranchManageBtn">🏷️ 지점 관리</button>
+      <button type="button" class="btn-mini staff admin-only" id="driveLinkBtn">🔗 빠른 업로드</button>
       <button type="button" class="btn-mini" id="logoutBtn">로그아웃</button>
     </div>
     <div class="mode-pill" id="modePill">🧪 미리보기 모드 · 이 브라우저에만 저장됩니다</div>
@@ -1120,6 +1128,40 @@
   </div>
 </div>
 
+<div id="driveModal" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="driveTitle">
+    <div class="modal-head">
+      <h2 id="driveTitle">🔗 사진 빠른 업로드 연결</h2>
+      <button type="button" class="modal-close" id="driveClose" aria-label="닫기">✕</button>
+    </div>
+    <div class="edit-meta" id="driveStatusText">불러오는 중…</div>
+    <div class="drive-steps">
+      ① 구글 클라우드 콘솔에서 <b>OAuth 클라이언트 ID</b>(애플리케이션 유형: <b>TV 및 제한된 입력 기기</b>)를 만듭니다.<br>
+      ② 그 <b>클라이언트 ID</b>와 <b>보안 비밀</b>을 아래에 넣고 [연결 시작]을 누릅니다.<br>
+      ③ 나오는 코드를 휴대폰에서 <b>google.com/device</b> 에 입력하고 [허용]을 누르면 끝납니다(1회).<br>
+      ※ 보안 비밀은 서버에만 저장되고 화면·기록에 남지 않습니다.
+    </div>
+    <div id="driveSetup" hidden>
+      <div class="field">
+        <div class="label"><span>클라이언트 ID</span></div>
+        <input type="text" id="driveClientId" placeholder="1234567890-abc.apps.googleusercontent.com" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="field">
+        <div class="label"><span>보안 비밀</span></div>
+        <input type="password" id="driveClientSecret" placeholder="GOCSPX-…" autocomplete="off">
+      </div>
+      <button type="button" class="btn-primary" id="driveStartBtn">연결 시작</button>
+    </div>
+    <div id="driveCodeBox" hidden>
+      <p class="hint">아래 코드를 휴대폰에서 <b>google.com/device</b> 에 입력하고 [허용]을 눌러 주세요.</p>
+      <div class="drive-code" id="driveCode">····</div>
+      <div class="hint" id="drivePollText">승인을 기다리는 중…</div>
+      <p><a href="https://www.google.com/device" target="_blank" rel="noopener" class="btn-ghost">google.com/device 열기</a></p>
+      <button type="button" class="btn-ghost" id="driveCancelBtn">그만두기</button>
+    </div>
+  </div>
+</div>
+
 <div id="lightbox" hidden>
   <div class="lb-top">
     <span class="title" id="lbTitle">사진</span>
@@ -1173,7 +1215,10 @@
   var $ = function (id) { return document.getElementById(id); };
   var state = {
     tab: 'calendar',
-    photos: [],          // { key, dataUrl, base64, mimeType, name, bytes, width, height }
+    photos: [],          // { key, dataUrl, blob, base64, mimeType, name, bytes, width, height }
+    // 📸 사진이 붙을 기록(초안) 열쇠 — 사진이 다른 기록에 섞이지 않게 한다 (v40)
+    draftKey: '',
+    modalDraftKey: {},
     // ✅ 완료처리로 넘어올 때 예정작업에 붙어 있던 사진 — 저장할 때 드라이브로 복사해 업무일지 사진이 된다
     copyPhotos: [],
     records: [],
@@ -1519,6 +1564,33 @@
       if (IS_GAS) return gasCall('appendPhotos', withToken(payload));
       if (IS_REMOTE) return remotePost(withAction('appendPhotos', withToken(payload)), REMOTE_UPLOAD_TIMEOUT);
       return Promise.resolve(mockAppendPhotos(target, id, images || []));
+    },
+    // 📸 사진 빠른 업로드 (v40) — 폰에서 구글 드라이브로 직접 올리고 파일 ID 만 서버에 넘긴다
+    //   (v40: 이 다섯 개를 빼놓으면 Pages 화면에서 사진이 예전 방식으로만 올라간다)
+    driveStatus: function () {
+      if (IS_GAS) return gasCall('driveStatus', withToken({}));
+      if (IS_REMOTE) return remotePost(withAction('driveStatus', { token: authToken() }));
+      return mockDriveStatus();
+    },
+    startDriveLink: function (payload) {
+      if (IS_GAS) return gasCall('startDriveLink', withToken(payload || {}));
+      if (IS_REMOTE) return remotePost(withAction('startDriveLink', withToken(payload || {})));
+      return mockStartDriveLink(payload || {});
+    },
+    pollDriveLink: function (payload) {
+      if (IS_GAS) return gasCall('pollDriveLink', withToken(payload || {}));
+      if (IS_REMOTE) return remotePost(withAction('pollDriveLink', withToken(payload || {})));
+      return mockPollDriveLink(payload || {});
+    },
+    getUploadToken: function () {
+      if (IS_GAS) return gasCall('getUploadToken', withToken({}));
+      if (IS_REMOTE) return remotePost(withAction('getUploadToken', { token: authToken() }));
+      return mockGetUploadToken();
+    },
+    attachPhotoIds: function (payload) {
+      if (IS_GAS) return gasCall('attachPhotoIds', withToken(payload || {}));
+      if (IS_REMOTE) return remotePost(withAction('attachPhotoIds', withToken(payload || {})), REMOTE_UPLOAD_TIMEOUT);
+      return mockAttachPhotoIds(payload || {});
     },
     list: function (filters) {
       if (IS_GAS) return gasCall('getWorkLogs', withToken(filters));
@@ -1993,9 +2065,53 @@
     });
   }
 
+  /* ---------- 미리보기(데모): 사진 빠른 업로드 ---------- */
+  function mockDriveStatus() {
+    if (!authToken()) return Promise.resolve({ ok: false, code: 'auth', error: '로그인이 필요합니다. 다시 로그인해 주세요.' });
+    return Promise.resolve({
+      ok: true,
+      mode: (window.__demoDriveMode === 'drive' ? 'drive' : 'gas'),
+      canManage: isAdmin(),
+      connected: false,
+      clientConfigured: false,
+      clientHint: '', linkedAt: '', scope: ''
+    });
+  }
+  function mockStartDriveLink() {
+    return Promise.resolve({ ok: false, error: '미리보기 모드에서는 구글 연결을 할 수 없습니다. 실제 앱에서 연결해 주세요.' });
+  }
+  function mockPollDriveLink() {
+    return Promise.resolve({ ok: false, error: '미리보기 모드에서는 구글 연결을 할 수 없습니다.' });
+  }
+  function mockGetUploadToken() {
+    if (!authToken()) return Promise.resolve({ ok: false, code: 'auth', error: '로그인이 필요합니다. 다시 로그인해 주세요.' });
+    if (window.__demoDriveMode !== 'drive') return Promise.resolve({ ok: true, mode: 'gas', reason: 'preview' });
+    return Promise.resolve({ ok: true, mode: 'drive', accessToken: 'demo-drive-token', expiresIn: 3600 });
+  }
+  function mockAttachPhotoIds(payload) {
+    if (!authToken()) return Promise.resolve({ ok: false, code: 'auth', error: '로그인이 필요합니다. 다시 로그인해 주세요.' });
+    if (window.__demoAttachLog) window.__demoAttachLog.push(payload);
+    var key = payload.target === 'request' ? LS.schedules : (payload.target === 'schedule' ? LS.workSchedules : LS.mock);
+    var list = store.get(key, []);
+    var hit = null;
+    list.forEach(function (x) { if (x.id === payload.id) hit = x; });
+    if (!hit) return Promise.resolve({ ok: false, error: '해당 기록을 찾지 못했습니다. (이미 지워졌을 수 있습니다)' });
+    var demo = window.__demoPhotoUrl || 'data:image/jpeg;base64,QUFBQQ==';
+    var files = payload.files || [];
+    var photos = files.map(function (f, i) {
+      return { thumb: demo, original: demo, view: demo, download: demo, id: 'drive-' + (f.id || i) };
+    });
+    hit.photos = (hit.photos || []).concat(photos);
+    hit.photoCount = hit.photos.length;
+    store.set(key, list);
+    return Promise.resolve({
+      ok: true, target: payload.target, id: payload.id,
+      saved: photos.length, photoCount: hit.photoCount, photos: photos, warnings: []
+    });
+  }
+
   // 미리보기(로컬) 저장용: 브라우저 저장 공간을 아끼려고 한 번 더 줄인다.
-  function shrinkForLocal(dataUrl) {
-    return loadImageElement(dataUrl).then(function (img) {
+  function shrinkForLocal(dataUrl) {    return loadImageElement(dataUrl).then(function (img) {
       var max = 900;
       var scale = Math.min(1, max / Math.max(img.width, img.height));
       var canvas = document.createElement('canvas');
@@ -2909,93 +3025,221 @@
   }
 
   /* ================================================================
-   * 2-9. 사진 뒤에서 올리기 (v30)
-   *   글(날짜·지점·작업내용…)을 먼저 저장해 화면은 빠르게 끝내고,
-   *   사진은 저장이 끝난 뒤 3장씩 동시에 올려 그 기록에 붙인다.
-   *   · 진행 표시: 화면 위 #upBar (n/m장)
-   *   · 실패한 사진은 한 번 더 시도하고, 그래도 실패하면 [다시 올리기]
+   * 2-9. 사진 뒤에서 올리기 (v40 — 폰 → 구글 드라이브 직접 업로드)
+   *   ① 글 먼저 저장 ② 업로드 토큰 1번 ③ 사진 6장씩 구글 드라이브로 직접
+   *   ④ 파일 ID만 서버에 1번 전달 ⑤ 서버가 시트에 잠금 1번으로 기록
+   *   · 기록별 큐(IndexedDB) — 사진이 다른 기록에 섞이지 않고, 앱을 다시 열면 이어 올린다
+   *   · 진행 표시는 구석의 작은 칩(#upBar)만 — 전체 화면 로딩·스피너는 쓰지 않는다
+   *   · 실패는 지수 백오프로 3번까지 스스로 다시, 그래도 실패하면 [다시 올리기]
+   *   · 서버가 'gas'(연결 전·롤백 스위치)면 예전처럼 한 장씩 서버로 올린다
    * ============================================================== */
-  var UPLOAD_BATCH = 6;             // 한 번에 6장씩 동시에 올린다 (서버는 잠금 밖에서 저장해 동시성이 실제로 속도를 낸다)
+  var UPLOAD_BATCH = 6;             // 드라이브로 6장씩 동시에 직접 올린다
   var PHOTO_POOL = 3;               // 사진 압축도 3장씩 동시에 (한 장씩 줄 세우지 않는다)
-  var uploadPending = [];           // 올릴 사진: { target, id, date, branch, photo }
-  var uploadFailedItems = [];       // 실패한 사진 (다시 올리기용)
+  var UPLOAD_MAX_TRIES = 3;         // 사진 1장당 최대 시도 횟수 (0.6초 → 1.8초 → 5초 쉬었다 다시)
+  var UPLOAD_BACKOFF = [600, 1800, 5000];
+  var uploadPending = [];           // 올릴 사진: { key, target, id, date, branch, author, name, blob|base64, seq, tries }
+  var uploadFailedItems = [];       // 끝내 올리지 못한 사진 (다시 올리기용)
   var uploadTotal = 0;
   var uploadDone = 0;
   var uploadBusy = false;
   var uploadHideTimer = null;
-  var uploadSealed = true;          // true = 더 이상 사진이 늘지 않는다 (압축이 남아 있으면 false)
+  var uploadSealed = true;          // (예전 이름 호환) 지금은 compressBusy 로 판단한다
   var compressBusy = 0;             // 지금 압축 중인 묶음 수
-  var photoCollector = null;        // 압축이 끝나는 사진을 바로 올릴 대상 { kind, target, id, date, branch, author }
+  var finishCalled = false;
+  var recordSeq = {};               // 'record|id' -> 사진 번호(파일 이름 _n)
+  var photoCollectors = {};         // draftKey -> { target, id, date, branch, author } (압축이 끝나는 사진이 갈 곳)
+  var ATTACH = {};                  // 'target|id' -> { target, id, date, branch, author, up:[], fail, expected, attaching }
+  var DRIVE = { mode: '', token: '', exp: 0, asking: null, note: '' };
+
+  /** 지금 사진을 담고 있는 초안(기록)의 열쇠 — 사진이 다른 기록에 섞이지 않게 한다 */
+  function currentDraftKey(kind) {
+    if (kind === 'record') return state.draftKey || (state.draftKey = newDraftKey('record'));
+    var map = state.modalDraftKey || (state.modalDraftKey = {});
+    return map[kind] || (map[kind] = newDraftKey(kind));
+  }
+  function newDraftKey(kind) { return kind + ':' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+  /** 새 기록을 쓰기 시작할 때 — 남아 있던 압축 사진이 이 기록에 붙지 않게 열쇠를 새로 만든다 */
+  function resetDraftKey(kind) {
+    if (kind === 'record') state.draftKey = newDraftKey('record');
+    else { state.modalDraftKey = state.modalDraftKey || {}; state.modalDraftKey[kind] = newDraftKey(kind); }
+    return currentDraftKey(kind);
+  }
+
+  /* ---------- 사진 큐 (IndexedDB — 앱을 다시 열면 남은 사진부터) ---------- */
+  var QUEUE_DB_NAME = 'workphoto.upload.v4';
+  var QUEUE_STORE = 'queue';
+  var queueDbPromise = null;
+
+  function queueDb() {
+    if (queueDbPromise) return queueDbPromise;
+    queueDbPromise = new Promise(function (resolve) {
+      var idb = null;
+      try { idb = (typeof indexedDB !== 'undefined') ? indexedDB : null; } catch (e) { idb = null; }
+      if (!idb) { resolve(null); return; }
+      var req = null;
+      try { req = idb.open(QUEUE_DB_NAME, 1); } catch (e) { resolve(null); return; }
+      req.onupgradeneeded = function () {
+        try {
+          var db = req.result;
+          if (!db.objectStoreNames.contains(QUEUE_STORE)) db.createObjectStore(QUEUE_STORE, { keyPath: 'key' });
+        } catch (e) {}
+      };
+      req.onsuccess = function () { resolve(req.result || null); };
+      req.onerror = function () { resolve(null); };
+    });
+    return queueDbPromise;
+  }
+
+  function queuePut(items) {
+    if (!items || !items.length) return Promise.resolve();
+    return queueDb().then(function (db) {
+      if (!db) return;
+      return new Promise(function (resolve) {
+        try {
+          var tx = db.transaction(QUEUE_STORE, 'readwrite');
+          var store = tx.objectStore(QUEUE_STORE);
+          items.forEach(function (it) { try { store.put(it); } catch (e) {} });
+          tx.oncomplete = function () { resolve(); };
+          tx.onerror = function () { resolve(); };
+          tx.onabort = function () { resolve(); };
+        } catch (e) { resolve(); }
+      });
+    });
+  }
+
+  function queueDelete(keys) {
+    if (!keys || !keys.length) return Promise.resolve();
+    return queueDb().then(function (db) {
+      if (!db) return;
+      return new Promise(function (resolve) {
+        try {
+          var tx = db.transaction(QUEUE_STORE, 'readwrite');
+          var store = tx.objectStore(QUEUE_STORE);
+          keys.forEach(function (k) { try { store.delete(k); } catch (e) {} });
+          tx.oncomplete = function () { resolve(); };
+          tx.onerror = function () { resolve(); };
+          tx.onabort = function () { resolve(); };
+        } catch (e) { resolve(); }
+      });
+    });
+  }
+
+  function queueAll() {
+    return queueDb().then(function (db) {
+      if (!db) return [];
+      return new Promise(function (resolve) {
+        try {
+          var tx = db.transaction(QUEUE_STORE, 'readonly');
+          var store = tx.objectStore(QUEUE_STORE);
+          var req = store.getAll ? store.getAll() : null;
+          if (!req) { resolve([]); return; }
+          req.onsuccess = function () { resolve(req.result || []); };
+          req.onerror = function () { resolve([]); };
+        } catch (e) { resolve([]); }
+      });
+    });
+  }
 
   /**
    * 저장이 끝난 기록에 사진을 뒤에서 붙인다.
-   * opts = { target:'record'|'request'|'schedule', id, date, branch, photos:[{name,mimeType,base64}] }
+   * opts = { kind, draftKey, target:'record'|'request'|'schedule', id, date, branch, author, photos:[{blob|base64,mimeType,name}], more }
    * 반환 = 맡긴 사진 장수
    */
   function enqueuePhotoUpload(opts) {
     opts = opts || {};
     var photos = opts.photos || [];
-    // 아직 압축 중인 사진만 있어도(more) 받아 둔다 — 끝나는 대로 이어 올린다
+    var target = opts.target || 'record';
+    // 아직 압축 중인 사진만 있어도(more) 받아 둔다 — 끝나는 대로 이 기록에 이어 올린다
     if ((!photos.length && !opts.more) || !opts.id) return 0;
-    // 새로 맡긴 묶음이면 진행 숫자를 처음부터 센다 (지난번 올린 장수와 섞이지 않게)
-    if (!uploadBusy && !uploadPending.length && !uploadFailedItems.length) {
+
+    if (!uploadPending.length && !uploadBusy && !uploadFailedItems.length) {
       uploadTotal = 0;
       uploadDone = 0;
+      finishCalled = false;
     }
-    photos.forEach(function (p) {
-      uploadPending.push({
-        target: opts.target || 'record',
+
+    var recKey = target + '|' + opts.id;
+    var group = attachGroup(recKey, target, opts.id, opts.date, opts.branch, opts.author);
+    var items = photos.map(function (p) {
+      var seq = (recordSeq[recKey] = (recordSeq[recKey] || 0) + 1);
+      return {
+        key: 'u' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
+        target: target,
         id: opts.id,
         date: opts.date || '',
         branch: opts.branch || '',
         author: opts.author || '',
-        photo: { name: p.name || 'photo.jpg', mimeType: p.mimeType || 'image/jpeg', base64: p.base64 }
-      });
+        name: driveFileName(target, opts.date, opts.branch, opts.author, seq),
+        mimeType: p.mimeType || 'image/jpeg',
+        seq: seq,
+        tries: 0,
+        createdAt: (new Date()).getTime(),
+        blob: p.blob || null,
+        base64: p.base64 || ''
+      };
     });
-    uploadTotal += photos.length;
-    // 아직 압축이 끝나지 않은 사진이 있으면, 끝나는 대로 이 묶음에 바로 이어 올린다 (압축과 전송이 겹쳐 돈다)
-    photoCollector = {
-      kind: opts.kind || opts.target || 'record',
-      target: opts.target || 'record',
-      id: opts.id,
-      date: opts.date || '',
-      branch: opts.branch || '',
-      author: opts.author || ''
+
+    // 압축이 아직 끝나지 않은 사진은 끝나는 대로 이 기록에 담는다 (압축과 전송이 겹쳐 돈다)
+    var draftKey = opts.draftKey || currentDraftKey(opts.kind || target);
+    photoCollectors[draftKey] = {
+      target: target, id: opts.id, date: opts.date || '',
+      branch: opts.branch || '', author: opts.author || ''
     };
-    uploadSealed = !opts.more;
+
+    items.forEach(function (it) {
+      uploadPending.push(it);
+      group.expected++;
+    });
+    uploadTotal += items.length;
+    queuePut(items);
     showUploadBar();
     pumpUploads();
-    return photos.length;
+    return items.length;
   }
 
-  /** 압축이 끝난 사진 한 장을 지금 올리고 있는 묶음에 바로 넣는다 (압축 완료 즉시 전송 시작) */
-  function deliverPhoto(kind, photo) {
-    var c = photoCollector;
-    if (!c || !photo || !photo.base64) return;
-    if (kind && c.kind && kind !== c.kind) return;
-    uploadTotal++;
-    uploadPending.push({
-      target: c.target,
-      id: c.id,
-      date: c.date,
-      branch: c.branch,
-      author: c.author,
-      photo: { name: photo.name || 'photo.jpg', mimeType: photo.mimeType || 'image/jpeg', base64: photo.base64 }
+  /** 압축이 끝난 사진 한 장을 지금 올리고 있는 기록에 바로 넣는다 (압축 완료 즉시 전송 시작) */
+  function deliverPhoto(kind, photo, draftKey) {
+    if (!photo) return;
+    var key = draftKey || currentDraftKey(kind);
+    var collector = photoCollectors[key];
+    if (!collector || !collector.id) return;     // 아직 저장 전이면 저장할 때 함께 넘어간다
+    if (!photo.blob && !photo.base64) return;
+    enqueuePhotoUpload({
+      kind: kind,
+      draftKey: key,
+      target: collector.target,
+      id: collector.id,
+      date: collector.date,
+      branch: collector.branch,
+      author: collector.author,
+      photos: [photo]
     });
-    showUploadBar();
-    pumpUploads();
   }
 
   /** 압축이 모두 끝났을 때 — 더 들어올 사진이 없다고 알리고 남은 것을 마저 올린다 */
   function sealUploads() {
     if (compressBusy > 0) return;
     uploadSealed = true;
+    photoCollectors = {};          // 이제 압축이 끝나 새 사진이 들어올 수 없다
     pumpUploads();
+  }
+
+  function uploadActive() {
+    return !!uploadPending.length || !!uploadBusy || !!Object.keys(ATTACH).length || compressBusy > 0;
   }
 
   function uploadPercent() {
     if (!uploadTotal) return 0;
     return Math.max(0, Math.min(100, Math.round((uploadDone / uploadTotal) * 100)));
+  }
+
+  /** 진행 칩 문구 — '사진 21/36장 · 약 4초' (전체 화면 로딩은 쓰지 않는다) */
+  function uploadProgressText() {
+    if (DRIVE.mode === 'gas') return '사진 ' + uploadDone + '/' + uploadTotal + '장 올리는 중…';
+    var left = Math.max(0, uploadTotal - uploadDone);
+    if (!left) return '사진 ' + uploadDone + '장 마무리 중…';
+    var secs = Math.max(1, Math.ceil(left / UPLOAD_BATCH) + 1);
+    return '사진 ' + uploadDone + '/' + uploadTotal + '장 · 약 ' + secs + '초';
   }
 
   function showUploadBar(message, mode) {
@@ -3004,7 +3248,7 @@
     bar.hidden = false;
     bar.className = 'show' + (mode ? ' ' + mode : '');
     var text = $('upBarText');
-    if (text) text.textContent = message || ('사진 ' + uploadDone + '/' + uploadTotal + '장 올리는 중…');
+    if (text) text.textContent = message || uploadProgressText();
     var fill = $('upBarFill');
     if (fill && fill.style) fill.style.width = uploadPercent() + '%';
     var again = $('upBarRetry');
@@ -3021,41 +3265,276 @@
     bar.hidden = true;
   }
 
+  /* ---------- 신분: 업로드 토큰 (1시간짜리, drive.file 좁은 권한) ---------- */
+  function driveToken() {
+    var now = (new Date()).getTime();
+    if (DRIVE.token && DRIVE.exp > now + 60000) return Promise.resolve(DRIVE.token);
+    if (DRIVE.asking) return DRIVE.asking;
+    DRIVE.asking = API.getUploadToken().then(function (res) {
+      DRIVE.asking = null;
+      if (res && res.ok === false && res.code === 'auth') onSessionExpired();
+      if (!res || res.ok === false || res.mode !== 'drive' || !res.accessToken) {
+        DRIVE.mode = 'gas';
+        DRIVE.note = (res && res.error) || '';
+        return '';
+      }
+      DRIVE.mode = 'drive';
+      DRIVE.token = res.accessToken;
+      var secs = Number(res.expiresIn) || 3600;
+      DRIVE.exp = (new Date()).getTime() + Math.max(120, secs - 120) * 1000;
+      return DRIVE.token;
+    }, function () {
+      DRIVE.asking = null;
+      DRIVE.mode = 'gas';
+      return '';
+    });
+    return DRIVE.asking;
+  }
+
+  /* ---------- 올리기 ---------- */
+  var uploadPumpTimer = null;
   function pumpUploads() {
     if (uploadBusy) return;
     if (!uploadPending.length) {
-      // 압축이 아직 남아 있으면, 그 사진이 도착할 때까지 잠깐씩 기다린다
-      if (!uploadSealed) { setTimeout(pumpUploads, 150); return; }
-      finishUploads();
+      if (compressBusy > 0) {      // 아직 압축 중인 사진이 있다 — 끝나는 대로 다시 본다
+        clearTimeout(uploadPumpTimer);
+        uploadPumpTimer = setTimeout(pumpUploads, 150);
+        return;
+      }
+      attemptAttachAll();
+      maybeFinishUploads();
       return;
     }
+
     uploadBusy = true;
-    var batch = uploadPending.splice(0, UPLOAD_BATCH);
-    Promise.all(batch.map(uploadOne)).then(function (results) {
-      results.forEach(function (ok, i) {
-        if (ok === true) return;
-        var item = batch[i];
-        // 한 번은 스스로 다시 시도하고, 그래도 안 되면 [다시 올리기] 목록에 모아 둔다
-        if (!item.tries) { item.tries = 1; uploadPending.unshift(item); return; }
+    var batch = uploadPending.slice(0, UPLOAD_BATCH);
+    driveToken().then(function (token) {
+      var jobs = batch.map(function (item) {
+        return uploadOne(item, token).then(function (file) {
+          return { item: item, file: file };
+        }, function (err) {
+          return { item: item, error: err };
+        });
+      });
+      return Promise.all(jobs);
+    }).then(function (results) {
+      var fallback = [];
+      results.forEach(function (r) {
+        var item = r.item;
+        if (r.file) {
+          dropPending(item.key);
+          markAttachUploaded(item, r.file);
+          uploadDone++;
+          showUploadBar();
+          return;
+        }
+        var code = r.error && (r.error.code || '');
+        if (code === 'scope' || code === 'noscope' || code === 'token') {
+          // 권한(토큰) 문제 — 이 사진은 예전 방식으로 올린다 (사진이 안 올라가는 일은 없게)
+          fallback.push(item);
+          return;
+        }
+        dropPending(item.key);
+        markAttachFailed(item);
         uploadFailedItems.push(item);
       });
       uploadBusy = false;
+      if (fallback.length) {
+        DRIVE.mode = 'gas';
+        DRIVE.token = '';
+        DRIVE.exp = 0;
+        fallback.forEach(function (item) {
+          item.tries = 0;
+          uploadPending.push(item);
+        });
+      }
       showUploadBar();
+      pumpUploads();
+    }, function () {
+      uploadBusy = false;
       pumpUploads();
     });
   }
 
-  function uploadOne(item) {
-    return API.appendPhotos(item.target, item.id, [item.photo], { date: item.date, branch: item.branch, author: item.author })
-      .then(function (res) {
-        if (!res || res.ok === false) throw new Error((res && res.error) || '사진을 올리지 못했습니다.');
-        uploadDone++;
-        // 한 장 끝날 때마다 바로 숫자를 올려 준다 (3장 묶음이 다 끝날 때까지 0/N 으로 멈춰 보이지 않게)
-        showUploadBar();
-        markUploadedPhoto(item);
-        return true;
-      })
-      .catch(function () { return false; });      // 실패한 사진은 모아 두었다가 다시 시도한다
+  function dropPending(key) {
+    uploadPending = uploadPending.filter(function (x) { return x.key !== key; });
+    queueDelete([key]);
+  }
+
+  /** 사진 1장 — 드라이브면 직접 업로드, 아니면(연결 전·롤백) 예전처럼 서버로 (base64) */
+  function uploadOne(item, token) {
+    return uploadAttempt(item, token, 0);
+  }
+
+  /** 사진 1장 올리기 + 실패하면 지수 백오프로 다시 (3번까지) */
+  function uploadAttempt(item, token, attempt) {
+    var run = token ? drivePutFile(item, token) : appendPhotoToServer(item);
+    return run.then(null, function (err) {
+      var code = (err && err.code) || '';
+      if (code === 'scope' || code === 'noscope' || code === 'nobase64') throw err;
+      if (code === 'token') { DRIVE.token = ''; DRIVE.exp = 0; }
+      if (attempt + 1 >= UPLOAD_MAX_TRIES) throw err;
+      var wait = UPLOAD_BACKOFF[Math.min(attempt, UPLOAD_BACKOFF.length - 1)];
+      return sleep(wait).then(function () {
+        if (code === 'token') {
+          return driveToken().then(function (t) {
+            return uploadAttempt(item, t || '', attempt + 1);
+          });
+        }
+        return uploadAttempt(item, token, attempt + 1);
+      });
+    });
+  }
+
+  function sleep(ms) {
+    return new Promise(function (resolve) { setTimeout(resolve, ms); });
+  }
+
+  /** 사진 바이트를 구글 드라이브로 직접 올린다 (Apps Script 를 거치지 않는다) */
+  function drivePutFile(item, token) {
+    var mime = item.mimeType || 'image/jpeg';
+    var blobPromise = item.blob ? Promise.resolve(item.blob) : base64ToBlob(item.base64, mime);
+    return blobPromise.then(function (blob) {
+      var boundary = '----workphoto' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+      var meta = JSON.stringify({ name: item.name, mimeType: mime });
+      var body = new Blob([
+        '--' + boundary + '\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n' + meta + '\r\n',
+        '--' + boundary + '\r\nContent-Type: ' + mime + '\r\n\r\n',
+        blob,
+        '\r\n--' + boundary + '--\r\n'
+      ], { type: 'multipart/related; boundary=' + boundary });
+
+      var ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+      var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, 45000) : null;
+      var init = {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + token },
+        body: body
+      };
+      if (ctrl) init.signal = ctrl.signal;
+
+      return fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,size', init)
+        .then(function (res) {
+          if (timer) clearTimeout(timer);
+          return res.text().then(function (text) {
+            var data = {};
+            try { data = JSON.parse(text); } catch (e) { data = {}; }
+            if (res.status === 401) { var e401 = new Error('업로드 권한이 만료되었습니다.'); e401.code = 'token'; throw e401; }
+            if (res.status === 403) {
+              var e403 = new Error('드라이브에 올릴 권한이 없습니다.');
+              e403.code = 'scope';
+              throw e403;
+            }
+            if (!res.ok || !data.id) {
+              var msg = (data.error && (data.error.message || data.error.status)) || ('드라이브 응답 ' + res.status);
+              var e = new Error(msg);
+              e.code = 'http';
+              e.status = res.status;
+              throw e;
+            }
+            return { id: data.id, name: data.name || item.name };
+          });
+        }, function (err) {
+          if (timer) clearTimeout(timer);
+          var e = new Error((err && err.name === 'AbortError') ? '드라이브 업로드가 늦어 멈췄습니다.' : '드라이브에 연결하지 못했습니다.');
+          e.code = (err && err.name === 'AbortError') ? 'timeout' : 'network';
+          throw e;
+        });
+    });
+  }
+
+  /** 예전 방식 — 사진 1장을 서버(appendPhotos)로 보낸다 (연결 전·롤백 스위치일 때) */
+  function appendPhotoToServer(item) {
+    var toBase64 = item.base64 ? Promise.resolve(item.base64) : (item.blob ? blobToBase64(item.blob) : Promise.resolve(''));
+    return toBase64.then(function (base64) {
+      if (!base64) {
+        var e = new Error('사진을 읽지 못했습니다.');
+        e.code = 'nobase64';
+        throw e;
+      }
+      return API.appendPhotos(item.target, item.id, [{ name: item.name, mimeType: item.mimeType, base64: base64 }],
+        { date: item.date, branch: item.branch, author: item.author });
+    }).then(function (res) {
+      if (!res || res.ok === false) {
+        var err = new Error((res && res.error) || '사진을 올리지 못했습니다.');
+        err.code = 'http';
+        throw err;
+      }
+      return { id: '', name: item.name };
+    });
+  }
+
+  /* ---------- 기록별 묶음 — 다 올라간 기록만 파일 ID 1번으로 서버에 넘긴다 ---------- */
+  function attachGroup(key, target, id, date, branch, author) {
+    var g = ATTACH[key];
+    if (!g) {
+      g = ATTACH[key] = { target: target, id: id, date: date || '', branch: branch || '', author: author || '', up: [], fail: 0, expected: 0, attaching: false, error: '' };
+    } else {
+      if (date) g.date = date;
+      if (branch) g.branch = branch;
+      if (author) g.author = author;
+    }
+    return g;
+  }
+
+  function markAttachUploaded(item, file) {
+    if (DRIVE.mode !== 'drive') { markUploadedPhoto(item); return; }   // 예전 방식은 서버가 바로 붙였다
+    var g = attachGroup(item.target + '|' + item.id, item.target, item.id, item.date, item.branch, item.author);
+    if (file && file.id) g.up.push({ id: file.id, name: file.name || item.name });
+  }
+
+  function markAttachFailed(item) {
+    var g = attachGroup(item.target + '|' + item.id, item.target, item.id, item.date, item.branch, item.author);
+    g.fail++;
+    if (DRIVE.mode !== 'drive') return;
+    // 드라이브에 올라간 사진이 하나라도 있으면 기록에 붙일 수는 있다 — 붙일 때까지 기다린다
+  }
+
+  function attemptAttachAll() {
+    Object.keys(ATTACH).forEach(function (key) { attemptAttach(key); });
+  }
+
+  function attemptAttach(key) {
+    var g = ATTACH[key];
+    if (!g || g.attaching) return;
+    if (DRIVE.mode !== 'drive') { delete ATTACH[key]; return; }   // 예전 방식은 서버가 바로 붙였다
+    if (g.up.length + g.fail < g.expected) return;      // 아직 올리는 중인 사진이 있다
+    if (!g.up.length) { delete ATTACH[key]; return; }   // 올라간 사진이 없다 (실패 목록에 있다)
+    g.attaching = true;
+    var files = g.up.slice(0);
+    API.attachPhotoIds({
+      target: g.target, id: g.id, date: g.date, branch: g.branch, author: g.author, files: files
+    }).then(function (res) {
+      g.attaching = false;
+      if (!res || res.ok === false) throw new Error((res && res.error) || '사진을 기록에 붙이지 못했습니다.');
+      g.up = g.up.filter(function (f) { return files.indexOf(f) === -1; });
+      var added = (res && res.saved != null) ? Number(res.saved) : files.length;
+      for (var i = 0; i < added; i++) markUploadedPhoto(g);
+      g.error = '';
+      if (!g.up.length) delete ATTACH[key];
+      if (res && res.warnings && res.warnings.length) toast(res.warnings[0], 'err');
+      refreshAfterUpload();
+    }).catch(function (err) {
+      g.attaching = false;
+      g.error = (err && err.message) || '사진을 기록에 붙이지 못했습니다.';
+      uploadFailedItems.push({ attachKey: key });
+      showUploadBar(g.error, 'fail');
+    }).then(function () {
+      pumpUploads();
+    });
+  }
+
+  /** 끝났는지 — 남은 사진·압축·붙이기가 모두 없으면 [완료] */
+  function maybeFinishUploads() {
+    if (uploadPending.length || uploadBusy || compressBusy > 0) return;
+    var keys = Object.keys(ATTACH);
+    for (var i = 0; i < keys.length; i++) {
+      var g = ATTACH[keys[i]];
+      if (!g) continue;
+      if (g.attaching || g.up.length) return;
+      if (g.up.length + g.fail < g.expected) return;
+    }
+    if (!finishCalled) finishUploads();
   }
 
   // 올라간 사진만큼 그 기록·예정작업 요약의 사진 장수를 올려 둔다 (목록·달력 숫자가 바로 맞게)
@@ -3073,9 +3552,10 @@
   }
 
   function finishUploads() {
+    finishCalled = true;
     uploadBusy = false;
-    photoCollector = null;
     uploadSealed = true;
+    photoCollectors = {};
     if (!uploadTotal) return;
     if (uploadFailedItems.length) {
       showUploadBar('사진 ' + uploadFailedItems.length + '장을 올리지 못했습니다.', 'fail');
@@ -3083,24 +3563,112 @@
     } else {
       var n = uploadDone;
       // 저장 안내('등록했습니다/수정했습니다')를 밀어내지 않게 토스트는 띄우지 않고,
-      // 화면 위 진행 표시를 '올리기 완료'로 잠깐 남긴다.
+      // 화면 구석 진행 칩을 '올리기 완료'로 잠깐 남긴다.
       showUploadBar('사진 ' + n + '장 올리기 완료', 'done');
       uploadHideTimer = setTimeout(hideUploadBar, 3000);
     }
+    uploadTotal = 0;
+    uploadDone = 0;
     refreshAfterUpload();
   }
 
   function retryUploads() {
-    if (uploadBusy || !uploadFailedItems.length) return;
-    uploadPending = uploadFailedItems.splice(0);
+    if (uploadBusy) return;
+    var items = uploadFailedItems.splice(0);
+    var attachKeys = [];
+    items.forEach(function (it) {
+      if (it && it.attachKey) { attachKeys.push(it.attachKey); return; }
+      if (!it) return;
+      it.tries = 0;
+      uploadPending.push(it);
+    });
+    attachKeys.forEach(function (key) {
+      var g = ATTACH[key];
+      if (g) { g.error = ''; g.attaching = false; }
+    });
+    if (!uploadPending.length && !attachKeys.length) return;
+    finishCalled = false;
     uploadTotal = uploadDone + uploadPending.length;
     showUploadBar();
+    if (attachKeys.length) attemptAttachAll();
     pumpUploads();
   }
 
   function dismissUploadBar() {
     if (uploadFailedItems.length) { uploadFailedItems = []; uploadTotal = 0; uploadDone = 0; }
     hideUploadBar();
+  }
+
+  /** 앱을 다시 열었을 때 — 큐에 남은 사진부터 이어 올린다 */
+  function uploadResume() {
+    queueAll().then(function (rows) {
+      if (!rows || !rows.length) return;
+      rows.sort(function (a, b) { return (a.createdAt || 0) - (b.createdAt || 0); });
+      var added = 0;
+      rows.forEach(function (row) {
+        if (!row || !row.key || !row.id || (!row.blob && !row.base64)) return;
+        if (uploadPending.some(function (x) { return x.key === row.key; })) return;
+        uploadPending.push(row);
+        var g = attachGroup(row.target + '|' + row.id, row.target, row.id, row.date, row.branch, row.author);
+        g.expected++;
+        var recKey = row.target + '|' + row.id;
+        recordSeq[recKey] = Math.max(recordSeq[recKey] || 0, Number(row.seq) || 0);
+        added++;
+      });
+      if (!added) return;
+      finishCalled = false;
+      uploadTotal = uploadPending.length;
+      uploadDone = 0;
+      showUploadBar('남은 사진 ' + added + '장 이어 올리는 중…');
+      pumpUploads();
+    });
+  }
+
+  /* ---------- 사진 이름 (예전 규칙 그대로: 날짜_지점_작성자_번호-꼬리표.jpg) ---------- */
+  function safeFileName(text, maxLen) {
+    var s = String(text == null ? '' : text).replace(/[\\/:*?"<>|\r\n\t]/g, '').replace(/\s+/g, ' ').trim();
+    if (!s) s = '무제';
+    if (maxLen && s.length > maxLen) s = s.substring(0, maxLen);
+    return s;
+  }
+  function fileTag() {
+    var chars = 'abcdefghijkmnpqrstuvwxyz23456789';
+    var s = '';
+    for (var i = 0; i < 4; i++) s += chars.charAt(Math.floor(Math.random() * chars.length));
+    return s;
+  }
+  function driveFileName(target, date, branch, author, seq) {
+    var day = String(date || '').substring(0, 10) || todayStr();
+    var parts = target === 'record'
+      ? [day, safeFileName(branch, 24), safeFileName(author, 12), String(seq)]
+      : [day, safeFileName(branch, 24), target === 'request' ? '매장요청' : '작업일정', String(seq)];
+    return parts.join('_') + '-' + fileTag() + '.jpg';
+  }
+
+  /* ---------- blob ↔ base64 ---------- */
+  function blobToBase64(blob) {
+    return new Promise(function (resolve, reject) {
+      if (!blob) { resolve(''); return; }
+      if (typeof FileReader === 'undefined') { resolve(''); return; }
+      try {
+        var fr = new FileReader();
+        fr.onload = function () {
+          var s = String(fr.result || '');
+          resolve(s.indexOf(',') > -1 ? s.split(',')[1] : s);
+        };
+        fr.onerror = function () { reject(new Error('사진을 읽지 못했습니다.')); };
+        fr.readAsDataURL(blob);
+      } catch (e) { resolve(''); }
+    });
+  }
+
+  function base64ToBlob(base64, mime) {
+    var b64 = String(base64 || '');
+    var bin = '';
+    try { bin = atob(b64); } catch (e) { bin = ''; }
+    var bytes = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return Promise.resolve(new Blob([bytes], { type: mime || 'image/jpeg' }));
   }
 
   // 사진이 붙은 뒤 달력·그 날 상세를 새로 그린다 (사진은 이때 처음 보인다)
@@ -3131,6 +3699,146 @@
         reload.then(function () { invalidateCalendarCache(); }, function () { invalidateCalendarCache(); });
       }
     }
+  }
+
+  /* ================================================================
+   * 3-1b. 🔗 사진 빠른 업로드 연결 (관리자)
+   *   구글 클라우드 콘솔에서 만든 OAuth 클라이언트('TV 및 제한된 입력 기기')의
+   *   클라이언트 ID·보안 비밀을 넣고, 화면에 나오는 코드를 휴대폰에서
+   *   google.com/device 에 입력해 허용하면 연결된다(1회).
+   *   · 보안 비밀은 서버(Script Properties)에만 저장 — 화면·로그·보고서에 남기지 않는다.
+   *   · 연결 전이거나 CONFIG.UPLOAD_MODE='gas' 면 사진은 예전 방식으로 올라간다.
+   * ============================================================== */
+  var driveLinkState = { polling: false, timer: null, interval: 5, linkToken: '', until: 0 };
+
+  function openDriveModal() {
+    var modal = $('driveModal');
+    if (!modal) return;
+    modal.hidden = false;
+    if ($('driveClientSecret')) $('driveClientSecret').value = '';
+    if ($('driveCodeBox')) $('driveCodeBox').hidden = true;
+    if ($('driveSetup')) $('driveSetup').hidden = true;
+    if ($('drivePollText')) $('drivePollText').textContent = '';
+    if ($('driveStatusText')) $('driveStatusText').textContent = '연결 상태를 확인하는 중…';
+    refreshDriveStatus();
+  }
+
+  function closeDriveModal() {
+    var modal = $('driveModal');
+    if (modal) modal.hidden = true;
+    stopDrivePoll();
+    if ($('driveClientSecret')) $('driveClientSecret').value = '';
+  }
+
+  function refreshDriveStatus() {
+    return API.driveStatus().then(function (res) {
+      if (!res || res.ok === false) throw new Error((res && res.error) || '연결 상태를 확인하지 못했습니다.');
+      var lines = [];
+      if (res.connected && res.mode === 'drive') {
+        lines.push('✅ 연결됨 — 사진은 폰에서 구글 드라이브로 직접 올라갑니다(3~6초).');
+        if (res.linkedAt) lines.push('연결한 때: ' + res.linkedAt);
+        if (res.clientHint) lines.push('클라이언트: ' + res.clientHint);
+        if ($('driveSetup')) $('driveSetup').hidden = true;
+        if ($('driveCodeBox')) $('driveCodeBox').hidden = true;
+      } else if (res.mode === 'gas') {
+        lines.push('지금은 사진을 예전 방식(한 장씩 서버로)으로 올리고 있습니다.');
+        lines.push('연결하면 36장이 85초 → 3~6초로 빨라집니다.');
+        if ($('driveSetup')) $('driveSetup').hidden = true;
+        if ($('driveCodeBox')) $('driveCodeBox').hidden = true;
+        lines.push('※ 서버 설정이 예전 방식(UPLOAD_MODE=gas)으로 되어 있어 연결해도 지금은 예전 방식으로 올라갑니다.');
+      } else if (!res.canManage) {
+        lines.push('사진 빠른 업로드가 아직 연결되지 않았습니다. 관리자에게 연결을 부탁해 주세요.');
+        if ($('driveSetup')) $('driveSetup').hidden = true;
+      } else {
+        lines.push('사진 빠른 업로드가 아직 연결되지 않았습니다.');
+        lines.push('아래에 클라이언트 ID와 보안 비밀을 넣고 [연결 시작]을 누르면 8자리 코드가 나옵니다.');
+        if ($('driveSetup')) $('driveSetup').hidden = false;
+        if (res.clientConfigured && res.clientHint) lines.push('이미 넣어 둔 클라이언트: ' + res.clientHint + ' (다시 넣으면 새 값으로 바뀝니다)');
+      }
+      if ($('driveStatusText')) $('driveStatusText').textContent = lines.join('\n');
+      return res;
+    }).catch(function (err) {
+      if ($('driveStatusText')) $('driveStatusText').textContent = (err && err.message) || '연결 상태를 확인하지 못했습니다.';
+    });
+  }
+
+  function startDriveLink() {
+    var clientId = $('driveClientId') ? $('driveClientId').value.trim() : '';
+    var clientSecret = $('driveClientSecret') ? $('driveClientSecret').value.trim() : '';
+    if (!clientId || !clientSecret) { toast('클라이언트 ID와 보안 비밀을 모두 넣어 주세요.', 'err'); return; }
+    var btn = $('driveStartBtn');
+    if (btn && btn.disabled) return;
+    if (btn) btn.disabled = true;
+    if ($('drivePollText')) $('drivePollText').textContent = '코드를 받는 중…';
+    if ($('driveCodeBox')) $('driveCodeBox').hidden = false;
+    API.startDriveLink({ clientId: clientId, clientSecret: clientSecret }).then(function (res) {
+      if (btn) btn.disabled = false;
+      if (!res || res.ok === false) throw new Error((res && res.error) || '연결을 시작하지 못했습니다.');
+      // 보안 비밀은 화면에 남기지 않는다 (서버로만 갔다)
+      if ($('driveClientSecret')) $('driveClientSecret').value = '';
+      if ($('driveSetup')) $('driveSetup').hidden = true;
+      if ($('driveCodeBox')) $('driveCodeBox').hidden = false;
+      if ($('driveCode')) $('driveCode').textContent = res.userCode || '';
+      driveLinkState.linkToken = res.linkToken || '';
+      driveLinkState.interval = Math.max(5, Number(res.interval) || 5);
+      driveLinkState.until = (new Date()).getTime() + (Number(res.expiresIn) || 600) * 1000;
+      if ($('drivePollText')) $('drivePollText').textContent = '휴대폰에서 승인해 주세요. (자동으로 확인합니다)';
+      pollDriveLinkSoon();
+    }).catch(function (err) {
+      if (btn) btn.disabled = false;
+      if ($('driveCodeBox')) $('driveCodeBox').hidden = true;
+      if ($('driveSetup')) $('driveSetup').hidden = false;
+      if ($('drivePollText')) $('drivePollText').textContent = '';
+      toast((err && err.message) || '연결을 시작하지 못했습니다.', 'err');
+    });
+  }
+
+  function pollDriveLinkSoon() {
+    stopDrivePoll();
+    driveLinkState.polling = true;
+    driveLinkState.timer = setTimeout(checkDriveLink, Math.max(5, driveLinkState.interval) * 1000);
+  }
+
+  function stopDrivePoll() {
+    driveLinkState.polling = false;
+    if (driveLinkState.timer) { clearTimeout(driveLinkState.timer); driveLinkState.timer = null; }
+  }
+
+  function checkDriveLink() {
+    if (!driveLinkState.polling) return;
+    if ((new Date()).getTime() > driveLinkState.until) {
+      stopDrivePoll();
+      if ($('drivePollText')) $('drivePollText').textContent = '시간이 지났습니다. [연결 시작]을 다시 눌러 주세요.';
+      if ($('driveCodeBox')) $('driveCodeBox').hidden = true;
+      if ($('driveSetup')) $('driveSetup').hidden = false;
+      return;
+    }
+    API.pollDriveLink({ linkToken: driveLinkState.linkToken }).then(function (res) {
+      if (!res || res.ok === false) throw new Error((res && res.error) || '연결 확인에 실패했습니다.');
+      var status = res.status || '';
+      if (status === 'connected') {
+        stopDrivePoll();
+        driveLinkState.linkToken = '';
+        if ($('driveCodeBox')) $('driveCodeBox').hidden = true;
+        toast('사진 빠른 업로드 연결이 끝났습니다. 이제 사진이 3~6초에 올라갑니다.', 'ok');
+        refreshDriveStatus();
+        return;
+      }
+      if (status === 'denied' || status === 'expired') {
+        stopDrivePoll();
+        if ($('drivePollText')) $('drivePollText').textContent = status === 'denied'
+          ? '승인이 거부되었습니다. [연결 시작]을 다시 눌러 주세요.'
+          : '코드가 만료되었습니다. [연결 시작]을 다시 눌러 주세요.';
+        if ($('driveCodeBox')) $('driveCodeBox').hidden = true;
+        if ($('driveSetup')) $('driveSetup').hidden = false;
+        return;
+      }
+      if (res.interval) driveLinkState.interval = Math.max(5, Number(res.interval) || 5);
+      pollDriveLinkSoon();
+    }).catch(function (err) {
+      if ($('drivePollText')) $('drivePollText').textContent = (err && err.message) || '연결 확인에 실패했습니다.';
+      pollDriveLinkSoon();
+    });
   }
 
   /* ================================================================
@@ -3249,6 +3957,8 @@
     if (!eventsBound) { bindEvents(); eventsBound = true; }
     // 첫 화면은 📅 캘린더 — 이번 달 달력과 오늘 상세를 바로 보여 준다.
     switchTab('calendar');
+    // 📸 지난번에 못 올린 사진이 있으면 남은 것부터 이어 올린다 (화면은 막지 않는다)
+    uploadResume();
   }
 
   // 권한에 따라 화면 정리 — 직원은 사진 등록·본인 글 수정만 (나머지는 숨긴다)
@@ -3268,7 +3978,7 @@
     if (printBtn) printBtn.hidden = !admin;
 
     // 관리자 전용 버튼은 id 로도 한 번 더 확실히 숨긴다 (클래스 표시 + id 두 겹)
-    ['dayPlanAddBtn', 'topBranchManageBtn', 'branchManageBtn', 'calBranchManageBtn', 'staffManageBtn'].forEach(function (id) {
+    ['dayPlanAddBtn', 'topBranchManageBtn', 'branchManageBtn', 'calBranchManageBtn', 'staffManageBtn', 'driveLinkBtn'].forEach(function (id) {
       var node = $(id);
       if (node) node.hidden = !admin;
     });
@@ -3732,6 +4442,11 @@
     $('tab-list').addEventListener('click', function () { switchTab('list'); });
     // 사진 뒤에서 올리기 — 실패했을 때 다시 올리기 / 안내 닫기
     $('upBarRetry').addEventListener('click', retryUploads);
+    // 🔗 사진 빠른 업로드 연결 (관리자)
+    if ($('driveLinkBtn')) $('driveLinkBtn').addEventListener('click', openDriveModal);
+    if ($('driveClose')) $('driveClose').addEventListener('click', closeDriveModal);
+    if ($('driveCancelBtn')) $('driveCancelBtn').addEventListener('click', closeDriveModal);
+    if ($('driveStartBtn')) $('driveStartBtn').addEventListener('click', startDriveLink);
     $('upBarClose').addEventListener('click', dismissUploadBar);
 
     // 📅 일정 및 사진등록 — 월 이동(◀▶·좌우 스와이프) / 지점 선택 / 기간 지정(조회·인쇄) / 등록 / 지점 관리
@@ -3940,6 +4655,8 @@
     if (!accepted.length) return;
 
     // 🏃 화면을 막지 않는다 — 사진은 뒤에서 3장씩 압축하고, 화면에는 얇은 진행 바만 보여 준다
+    //    이 사진들은 **지금 열린 이 기록에만** 붙는다 (다른 기록에 섞이지 않게 초안 열쇠를 새로 만든다)
+    var draftKey = resetDraftKey('record');
     compressBusy++;
     showUploadBar('사진 ' + accepted.length + '장 준비 중… 0 / ' + accepted.length);
     var done = 0;
@@ -3955,7 +4672,7 @@
         renderPhotos();
         done++;
         showUploadBar('사진 준비 중… ' + done + ' / ' + accepted.length);
-        deliverPhoto('record', photo);          // 압축이 끝난 사진은 바로 전송 시작
+        deliverPhoto('record', photo, draftKey);          // 압축이 끝난 사진은 바로 전송 시작
       }).catch(function (err) {
         failed++;
         console.warn('photo failed', err);
@@ -3968,7 +4685,7 @@
       compressBusy--;
       sealUploads();
       if (failed) toast(failed + '장은 사진을 읽지 못해 제외했어요. (HEIC 사진은 JPEG로 변환해 주세요)', 'err');
-      else if (!photoCollector) toast(accepted.length + '장 준비 완료', 'ok');
+      else if (!uploadActive()) toast(accepted.length + '장 준비 완료', 'ok');
     });
   }
 
@@ -4024,31 +4741,49 @@
     });
   }
 
-  /** 그린 캔버스를 JPEG 결과로 만든다 (OffscreenCanvas 면 convertToBlob, 아니면 toDataURL) */
+  /**
+   * 그린 캔버스를 JPEG 결과로 만든다.
+   *   · OffscreenCanvas 면 convertToBlob → **Blob 그대로** 쓴다 (base64 로 바꾸지 않는다 — 그게 빨라지는 핵심)
+   *   · 미리보기용 주소는 object URL 로 만든다(메모리도 가볍고 즉시 뜬다)
+   *   · toDataURL 밖에 못 쓰는 예전 브라우저만 base64 를 함께 들고 있는다
+   */
   function packJpeg_(canvas, width, height, file) {
-    function pack(dataUrl) {
-      var base64 = dataUrl.split(',')[1] || '';
+    var name = (file.name || 'photo').replace(/\.[^.]+$/, '') + '.jpg';
+    function pack(blob, base64) {
+      var url = '';
+      try { url = URL.createObjectURL(blob); } catch (e) { url = ''; }
       return {
-        dataUrl: dataUrl,
-        base64: base64,
+        blob: blob,
+        dataUrl: url,
+        base64: base64 || '',
         mimeType: 'image/jpeg',
-        name: (file.name || 'photo').replace(/\.[^.]+$/, '') + '.jpg',
-        bytes: approxBytes(base64),
+        name: name,
+        bytes: (blob && blob.size) || approxBytes(base64 || ''),
         width: width,
         height: height
       };
     }
     if (typeof canvas.convertToBlob === 'function') {
       return canvas.convertToBlob({ type: 'image/jpeg', quality: PHOTO_QUALITY }).then(function (blob) {
-        return new Promise(function (resolve, reject) {
-          var fr = new FileReader();
-          fr.onload = function () { resolve(pack(String(fr.result || ''))); };
-          fr.onerror = function () { reject(new Error('사진을 읽을 수 없습니다.')); };
-          fr.readAsDataURL(blob);
-        });
+        return pack(blob, '');
       });
     }
-    return Promise.resolve(pack(canvas.toDataURL('image/jpeg', PHOTO_QUALITY)));
+    var dataUrl = canvas.toDataURL('image/jpeg', PHOTO_QUALITY);
+    return Promise.resolve(pack(dataUrlToBlob(dataUrl), dataUrl.split(',')[1] || ''));
+  }
+
+  /** data:image/jpeg;base64,... → Blob (예전 브라우저·미리보기용) */
+  function dataUrlToBlob(dataUrl) {
+    var text = String(dataUrl || '');
+    var comma = text.indexOf(',');
+    var head = comma > -1 ? text.substring(0, comma) : '';
+    var b64 = comma > -1 ? text.substring(comma + 1) : '';
+    var mime = (head.match(/data:([^;]+)/) || [])[1] || 'image/jpeg';
+    var bin = '';
+    try { bin = atob(b64); } catch (e) { bin = ''; }
+    var bytes = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new Blob([bytes], { type: mime });
   }
 
   function renderPhotos() {
@@ -4133,7 +4868,7 @@
       images: []
     };
     var queuedPhotos = state.photos.map(function (p) {
-      return { name: p.name, mimeType: p.mimeType, base64: p.base64 };
+      return { name: p.name, mimeType: p.mimeType, base64: p.base64 || '', blob: p.blob || null };
     });
 
     state.loading = true;
@@ -6079,6 +6814,8 @@
     if (!accepted.length) return;
 
     // 화면을 막지 않는다 — 3장씩 압축하고 얇은 진행 바만 보여 준다
+    //    이 사진들은 지금 열려 있는 이 창(요청·일정)에만 붙는다 (다른 기록에 섞이지 않게)
+    var draftKey = resetDraftKey(kind);
     compressBusy++;
     showUploadBar('사진 ' + accepted.length + '장 준비 중… 0 / ' + accepted.length);
     var done = 0;
@@ -6093,7 +6830,7 @@
         renderModalPhotos(kind);
         done++;
         showUploadBar('사진 준비 중… ' + done + ' / ' + accepted.length);
-        deliverPhoto(kind, photo);
+        deliverPhoto(kind, photo, draftKey);
       }).catch(function (err) {
         failed++;
         console.warn('modal photo failed', err);
@@ -6105,7 +6842,7 @@
       compressBusy--;
       sealUploads();
       if (failed) toast(failed + '장은 사진을 읽지 못해 제외했어요.', 'err');
-      else if (!photoCollector) toast('사진 ' + accepted.length + '장 준비 완료', 'ok');
+      else if (!uploadActive()) toast('사진 ' + accepted.length + '장 준비 완료', 'ok');
     });
   }
 
@@ -6159,7 +6896,7 @@
     return {
       keepIds: bag.keep.map(function (p) { return p.id || p.original || ''; }),
       newPhotos: bag.newPhotos.map(function (p) {
-        return { name: p.name, mimeType: p.mimeType, base64: p.base64 };
+        return { name: p.name, mimeType: p.mimeType, base64: p.base64 || '', blob: p.blob || null };
       }),
       count: bag.keep.length + bag.newPhotos.length
     };
@@ -6457,6 +7194,8 @@
     if (!accepted.length) return;
 
     // 화면을 막지 않는다 — 3장씩 압축하고 얇은 진행 바만 보여 준다
+    //    수정 창에서 더한 사진도 이 수정 건에만 붙는다
+    var draftKey = resetDraftKey('edit');
     compressBusy++;
     showUploadBar('사진 ' + accepted.length + '장 준비 중… 0 / ' + accepted.length);
     var done = 0;
@@ -6471,7 +7210,7 @@
         renderEditPhotos();
         done++;
         showUploadBar('사진 준비 중… ' + done + ' / ' + accepted.length);
-        deliverPhoto('edit', photo);
+        deliverPhoto('edit', photo, draftKey);
       }).catch(function (err) {
         failed++;
         console.warn('edit photo failed', err);
@@ -6483,7 +7222,7 @@
       compressBusy--;
       sealUploads();
       if (failed) toast(failed + '장은 사진을 읽지 못해 제외했어요.', 'err');
-      else if (!photoCollector) toast(accepted.length + '장 준비 완료', 'ok');
+      else if (!uploadActive()) toast(accepted.length + '장 준비 완료', 'ok');
     });
   }
 
@@ -6503,7 +7242,7 @@
     var record = edit.record;
     var photoTotal = edit.keep.length + edit.newPhotos.length;
     var queuedPhotos = edit.newPhotos.map(function (p) {
-      return { name: p.name, mimeType: p.mimeType, base64: p.base64 };
+      return { name: p.name, mimeType: p.mimeType, base64: p.base64 || '', blob: p.blob || null };
     });
     var payload = {
       id: record.id,
