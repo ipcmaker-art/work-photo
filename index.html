@@ -532,8 +532,25 @@
     flex:1; text-align:center; text-decoration:none; padding:12px; border-radius:11px; font-weight:700; font-size:14px;
     background:rgba(255,255,255,.14); color:#fff;
   }
-  .lb-actions a.primary{background:var(--brand);}
+  .lb-actions a.primary,.lb-actions button.primary{background:var(--brand);}
   .lb-expand{position:absolute; inset:0; background:transparent;}
+
+  /* 📥 사진 내려받기 선택 창 (라이트박스 위에 뜨는 아래쪽 시트) */
+  #dlChooser{position:fixed; inset:0; z-index:130; background:rgba(9,12,20,.55); display:flex; align-items:flex-end; justify-content:center;}
+  #dlChooser[hidden]{display:none;}
+  .dl-card{
+    background:#fff; width:100%; max-width:520px; border-radius:18px 18px 0 0;
+    padding:18px 16px calc(16px + env(safe-area-inset-bottom)); box-shadow:0 -8px 30px rgba(16,24,40,.35);
+  }
+  .dl-card h3{margin:0 0 5px; font-size:16px; color:var(--text);}
+  .dl-sub{margin:0 0 14px; font-size:12.5px; color:var(--muted); line-height:1.5;}
+  .dl-btn{
+    display:block; width:100%; margin-top:8px; padding:13px; border-radius:12px;
+    font-size:14.5px; font-weight:700; background:#f2f4f7; color:var(--text); border:1px solid var(--line);
+  }
+  .dl-btn.primary{background:var(--brand); border-color:var(--brand); color:#fff;}
+  .dl-btn.ghost{background:transparent; border-color:transparent; color:var(--muted); font-weight:600;}
+  .dl-btn:disabled{opacity:.55;}
 
   .footer-note{text-align:center; font-size:11.5px; color:#98a2b3; padding:6px 20px 0; line-height:1.6;}
 
@@ -605,6 +622,10 @@
     .plan-link{background:#3b2a10; border-color:#4a3a12; color:#fcd34d;}
     .modal-card{background:#181b21;}
     .modal-close{background:#232833; color:#e4e7ec;}
+    .dl-card{background:#181b21;}
+    .dl-card h3{color:#f2f4f7;}
+    .dl-btn{background:#232833; color:#e4e7ec; border-color:#2a2f3a;}
+    .dl-btn.primary{background:var(--brand); color:#fff; border-color:var(--brand);}
   }
 </style>
 </head>
@@ -1112,7 +1133,18 @@
   <div class="lb-caption" id="lbCaption"></div>
   <div class="lb-actions">
     <a href="#" id="lbOpen" target="_blank" rel="noopener">원본 열기</a>
-    <a href="#" id="lbDownload" class="primary" download>다운로드</a>
+    <button type="button" id="lbDownload" class="primary">📥 다운로드</button>
+  </div>
+
+  <!-- 📥 사진 내려받기 선택 — 2장 이상이면 1장/전체를 먼저 묻는다 -->
+  <div id="dlChooser" hidden>
+    <div class="dl-card" role="dialog" aria-modal="true" aria-labelledby="dlTitle">
+      <h3 id="dlTitle">📥 사진 내려받기</h3>
+      <p class="dl-sub" id="dlSub"></p>
+      <button type="button" class="dl-btn" id="dlOne">이 사진 1장만 받기</button>
+      <button type="button" class="dl-btn primary" id="dlAll">전체 받기</button>
+      <button type="button" class="dl-btn ghost" id="dlCancel">취소</button>
+    </div>
   </div>
 </div>
 
@@ -1641,6 +1673,15 @@
       if (IS_GAS) return gasCall('updateWorkLog', withToken(payload));
       if (IS_REMOTE) return remotePost(withAction('updateRecord', withToken(payload)), REMOTE_UPLOAD_TIMEOUT);
       return Promise.resolve(mockUpdateRecord(payload));
+    },
+    // 📥 사진 여러 장을 ZIP 하나로 (라이트박스의 '전체 받기')
+    photoZip: function (payload) {
+      payload = payload || {};
+      if (IS_GAS) return gasCall('getPhotoZip', payload, authToken());
+      if (IS_REMOTE) {
+        return remoteGet({ action: 'photozip', token: authToken(), ids: payload.ids, name: payload.name }, REMOTE_UPLOAD_TIMEOUT);
+      }
+      return Promise.resolve(mockPhotoZip(payload));
     }
   };
 
@@ -2389,6 +2430,16 @@
       ok: true, updatedId: hit.id, record: updated,
       trashedFiles: (hit.photos || []).length - photos.length + added.length,
       addedFiles: added.length, warnings: []
+    };
+  }
+
+  /* 📥 미리보기·로컬 저장 모드 — 서버가 없으므로 ZIP 을 만들지 않는다.
+     화면은 이 응답을 받으면 한 장씩 받는 방식(300ms 간격)으로 넘어간다. */
+  function mockPhotoZip(payload) {
+    var ids = String((payload && payload.ids) || '').split(',').filter(function (s) { return s; });
+    return {
+      ok: false, code: 'preview', count: ids.length,
+      error: '미리보기에서는 사진을 한 장씩 내려받습니다.'
     };
   }
 
@@ -3805,7 +3856,19 @@
     $('lbClose').addEventListener('click', closeLightbox);
     $('lbPrev').addEventListener('click', function () { stepLightbox(-1); });
     $('lbNext').addEventListener('click', function () { stepLightbox(1); });
+    // 📥 다운로드 — 사진이 2장 이상이면 [1장 / 전체] 를 먼저 묻는다
+    $('lbDownload').addEventListener('click', function (e) {
+      if (e && e.preventDefault) e.preventDefault();
+      onLightboxDownload();
+    });
+    $('dlOne').addEventListener('click', downloadLightboxOne);
+    $('dlAll').addEventListener('click', downloadLightboxAll);
+    $('dlCancel').addEventListener('click', closeDlChooser);
+    $('dlChooser').addEventListener('click', function (e) {
+      if (!e || e.target === $('dlChooser')) closeDlChooser();
+    });
     document.addEventListener('keydown', function (e) {
+      if (!$('dlChooser').hidden && e.key === 'Escape') { closeDlChooser(); return; }
       if (!$('workModal').hidden && e.key === 'Escape') { closeWorkScheduleModal(); return; }
       if (!$('editModal').hidden && e.key === 'Escape') { closeEditModal(); return; }
       if (!$('schedModal').hidden && e.key === 'Escape') { closeRequestModal(); return; }
@@ -6431,6 +6494,7 @@
   function openLightbox(record, index) {
     var photos = record.photos || [];
     if (!photos.length) return;
+    closeDlChooser();
     state.lightbox = { photos: photos, index: index || 0, meta: record };
     $('lightbox').hidden = false;
     document.body.style.overflow = 'hidden';
@@ -6455,16 +6519,7 @@
     $('lbNext').hidden = lb.photos.length < 2;
 
     var open = $('lbOpen');
-    var dl = $('lbDownload');
-    if (/^data:/.test(p.original || '')) {
-      open.href = p.original;
-      dl.href = p.original;
-      dl.setAttribute('download', [lb.meta.date, lb.meta.branch, lb.meta.author, (lb.index + 1)].join('_') + '.jpg');
-    } else {
-      open.href = p.view || p.original;
-      dl.href = p.download || p.original;
-      dl.removeAttribute('download');
-    }
+    open.href = /^data:/.test(p.original || '') ? p.original : (p.view || p.original);
   }
 
   function stepLightbox(dir) {
@@ -6475,9 +6530,152 @@
   }
 
   function closeLightbox() {
+    closeDlChooser();
     $('lightbox').hidden = true;
     document.body.style.overflow = '';
     $('lbImage').removeAttribute('src');
+  }
+
+  /* ----------------------------------------------------------------
+   * 8-1. 📥 사진 내려받기 (2026-11-27 지시)
+   *   "작업사진 다운받을때 전체를 받을건지 하나만 받을건지 묻고
+   *    전체선택하면 일괄받을수 있게 해줘"
+   *   · 사진이 2장 이상이면 먼저 [이 사진 1장만 / 전체 N장] 을 묻는다.
+   *   · 전체는 서버가 ZIP 하나로 묶어 준다 → 팝업 없이 파일 하나만 내려받으므로
+   *     삼성 인터넷·크롬 모바일의 '여러 파일 다운로드 차단'에 걸리지 않는다.
+   *   · 서버에 없는 사진(미리보기·방금 고른 사진)이나 너무 큰 묶음은 300ms 간격으로
+   *     한 장씩 차례로 내려받고 진행 상태(1 / 5)를 보여 준다.
+   * -------------------------------------------------------------- */
+  function isDataUrl(url) { return /^data:/i.test(String(url || '')); }
+
+  function downloadFileName(meta, index) {
+    var parts = [meta && meta.date, meta && meta.branch, meta && meta.author, index + 1]
+      .map(function (v) { return String(v === undefined || v === null ? '' : v).trim(); })
+      .filter(function (v) { return v; });
+    return parts.join('_').replace(/[\\\/:*?"<>|]/g, '') + '.jpg';
+  }
+
+  // 주소 하나를 파일로 저장한다 (blob 주소·data 주소·드라이브 내려받기 주소 모두)
+  function saveUrlFile(url, filename) {
+    if (!url) return;
+    var a = document.createElement('a');
+    a.href = url;
+    if (filename) a.download = filename;
+    a.rel = 'noopener';
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () {
+      try { document.body.removeChild(a); } catch (e) {}
+    }, 1500);
+  }
+
+  function openDlChooser() {
+    var lb = state.lightbox;
+    if (!lb || !lb.photos.length) return;
+    var n = lb.photos.length;
+    $('dlSub').textContent = '사진 ' + n + '장입니다. 지금 보는 사진만 받을지, 이 작업의 사진을 모두 받을지 고르세요.' +
+      (n > 1 ? ' 전체는 ZIP 파일 하나로 내려받아 폰에 저장됩니다.' : '');
+    $('dlOne').textContent = '이 사진 1장만 받기 (' + (lb.index + 1) + '/' + n + ')  →  ' + downloadFileName(lb.meta, lb.index);
+    $('dlAll').textContent = '전체 ' + n + '장 한 번에 받기 (ZIP)';
+    $('dlChooser').hidden = false;
+  }
+
+  function closeDlChooser() {
+    var box = $('dlChooser');
+    if (box) box.hidden = true;
+  }
+
+  function onLightboxDownload() {
+    var lb = state.lightbox;
+    if (!lb || !lb.photos.length) return;
+    if (lb.photos.length < 2) {
+      downloadLightboxOne();
+      return;
+    }
+    openDlChooser();
+  }
+
+  // 1장만 — 드라이브 사진은 드라이브가 저장된 이름 그대로 내려준다
+  function downloadLightboxOne() {
+    var lb = state.lightbox;
+    if (!lb) return;
+    var p = lb.photos[lb.index];
+    if (!p) return;
+    closeDlChooser();
+    if (isDataUrl(p.original)) {
+      saveUrlFile(p.original, downloadFileName(lb.meta, lb.index));
+    } else {
+      saveUrlFile(p.download || p.original);
+    }
+    toast('사진 1장 내려받기를 시작했습니다.', 'ok');
+  }
+
+  function downloadLightboxAll() {
+    var lb = state.lightbox;
+    if (!lb) return;
+    var photos = lb.photos || [];
+    if (!photos.length) return;
+    closeDlChooser();
+
+    var ids = photos.map(function (p) { return p.id || ''; });
+    var serverReady = photos.every(function (p) { return !isDataUrl(p.original); }) &&
+      ids.every(function (id) { return !!id; });
+    if (!serverReady) {
+      // 미리보기·방금 고른 사진처럼 서버에 없는 사진 — 한 장씩 차례로
+      downloadPhotosOneByOne(lb);
+      return;
+    }
+
+    var name = [lb.meta && lb.meta.date, lb.meta && lb.meta.branch]
+      .map(function (v) { return String(v || '').trim(); })
+      .filter(function (v) { return v; }).join('_') || '작업사진';
+
+    showLoading('사진 ' + photos.length + '장 묶는 중…', 'ZIP 파일 하나로 내려받습니다');
+    API.photoZip({ ids: ids.join(','), name: name }).then(function (res) {
+      if (!res || res.ok === false) {
+        var code = res && res.code;
+        var msg = (res && res.error) || '사진을 묶지 못했습니다.';
+        hideLoading();
+        if (code === 'too_large') {
+          toast('사진이 커서 한 장씩 내려받습니다. 여러 파일 다운로드를 물으면 허용을 눌러 주세요.', 'err');
+          downloadPhotosOneByOne(lb);
+        } else {
+          toast(msg, 'err');
+        }
+        return;
+      }
+      hideLoading();
+      closeLightbox();
+      saveFile(res);
+      toast('사진 ' + (res.count || photos.length) + '장을 ZIP 하나로 내려받았습니다.' +
+        (res.skipped ? ' (' + res.skipped + '장은 빠짐)' : ''), 'ok');
+    }).catch(function (err) {
+      hideLoading();
+      toast((err && err.message) || '사진을 묶지 못했습니다.', 'err');
+    });
+  }
+
+  // 서버 ZIP 을 쓸 수 없을 때 — 300ms 간격으로 한 장씩 (진행 상태 표시)
+  function downloadPhotosOneByOne(lb) {
+    var photos = (lb && lb.photos) || [];
+    if (!photos.length) return;
+    var i = 0;
+    showLoading('사진 내려받는 중…', '1 / ' + photos.length);
+    function next() {
+      if (i >= photos.length) {
+        hideLoading();
+        toast('사진 ' + photos.length + '장을 내려받았습니다. 여러 파일 다운로드를 물으면 허용을 눌러 주세요.', 'ok');
+        return;
+      }
+      var p = photos[i];
+      if (isDataUrl(p.original)) saveUrlFile(p.original, downloadFileName(lb.meta, i));
+      else saveUrlFile(p.download || p.original);
+      i++;
+      $('loadingSub').textContent = i + ' / ' + photos.length;
+      setTimeout(next, 320);
+    }
+    next();
   }
 
   /* ================================================================
