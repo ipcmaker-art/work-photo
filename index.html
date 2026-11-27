@@ -2794,7 +2794,9 @@
       };
     });
     list.sort(function (a, b) {
-      if (a.date !== b.date) return a.date < b.date ? -1 : 1;
+      if (a.date !== b.date) return a.date < b.date ? -1 : 1;      // 1일부터 말일까지
+      var ab = String(a.branch || '').trim(), bb = String(b.branch || '').trim();
+      if (ab !== bb) { if (!ab) return 1; if (!bb) return -1; return ab < bb ? -1 : 1; }
       if (a.createdAt !== b.createdAt) return a.createdAt < b.createdAt ? -1 : 1;
       return String(a.id) < String(b.id) ? -1 : 1;
     });
