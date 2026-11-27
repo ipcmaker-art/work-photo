@@ -1505,6 +1505,21 @@
       if (IS_REMOTE) return remotePost(withAction('save', withToken(payload)), REMOTE_UPLOAD_TIMEOUT);
       return mockSave(withToken(payload));
     },
+    // 📤 사진 뒤에서 올리기 — 글을 먼저 저장한 뒤 사진을 3장씩 이어 붙인다
+    //   (v37: 이 항목이 빠져 있어 GitHub Pages 화면에서는 사진이 한 장도 올라가지 않았다)
+    appendPhotos: function (target, id, images, extra) {
+      var payload = {
+        target: target || 'record',
+        id: id || '',
+        images: images || [],
+        date: (extra && extra.date) || '',
+        branch: (extra && extra.branch) || '',
+        author: (extra && extra.author) || ''
+      };
+      if (IS_GAS) return gasCall('appendPhotos', withToken(payload));
+      if (IS_REMOTE) return remotePost(withAction('appendPhotos', withToken(payload)), REMOTE_UPLOAD_TIMEOUT);
+      return Promise.resolve(mockAppendPhotos(target, id, images || []));
+    },
     list: function (filters) {
       if (IS_GAS) return gasCall('getWorkLogs', withToken(filters));
       if (IS_REMOTE) {
@@ -2947,6 +2962,7 @@
         id: opts.id,
         date: opts.date || '',
         branch: opts.branch || '',
+        author: opts.author || '',
         photo: { name: p.name || 'photo.jpg', mimeType: p.mimeType || 'image/jpeg', base64: p.base64 }
       });
     });
@@ -3004,7 +3020,7 @@
   }
 
   function uploadOne(item) {
-    return API.appendPhotos(item.target, item.id, [item.photo], { date: item.date, branch: item.branch })
+    return API.appendPhotos(item.target, item.id, [item.photo], { date: item.date, branch: item.branch, author: item.author })
       .then(function (res) {
         if (!res || res.ok === false) throw new Error((res && res.error) || '사진을 올리지 못했습니다.');
         uploadDone++;
@@ -4085,6 +4101,7 @@
           id: (res && res.record && res.record.id) || '',
           date: date,
           branch: branch,
+          author: author,
           photos: queuedPhotos
         });
       }
@@ -5418,7 +5435,7 @@
       var madeId = (res.schedule && res.schedule.id) || (editing && editing.id) || '';
       if (queuedPhotos.length) {
         enqueuePhotoUpload({
-          target: 'schedule', id: madeId, date: payload.date, branch: payload.branch, photos: queuedPhotos
+          target: 'schedule', id: madeId, date: payload.date, branch: payload.branch, author: payload.author, photos: queuedPhotos
         });
       }
       var photoNotice = queuedPhotos.length || savedCount;
@@ -6183,7 +6200,7 @@
       var madeId = (res.schedule && res.schedule.id) || (editing && editing.id) || '';
       if (queuedPhotos.length) {
         enqueuePhotoUpload({
-          target: 'request', id: madeId, date: payload.date, branch: payload.branch, photos: queuedPhotos
+          target: 'request', id: madeId, date: payload.date, branch: payload.branch, author: payload.author, photos: queuedPhotos
         });
       }
       var photoNotice = queuedPhotos.length || savedCount;
@@ -6443,7 +6460,7 @@
       // 새로 붙인 사진은 뒤에서 3장씩 올려 이 기록에 붙인다
       if (queuedPhotos.length) {
         enqueuePhotoUpload({
-          target: 'record', id: record.id, date: date, branch: branch, photos: queuedPhotos
+          target: 'record', id: record.id, date: date, branch: branch, author: author, photos: queuedPhotos
         });
       }
 
