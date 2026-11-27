@@ -219,6 +219,11 @@
   .record-author{font-size:13px; color:#344054; font-weight:600;}
   .record-time{margin-left:auto; font-size:11.5px; color:#98a2b3;}
   .record-memo{margin:8px 0 0; font-size:14px; color:#344054; white-space:pre-wrap; word-break:break-word;}
+  /* 🧾 지출내역·영수증 (v46) */
+  .rec-expenses{color:#0f766e; font-size:13px; background:#f0fdfa; border:1px solid #ccfbf1; border-radius:8px; padding:6px 8px;}
+  .thumbs.receipts{margin-top:6px; grid-template-columns:repeat(auto-fill,minmax(66px,1fr));}
+  .thumbs-label{display:block; margin:10px 0 0; font-size:11.5px; font-weight:800; color:#0f766e;}
+  .thumbs .receipt-thumb img{border:1px solid #ccfbf1;}
   .thumbs{display:grid; grid-template-columns:repeat(auto-fill,minmax(86px,1fr)); gap:6px; margin-top:10px;}
   .thumb{
     position:relative; padding:0; border-radius:10px; overflow:hidden; background:#eef1f5; aspect-ratio:1/1; min-height:84px;
@@ -415,9 +420,8 @@
   .login-card .login-sub{font-size:11.5px; color:var(--muted); margin:0 0 20px; line-height:1.4;}
   .login-label{display:block; text-align:left; font-size:12.5px; font-weight:800; color:#344054; margin-bottom:7px;}
   .login-pin{
-    width:100%; text-align:center; font-size:30px; font-weight:800; letter-spacing:14px; text-indent:14px;
+    width:100%; text-align:center; font-size:19px; font-weight:700; letter-spacing:2px;
     padding:14px 10px; border:1px solid var(--line); border-radius:14px; background:#fbfcfd; outline:none;
-    -webkit-text-security:disc;
   }
   .login-pin:focus{border-color:var(--brand); background:#fff; box-shadow:0 0 0 3px rgba(29,78,216,.12);}
   .login-btn{
@@ -472,6 +476,9 @@
   .staff-row .who .nm{font-size:13.5px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   .staff-row .who .rl{font-size:10.5px; color:var(--muted);}
   .staff-row .rl.admin{color:#1d4ed8; font-weight:800;}
+  .staff-row .rl.super{color:#7c3aed; font-weight:800;}
+  .photo-item.receipt{background:#f0fdfa;}
+  .photo-item.receipt .badge-size{background:rgba(15,118,110,.85);}
   .staff-row .act{display:flex; gap:4px; flex:0 0 auto;}
   .staff-row .act button{
     padding:5px 8px; border-radius:8px; font-size:11.5px; font-weight:700;
@@ -638,18 +645,18 @@
 </head>
 <body>
 
-<!-- 🔐 첫 화면 로그인 — 휴대폰 뒷번호 4자리 (직원 시트와 대조는 서버에서 한다) -->
+<!-- 🔐 첫 화면 로그인 — 비밀번호(예전 휴대폰 뒷번호 4자리, 지금은 영문·숫자·특수문자도 가능) -->
 <div id="loginScreen" class="login-screen" hidden>
   <div class="login-card">
     <div class="login-logo">📷</div>
     <h1>작업사진 등록</h1>
     <p class="login-sub">(주)제이비지종합건설 시설유지보수사업부</p>
-    <label class="login-label" for="loginPin">휴대폰 뒷번호 4자리</label>
-    <input id="loginPin" class="login-pin" type="tel" inputmode="numeric" maxlength="4"
-           autocomplete="one-time-code" placeholder="••••" aria-label="휴대폰 뒷번호 4자리">
+    <label class="login-label" for="loginPin">비밀번호</label>
+    <input id="loginPin" class="login-pin" type="password" maxlength="40"
+           autocomplete="current-password" placeholder="휴대폰 뒷번호 4자리 또는 비밀번호" aria-label="비밀번호">
     <button type="button" class="login-btn" id="loginBtn">로그인</button>
     <div class="login-error" id="loginError" hidden></div>
-    <p class="login-foot">등록된 번호만 들어갈 수 있습니다.<br>번호는 관리자에게 문의하세요.</p>
+    <p class="login-foot">등록된 비밀번호만 들어갈 수 있습니다.<br>비밀번호는 관리자에게 문의하세요. (5번 틀리면 10분 잠깁니다)</p>
   </div>
 </div>
 
@@ -733,10 +740,16 @@
               <input type="text" id="inputLaborCost" maxlength="40" inputmode="numeric" placeholder="예) 150000 → 150,000원">
               <div class="hint">숫자만 적으면 <b>150,000원</b> 처럼 자동으로 바꿉니다. 글자(예: 일당 15만)로 적어도 됩니다.</div>
             </div>
+
+            <div class="field">
+              <div class="label"><span>지출내역</span><span class="optional">선택</span></div>
+              <textarea id="inputExpenses" rows="3" maxlength="1000" placeholder="예) 철판 1장 32,000원 · 용접봉 2봉 8,000원"></textarea>
+              <div class="hint">영수증 사진을 올리면 품명·수량·금액을 읽어 이 칸에 채워 줍니다(고쳐도 됩니다). 비워 두어도 등록됩니다.</div>
+            </div>
           </div>
 
           <div class="card">
-            <div class="field">
+            <div class="field" style="margin:0">
               <div class="label"><span>작업사진</span><span class="optional">선택 · 여러 장 가능</span></div>
               <div class="photo-actions">
                 <label class="picker" id="pickLabel">
@@ -746,7 +759,22 @@
               </div>
               <div class="photo-grid" id="photoGrid"></div>
               <div class="summary" id="photoSummary">사진 없이도 등록할 수 있습니다.</div>
-              <div class="hint">올릴 때 자동으로 <b>가로 800 × 세로 600픽셀</b> JPEG로 변환해 저장합니다 (출력 시 6×4cm).</div>
+              <div class="hint">올릴 때 자동으로 <b>가로 800 × 세로 600픽셀</b> JPEG(출력 시 6×4cm)로 변환하고, 오른쪽 아래에 <b>날짜 · 지점명</b>을 작게 박아 저장합니다.</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="field" style="margin:0">
+              <div class="label"><span>🧾 영수증 사진</span><span class="optional">선택 · 여러 장 가능</span></div>
+              <div class="photo-actions">
+                <label class="picker" id="receiptPickLabel">
+                  <span>🧾 영수증 찍기 / 올리기</span>
+                  <input type="file" id="receiptInput" accept="image/*" multiple hidden>
+                </label>
+              </div>
+              <div class="photo-grid" id="receiptGrid"></div>
+              <div class="summary" id="receiptSummary">영수증 없이도 등록할 수 있습니다.</div>
+              <div class="hint">영수증은 글씨가 보이도록 <b>워터마크 없이 1200px</b> 로 선명하게 따로 저장합니다. 사진을 올리면 품명·수량·금액을 지출내역 칸에 자동으로 적어 줍니다.</div>
             </div>
           </div>
 
@@ -1036,6 +1064,10 @@
       <input type="text" id="editLaborCost" maxlength="40" inputmode="numeric" placeholder="예) 150000 → 150,000원">
     </div>
     <div class="field">
+      <div class="label"><span>지출내역</span><span class="optional">선택</span></div>
+      <textarea id="editExpenses" rows="3" maxlength="1000" placeholder="예) 철판 1장 32,000원 · 용접봉 2봉 8,000원"></textarea>
+    </div>
+    <div class="field">
       <div class="label"><span>작업사진</span><span class="optional">선택 · 0장 가능</span></div>
       <div class="photo-grid" id="editPhotoGrid"></div>
       <div class="summary" id="editPhotoSummary">사진을 불러오는 중…</div>
@@ -1043,7 +1075,17 @@
         <span>📷 사진 추가</span>
         <input type="file" id="editPhotoInput" accept="image/*" multiple hidden>
       </label>
-      <div class="hint">사진의 ✕ 를 누르면 그 사진이 이 기록에서 빠집니다(드라이브 휴지통으로 이동). 새로 추가한 사진은 자동으로 <b>가로 800 × 세로 600픽셀</b> JPEG로 변환합니다. 사진을 모두 빼도 저장됩니다.</div>
+      <div class="hint">사진의 ✕ 를 누르면 그 사진이 이 기록에서 빠집니다(드라이브 휴지통으로 이동). 새로 추가한 사진은 자동으로 <b>가로 800 × 세로 600픽셀</b> JPEG로 변환하고 오른쪽 아래에 <b>날짜 · 지점명</b>을 박아 저장합니다.</div>
+    </div>
+    <div class="field">
+      <div class="label"><span>🧾 영수증 사진</span><span class="optional">선택 · 0장 가능</span></div>
+      <div class="photo-grid" id="editReceiptGrid"></div>
+      <div class="summary" id="editReceiptSummary">영수증 없이도 저장됩니다.</div>
+      <label class="picker" id="editReceiptPickLabel" style="margin-top:10px">
+        <span>🧾 영수증 추가</span>
+        <input type="file" id="editReceiptInput" accept="image/*" multiple hidden>
+      </label>
+      <div class="hint">영수증은 워터마크 없이 1200px 로 선명하게 저장하고, 지출내역 칸에 품명·수량·금액을 읽어 채웁니다.</div>
     </div>
     <div class="edit-actions">
       <button type="button" class="btn-ghost" id="editCancel">취소</button>
@@ -1058,12 +1100,12 @@
       <h2 id="staffTitle">👥 직원 관리</h2>
       <button type="button" class="modal-close" id="staffClose" aria-label="닫기">✕</button>
     </div>
-    <div class="edit-meta">번호는 각자 <b>휴대폰 뒷번호 4자리</b>입니다. 여기에 등록된 번호만 로그인할 수 있고,<br>직원은 <b>작업사진 등록과 본인 글 수정</b>만 할 수 있습니다.</div>
+    <div class="edit-meta">비밀번호는 각자 정합니다(휴대폰 뒷번호 4자리 또는 <b>영문·숫자·특수문자 4~40자</b>). 여기에 등록된 비밀번호만 로그인할 수 있고,<br>직원은 <b>작업사진 등록과 본인 글 수정</b>만 할 수 있습니다. 삭제는 <b>최고관리자</b>만 가능합니다.</div>
     <div class="field">
       <div class="staff-add">
         <div>
-          <div class="label"><span>번호(4자리)</span></div>
-          <input type="tel" id="staffNo" inputmode="numeric" maxlength="4" placeholder="0000" aria-label="직원 번호 4자리">
+          <div class="label"><span>비밀번호</span></div>
+          <input type="text" id="staffNo" maxlength="40" placeholder="예) 3653 또는 chun!2026" aria-label="직원 비밀번호">
         </div>
         <div>
           <div class="label"><span>이름</span></div>
@@ -1074,11 +1116,12 @@
           <select id="staffRole" aria-label="직원 권한">
             <option value="직원">직원</option>
             <option value="관리자">관리자</option>
+            <option value="최고관리자" disabled>최고관리자</option>
           </select>
         </div>
         <button type="button" class="staff-save" id="staffSave">➕ 직원 등록</button>
       </div>
-      <div class="hint" id="staffEditHint" hidden style="color:#1d4ed8">수정 중입니다. 번호·이름·권한을 고치고 [💾 수정 저장]을 누르세요.</div>
+      <div class="hint" id="staffEditHint" hidden style="color:#1d4ed8">수정 중입니다. 비밀번호·이름·권한을 고치고 [💾 수정 저장]을 누르세요. 내 비밀번호를 바꾸면 <b>다음 로그인부터</b> 새 비밀번호를 쓰시면 됩니다.</div>
     </div>
     <div class="staff-list" id="staffList"></div>
   </div>
@@ -1208,6 +1251,7 @@
   var PHOTO_W = 800;        // 저장할 사진 가로(픽셀) — v30: 업로드 속도를 위해 800×600 으로 줄였다
   var PHOTO_H = 600;        // 저장할 사진 세로(픽셀)
   var PHOTO_QUALITY = 0.7;  // JPEG 품질(선명도와 업로드 속도의 절충) — 6×4cm 인쇄에는 충분하다
+  var RECEIPT_QUALITY = 0.85; // 🧾 영수증은 글씨가 보여야 해서 조금 더 선명하게
   var DEFAULT_BRANCHES = ['진천점', '월성점', '본리점', '중리점', '봉무점'];
   var WEEKDAY = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -1591,6 +1635,13 @@
       if (IS_REMOTE) return remotePost(withAction('attachPhotoIds', withToken(payload || {})), REMOTE_UPLOAD_TIMEOUT);
       return mockAttachPhotoIds(payload || {});
     },
+    // 🧾 영수증 자동 텍스트 변환 (서버의 Gemini Vision) — 키가 없으면 code:'no-key'
+    //   (v37 교훈: 여기를 빼면 GitHub Pages 에서만 영수증 자동 채움이 죽는다)
+    readReceipt: function (payload) {
+      if (IS_GAS) return gasCall('readReceipt', withToken(payload || {}));
+      if (IS_REMOTE) return remotePost(withAction('readReceipt', withToken(payload || {})), REMOTE_UPLOAD_TIMEOUT);
+      return mockReadReceipt(payload || {});
+    },
     list: function (filters) {
       if (IS_GAS) return gasCall('getWorkLogs', withToken(filters));
       if (IS_REMOTE) {
@@ -1834,12 +1885,12 @@
   }
 
   function mockLogin(pin) {
-    var no = String(pin == null ? '' : pin).replace(/[^0-9]/g, '');
-    if (no.length !== 4) return Promise.resolve({ ok: false, error: '휴대폰 뒷번호 4자리를 입력해 주세요.' });
+    var no = String(pin == null ? '' : pin).trim();
+    if (no.length < 4) return Promise.resolve({ ok: false, error: '비밀번호를 4자 이상 입력해 주세요.' });
     var list = previewStaffList();
     var hit = null;
     list.forEach(function (s) { if (String(s.no) === no) hit = s; });
-    if (!hit) return Promise.resolve({ ok: false, error: '등록되지 않은 번호입니다. 관리자에게 문의해 주세요.' });
+    if (!hit) return Promise.resolve({ ok: false, error: '등록되지 않은 번호·비밀번호입니다. 관리자께 문의해 주세요.' });
     return Promise.resolve({
       ok: true,
       token: 'preview-' + no + '-' + Date.now(),
@@ -1849,8 +1900,7 @@
     });
   }
 
-  function mockSession() {
-    if (!isLoggedIn()) return Promise.resolve({ ok: false, code: 'auth', error: '로그인이 필요합니다. 다시 로그인해 주세요.' });
+  function mockSession() {    if (!isLoggedIn()) return Promise.resolve({ ok: false, code: 'auth', error: '로그인이 필요합니다. 다시 로그인해 주세요.' });
     return Promise.resolve({ ok: true, no: AUTH.no, name: AUTH.name, role: AUTH.role });
   }
 
@@ -1864,25 +1914,29 @@
   function mockSaveStaff(payload) {
     if (!isAdmin()) return Promise.resolve({ ok: false, code: 'forbidden', error: '이 기능은 관리자만 쓸 수 있습니다.' });
     payload = payload || {};
-    var no = String(payload.no == null ? '' : payload.no).replace(/[^0-9]/g, '');
-    if (no.length !== 4) return Promise.resolve({ ok: false, error: '번호는 휴대폰 뒷번호 4자리 숫자로 넣어 주세요.' });
-    var role = payload.role === '관리자' ? '관리자' : '직원';
+    var no = String(payload.no == null ? '' : payload.no).trim();
+    if (no.length < 4) return Promise.resolve({ ok: false, error: '비밀번호는 4자 이상으로 넣어 주세요.' });
+    var role = payload.role === ROLE_SUPER ? ROLE_SUPER : (payload.role === '관리자' ? '관리자' : '직원');
     var name = String(payload.name || '').trim();
     if (!name) return Promise.resolve({ ok: false, error: '이름을 입력해 주세요.' });
     var list = previewStaffList().map(function (s) { return { no: String(s.no), role: s.role, name: s.name }; });
-    var original = String(payload.originalNo || '').replace(/[^0-9]/g, '');
+    var original = String(payload.originalNo || '').trim();
     var at = -1;
     list.forEach(function (s, i) { if (s.no === original) at = i; });
     var clash = -1;
     list.forEach(function (s, i) { if (s.no === no) clash = i; });
-    if (clash > -1 && clash !== at) return Promise.resolve({ ok: false, error: '이미 등록된 번호입니다. (번호: ' + no + ')' });
+    if (clash > -1 && clash !== at) return Promise.resolve({ ok: false, error: '이미 등록된 번호·비밀번호입니다. (값: ' + no + ')' });
     if (at > -1) {
+      // 최고관리자 자리는 비밀번호를 바꿔도 유지한다
+      if (list[at].role === ROLE_SUPER) role = ROLE_SUPER;
+      else if (role === ROLE_SUPER) return Promise.resolve({ ok: false, error: '최고관리자 권한은 다른 계정으로 옮길 수 없습니다.' });
       if (list[at].role === '관리자' && role !== '관리자' &&
           list.filter(function (s) { return s.role === '관리자'; }).length <= 1) {
         return Promise.resolve({ ok: false, error: '마지막 관리자는 직원으로 바꿀 수 없습니다.' });
       }
       list[at] = { no: no, role: role, name: name };
     } else {
+      if (role === ROLE_SUPER) return Promise.resolve({ ok: false, error: '최고관리자 권한은 다른 계정으로 옮길 수 없습니다.' });
       list.push({ no: no, role: role, name: name });
     }
     store.set(LS.mockStaff, list);
@@ -1890,12 +1944,12 @@
   }
 
   function mockDeleteStaff(no) {
-    if (!isAdmin()) return Promise.resolve({ ok: false, code: 'forbidden', error: '이 기능은 관리자만 쓸 수 있습니다.' });
-    var target = String(no || '').replace(/[^0-9]/g, '');
+    if (!isSuperAdmin()) return Promise.resolve({ ok: false, code: 'forbidden', error: '이 기능은 최고관리자만 쓸 수 있습니다.' });    var target = String(no || '').trim();
     if (target && target === AUTH.no) return Promise.resolve({ ok: false, error: '본인 계정은 지울 수 없습니다.' });
     var list = previewStaffList().map(function (s) { return { no: String(s.no), role: s.role, name: s.name }; });
     var hit = list.filter(function (s) { return s.no === target; })[0];
     if (!hit) return Promise.resolve({ ok: false, error: '그 번호로 등록된 직원이 없습니다.' });
+    if (hit.role === ROLE_SUPER) return Promise.resolve({ ok: false, error: '최고관리자 계정은 지울 수 없습니다.' });
     if (hit.role === '관리자' && list.filter(function (s) { return s.role === '관리자'; }).length <= 1) {
       return Promise.resolve({ ok: false, error: '마지막 관리자는 지울 수 없습니다.' });
     }
@@ -1996,6 +2050,10 @@
         workHours: payload.workHours || '',
         materials: payload.materials || '',
         laborCost: formatLaborInput(payload.laborCost || ''),
+        // 🧾 지출내역 (영수증 사진은 저장 뒤 attach 로 붙는다)
+        expenses: String(payload.expenses || '').trim(),
+        receiptCount: 0,
+        receipts: [],
         photoCount: photos.length,
         photos: photos
       };
@@ -2068,6 +2126,12 @@
         });
       });
       hit.photoCount = hit.photos.length;
+      if (target === 'receipt') {          // 🧾 영수증은 따로 센다
+        hit.receipts = (hit.receipts || []).concat(
+          locals.map(function (src, i) { return { id: 'local-up-' + now + '-' + i, thumb: src, original: src, view: src, download: src }; })
+        );
+        hit.receiptCount = hit.receipts.length;
+      }
       store.set(key, list);
       return {
         ok: true, target: target, id: id, saved: locals.length,
@@ -2112,12 +2176,30 @@
     var photos = files.map(function (f, i) {
       return { thumb: demo, original: demo, view: demo, download: demo, id: 'drive-' + (f.id || i) };
     });
-    hit.photos = (hit.photos || []).concat(photos);
-    hit.photoCount = hit.photos.length;
+    if (payload.target === 'receipt') {       // 🧾 영수증은 작업사진과 섞지 않고 따로 센다
+      hit.receipts = (hit.receipts || []).concat(photos);
+      hit.receiptCount = hit.receipts.length;
+    } else {
+      hit.photos = (hit.photos || []).concat(photos);
+      hit.photoCount = hit.photos.length;
+    }
     store.set(key, list);
     return Promise.resolve({
       ok: true, target: payload.target, id: payload.id,
       saved: photos.length, photoCount: hit.photoCount, photos: photos, warnings: []
+    });
+  }
+
+  /** 🧾 영수증 자동 변환(미리보기) — 진짜 서버 키가 없으므로 '키가 없다'고 알려 준다 */
+  function mockReadReceipt(payload) {
+    if (!authToken()) return Promise.resolve({ ok: false, code: 'auth', error: '로그인이 필요합니다. 다시 로그인해 주세요.' });
+    if (window.__PREVIEW_FAKE_OCR__) {
+      return Promise.resolve({ ok: true, text: String(window.__PREVIEW_FAKE_OCR__), model: 'preview' });
+    }
+    return Promise.resolve({
+      ok: false,
+      code: 'no-key',
+      error: '미리보기라 영수증 자동 변환은 돌지 않습니다. 실제 앱에서는 관리자가 구글 AI 키를 넣으면 바로 됩니다.'
     });
   }
 
@@ -2554,9 +2636,16 @@
       workHours: pick('workHours', hit.workHours),
       materials: pick('materials', hit.materials),
       laborCost: Object.prototype.hasOwnProperty.call(payload, 'laborCost') ? formatLaborInput(payload.laborCost || '') : (hit.laborCost || ''),
+      // 🧾 지출내역·영수증 (남길 영수증만)
+      expenses: pick('expenses', hit.expenses),
       photoCount: photos.length,
       photos: photos
     };
+    var keepReceipts = payload.keepReceiptUrls || [];
+    updated.receipts = (hit.receipts || []).filter(function (p) {
+      return keepReceipts.indexOf(p.id) > -1 || keepReceipts.indexOf(p.original) > -1;
+    });
+    updated.receiptCount = updated.receipts.length;
     all[at] = updated;
     store.set(LS.mock, all);
     return {
@@ -2584,6 +2673,7 @@
         '<td>' + esc(koreanDate(r.date)) + '</td>' +
         '<td>' + esc(r.branch || '') + '</td>' +
         '<td>' + esc(singleLineMemo(r.memo)) + '</td>' +
+        '<td>' + esc(singleLineMemo(r.expenses)) + '</td>' +
         '<td>' + esc(r.workPeople || '') + '</td>' +
         '<td>' + esc(r.workHours || '') + '</td>' +
         '<td>' + esc(singleLineMemo(r.materials)) + '</td>' +
@@ -2597,7 +2687,7 @@
       'td,th{border:1px solid #b0b7c3;padding:3px 5px}' +
       'th{background:#e8eef9}</style></head><body>' +
       '<h1>' + esc(branch + ' 공사완료 업무일지') + '</h1>' +
-      '<table><tr><th>날짜</th><th>지점</th><th>작업내용</th><th>소요인원</th><th>소요시간</th><th>소요자재</th><th>노무비</th></tr>' +
+      '<table><tr><th>날짜</th><th>지점</th><th>작업내용</th><th>지출내역</th><th>소요인원</th><th>소요시간</th><th>소요자재</th><th>노무비</th></tr>' +
       rows + '</table></body></html>';
     return {
       ok: true,
@@ -2622,12 +2712,18 @@
       var facts = [['작업인원', g.workPeople], ['작업소요시간', g.workHours], ['소요자재', g.materials], ['노무비', g.laborCost]]
         .filter(function (f) { return (f[1] || []).length; })
         .map(function (f) { return f[0] + ' ' + f[1].join(', '); }).join(' · ');
+      var expenseImgs = (g.receipts || []).map(function (p) {
+        return '<img src="' + esc(p.original || p.thumb) + '" style="width:6cm;height:4cm;object-fit:fill;margin:0 1.5mm 1.5mm 0" alt="영수증">';
+      }).join('');
       return '<div style="margin:0 0 14px 0">' +
         '<p style="font-size:10pt; font-weight:700; margin:0 0 2pt 0">' +
           esc(String(g.branch || '').trim() || '(지점 미지정)') + ' · ' + esc(koreanDate(g.date)) + '</p>' +
         '<p style="font-size:10pt; margin:0 0 4pt 0">' + esc(g.memos.length ? g.memos.join(', ') : '(작업내용 없음)') + '</p>' +
+        ((g.expenses || []).length ? '<p style="font-size:10pt; margin:0 0 4pt 0">지출내역: ' + esc(g.expenses.join(', ')) + '</p>' : '') +
         (facts ? '<p style="font-size:10pt; margin:0 0 6pt 0">' + esc(facts) + '</p>' : '') +
         '<p style="margin:0; font-size:0">' + (imgs || '<span style="font-size:10pt">(사진 없음)</span>') + '</p>' +
+        (expenseImgs ? '<p style="font-size:10pt; margin:6pt 0 0 0">지출영수증 (' + g.receipts.length + '장)</p>' +
+          '<p style="margin:0; font-size:0">' + expenseImgs + '</p>' : '') +
       '</div>';
     }).join('');
     var title = (branch || '전체') + ' 업무일지 상세';
@@ -2688,8 +2784,8 @@
       var key = String(r.date || '') + '|' + String(r.branch || '');
       var g = byKey[key];
       if (!g) {
-        g = { date: r.date || '', branch: r.branch || '', authors: [], memos: [], photos: [], count: 0,
-              workPeople: [], workHours: [], materials: [], laborCost: [] };
+        g = { date: r.date || '', branch: r.branch || '', authors: [], memos: [], photos: [], receipts: [], count: 0,
+              workPeople: [], workHours: [], materials: [], laborCost: [], expenses: [] };
         byKey[key] = g;
         groups.push(g);
       }
@@ -2699,7 +2795,8 @@
       var memo = singleLineMemo(r.memo);
       if (memo && g.memos.indexOf(memo) === -1) g.memos.push(memo);
       (r.photos || []).forEach(function (p) { g.photos.push(p); });
-      [['workPeople', r.workPeople], ['workHours', r.workHours], ['materials', r.materials], ['laborCost', r.laborCost]]
+      (r.receipts || []).forEach(function (p) { g.receipts.push(p); });
+      [['workPeople', r.workPeople], ['workHours', r.workHours], ['materials', r.materials], ['laborCost', r.laborCost], ['expenses', r.expenses]]
         .forEach(function (pair) {
           var text = singleLineMemo(pair[1]);
           if (text && g[pair[0]].indexOf(text) === -1) g[pair[0]].push(text);
@@ -3599,12 +3696,17 @@
   // 올라간 사진만큼 그 기록·예정작업 요약의 사진 장수를 올려 둔다 (목록·달력 숫자가 바로 맞게)
   function markUploadedPhoto(item) {
     if (!item || !item.id) return;
-    function bump(list) {
-      (list || []).forEach(function (x) { if (x.id === item.id) x.photoCount = (x.photoCount || 0) + 1; });
+    function bump(list, field) {
+      var key = field || 'photoCount';
+      (list || []).forEach(function (x) { if (x.id === item.id) x[key] = (x[key] || 0) + 1; });
     }
     if (item.target === 'schedule') bump(state.cal.plans);
     else if (item.target === 'request') bump(state.req.schedules);
-    else {
+    else if (item.target === 'receipt') {
+      // 🧾 영수증은 작업사진 장수(photoCount)와 따로 센다
+      bump(state.cal.records, 'receiptCount');
+      bump(state.records, 'receiptCount');
+    } else {
       bump(state.cal.records);
       bump(state.records);
     }
@@ -3698,9 +3800,10 @@
   }
   function driveFileName(target, date, branch, author, seq) {
     var day = String(date || '').substring(0, 10) || todayStr();
-    var parts = target === 'record'
-      ? [day, safeFileName(branch, 24), safeFileName(author, 12), String(seq)]
-      : [day, safeFileName(branch, 24), target === 'request' ? '매장요청' : '작업일정', String(seq)];
+    var parts;
+    if (target === 'record') parts = [day, safeFileName(branch, 24), safeFileName(author, 12), String(seq)];
+    else if (target === 'receipt') parts = [day, safeFileName(branch, 24), '영수증', String(seq)];
+    else parts = [day, safeFileName(branch, 24), target === 'request' ? '매장요청' : '작업일정', String(seq)];
     return parts.join('_') + '-' + fileTag() + '.jpg';
   }
 
@@ -3910,6 +4013,48 @@
    * ============================================================== */
   var eventsBound = false;
 
+  /* ================================================================
+   * ⌨️ PC 엔터 키 — 저장(submit) 대신 **다음 입력칸으로 커서 이동** (2026-11-28 지시)
+   *   · 한 줄 입력칸(input)에서 Enter 를 누르면 폼이 바로 저장되던 기본 동작을 막는다
+   *   · textarea 는 줄바꿈 그대로, date·file·checkbox 는 건드리지 않는다
+   * ============================================================== */
+  var ENTER_FIELD_TYPES = ['text', 'tel', 'number', 'password', 'email', 'search', 'url'];
+
+  function onFieldEnterKey(e) {
+    if (!e || e.key !== 'Enter' || e.defaultPrevented || e.isComposing) return;
+    var t = e.target || {};
+    if (String(t.tagName || '').toUpperCase() !== 'INPUT') return;
+    var type = String(t.type || 'text').toLowerCase();
+    if (ENTER_FIELD_TYPES.indexOf(type) === -1) return;
+    if (typeof e.preventDefault === 'function') e.preventDefault();
+    focusNextField(t);
+  }
+
+  /** 입력칸이 속한 창·폼 안의 보이는 칸들만 골라 다음 칸으로 커서를 옮긴다 */
+  function focusNextField(from) {
+    var scope = null;
+    try { scope = from && from.closest ? from.closest('form, .modal-card, .card, section') : null; } catch (err) { scope = null; }
+    if (!scope) scope = document;
+    var nodes = [];
+    try {
+      nodes = Array.prototype.slice.call(scope.querySelectorAll ? scope.querySelectorAll('input, textarea, select') : []);
+    } catch (err2) { nodes = []; }
+    var visible = nodes.filter(function (n) {
+      if (!n || n.disabled) return false;
+      var type = String(n.type || '').toLowerCase();
+      if (type === 'hidden' || type === 'file') return false;
+      if (n.getAttribute && n.getAttribute('tabindex') === '-1') return false;
+      if (typeof n.getClientRects === 'function' && n.getClientRects().length === 0) return false;
+      return true;
+    });
+    var at = visible.indexOf(from);
+    if (at < 0) return;
+    var next = visible[at + 1];
+    if (next && typeof next.focus === 'function') {
+      try { next.focus(); } catch (ignore) {}
+    }
+  }
+
   function loginError(message) {
     var box = $('loginError');
     if (!message) { box.hidden = true; box.textContent = ''; return; }
@@ -3927,9 +4072,10 @@
 
   function doLogin() {
     var input = $('loginPin');
-    var pin = String(input.value || '').replace(/[^0-9]/g, '').slice(0, 4);
+    // v46: 비밀번호는 영문·숫자·특수문자 그대로 보낸다 (4자리 숫자만 보내면 긴 비밀번호를 쓸 수 없다)
+    var pin = String(input.value || '').trim();
     input.value = pin;
-    if (pin.length !== 4) { loginError('휴대폰 뒷번호 4자리를 입력해 주세요.'); return; }
+    if (pin.length < 4) { loginError('비밀번호를 4자 이상 입력해 주세요.'); return; }
     var btn = $('loginBtn');
     if (btn.disabled) return;
     btn.disabled = true;
@@ -3972,7 +4118,7 @@
   function onSessionExpired() {
     if (!$('loginScreen').hidden) return;
     clearSession();
-    showLogin('로그인이 풀렸습니다. 번호 4자리로 다시 로그인해 주세요.');
+    showLogin('로그인이 풀렸습니다. 비밀번호로 다시 로그인해 주세요.');
   }
 
   // 로그인한 뒤 앱 화면 준비 (권한에 맞춰 보일 것/숨길 것을 정한다)
@@ -4108,7 +4254,7 @@
     clearNode(box);
     var list = staffState.list || [];
     if (!list.length) {
-      box.appendChild(el('div', 'staff-empty', '등록된 직원이 없습니다. 위에서 번호·이름을 넣어 등록해 주세요.'));
+      box.appendChild(el('div', 'staff-empty', '등록된 직원이 없습니다. 위에서 비밀번호·이름을 넣어 등록해 주세요.'));
       return;
     }
     list.forEach(function (row) {
@@ -4116,7 +4262,7 @@
       item.appendChild(el('span', 'no', row.no));
       var who = el('div', 'who');
       who.appendChild(el('div', 'nm', row.name || '(이름 없음)'));
-      var role = el('div', 'rl' + (row.role === '관리자' ? ' admin' : ''), row.role || '직원');
+      var role = el('div', 'rl' + (row.role === ROLE_SUPER ? ' super' : (row.role === '관리자' ? ' admin' : '')), row.role || '직원');
       who.appendChild(role);
       item.appendChild(who);
 
@@ -4126,11 +4272,14 @@
       edit.setAttribute('aria-label', row.name + ' 직원 정보 수정');
       edit.addEventListener('click', function () { editStaffRow(row); });
       act.appendChild(edit);
-      var del = el('button', 'danger staff-del', '🗑️');
-      del.setAttribute('type', 'button');
-      del.setAttribute('aria-label', row.name + ' 직원 삭제');
-      del.addEventListener('click', function () { removeStaffRow(row); });
-      act.appendChild(del);
+      // 🔒 직원 삭제는 최고관리자만 (2026-11-28 지시)
+      if (isSuperAdmin()) {
+        var del = el('button', 'danger staff-del', '🗑️');
+        del.setAttribute('type', 'button');
+        del.setAttribute('aria-label', row.name + ' 직원 삭제');
+        del.addEventListener('click', function () { removeStaffRow(row); });
+        act.appendChild(del);
+      }
       item.appendChild(act);
       box.appendChild(item);
     });
@@ -4140,17 +4289,20 @@
     staffState.editing = row;
     $('staffNo').value = row.no;
     $('staffName').value = row.name || '';
-    $('staffRole').value = row.role === '관리자' ? '관리자' : '직원';
+    $('staffRole').value = row.role === ROLE_SUPER ? ROLE_SUPER : (row.role === '관리자' ? '관리자' : '직원');
     $('staffSave').textContent = '💾 수정 저장';
     $('staffEditHint').hidden = false;
-    $('staffEditHint').textContent = (row.name || '') + ' 님 정보를 고치는 중입니다. 고친 뒤 [💾 수정 저장]을 누르세요.';
+    $('staffEditHint').innerHTML = esc(row.name || '') + ' 님 정보를 고치는 중입니다. 고친 뒤 [💾 수정 저장]을 누르세요.' +
+      (row.no === AUTH.no ? '<br><b>내 비밀번호를 바꾸면 다음 로그인부터 새 비밀번호로 들어갑니다.</b>' : '');
   }
 
   function saveStaffFromForm() {
-    var no = String($('staffNo').value || '').replace(/[^0-9]/g, '');
+    // v46: 영문·숫자·특수문자 비밀번호도 그대로 쓴다 (앞뒤 공백만 지운다)
+    var no = String($('staffNo').value || '').trim();
     var name = String($('staffName').value || '').trim();
     var role = $('staffRole').value === '관리자' ? '관리자' : '직원';
-    if (no.length !== 4) { toast('번호는 휴대폰 뒷번호 4자리 숫자로 넣어 주세요.', 'err'); $('staffNo').focus(); return; }
+    if (no.length < 4) { toast('비밀번호는 4자 이상으로 넣어 주세요.', 'err'); $('staffNo').focus(); return; }
+    if (no.length > 40) { toast('비밀번호는 40자 이내로 넣어 주세요.', 'err'); $('staffNo').focus(); return; }
     if (!name) { toast('이름을 입력해 주세요.', 'err'); $('staffName').focus(); return; }
 
     var editing = staffState.editing;
@@ -4305,10 +4457,15 @@
       b.type = 'button';
       b.className = 'chip';
       b.setAttribute('data-branch', name);
-      b.setAttribute('aria-label', name + ' 지점 목록에서 지우기');
+      // 🔒 지점 삭제는 최고관리자만 — 관리자·직원은 목록만 본다 (2026-11-28 지시)
+      b.setAttribute('aria-label', isSuperAdmin() ? (name + ' 지점 목록에서 지우기') : name);
       b.textContent = name;
-      b.appendChild(el('span', 'chip-x', '✕'));
-      b.addEventListener('click', function () { askDeleteBranch(name); });
+      if (isSuperAdmin()) {
+        b.appendChild(el('span', 'chip-x', '✕'));
+        b.addEventListener('click', function () { askDeleteBranch(name); });
+      } else {
+        b.addEventListener('click', function () { toast('지점 삭제는 최고관리자만 할 수 있습니다.', 'err'); });
+      }
       box.appendChild(b);
     });
   }
@@ -4594,6 +4751,19 @@
       e.target.value = '';
       if (files.length) addEditPhotos(files);
     });
+    // 🧾 영수증 사진 (등록·수정)
+    $('receiptInput').addEventListener('change', function (e) {
+      var files = Array.prototype.slice.call(e.target.files || []);
+      e.target.value = '';
+      if (files.length) addReceipts(files, 'record');
+    });
+    $('editReceiptInput').addEventListener('change', function (e) {
+      var files = Array.prototype.slice.call(e.target.files || []);
+      e.target.value = '';
+      if (files.length) addReceipts(files, 'edit');
+    });
+    bindPickerDrop('receiptPickLabel', function (files) { addReceipts(files, 'record'); });
+    bindPickerDrop('editReceiptPickLabel', function (files) { addReceipts(files, 'edit'); });
     $('editModal').addEventListener('click', function (e) {
       if (e && e.target === $('editModal')) closeEditModal();
     });
@@ -4658,10 +4828,6 @@
     $('staffModal').addEventListener('click', function (e) {
       if (e && e.target === $('staffModal')) closeStaffModal();
     });
-    $('staffNo').addEventListener('input', function () {
-      var v = String($('staffNo').value || '').replace(/[^0-9]/g, '').slice(0, 4);
-      if ($('staffNo').value !== v) $('staffNo').value = v;
-    });
 
     $('lbClose').addEventListener('click', closeLightbox);
     $('lbPrev').addEventListener('click', function () { stepLightbox(-1); });
@@ -4677,6 +4843,7 @@
     $('dlChooser').addEventListener('click', function (e) {
       if (!e || e.target === $('dlChooser')) closeDlChooser();
     });
+    document.addEventListener('keydown', onFieldEnterKey, true);
     document.addEventListener('keydown', function (e) {
       if (!$('dlChooser').hidden && e.key === 'Escape') { closeDlChooser(); return; }
       if (!$('workModal').hidden && e.key === 'Escape') { closeWorkScheduleModal(); return; }
@@ -4724,7 +4891,8 @@
     function worker() {
       if (next >= accepted.length) return Promise.resolve();
       var file = accepted[next++];
-      return compressImage(file).then(function (photo) {
+      // 📸 무조건 날짜·지점명 워터마크 (등록 칸에 적힌 날짜·지점)
+      return compressImage(file, PHOTO_W, PHOTO_H, watermarkTextFor('record')).then(function (photo) {
         photo.key = 'p' + Date.now() + Math.random().toString(36).slice(2, 7);
         state.photos.push(photo);
         renderPhotos();
@@ -4758,8 +4926,56 @@
     });
   }
 
-  /* 올린 사진을 가로 800 × 세로 600 픽셀 JPEG로 바꾼다. (비율은 유지하고 남는 곳은 흰색) */
-  function compressImage(file, width, height) {
+  /* ---------- 📸 사진 오른쪽 아래 워터마크 (2026-11-28 지시 — 무조건 넣는다) ---------- */
+
+  /** 지금 적는 기록의 워터마크 글자 — '2026-11-28 · 진천점' (날짜·지점이 비면 빈 값) */
+  function watermarkTextFor(kind) {
+    var dateInput = kind === 'edit' ? $('editDate') : $('inputDate');
+    var branchInput = kind === 'edit' ? $('editBranch') : $('inputBranch');
+    var date = dateInput ? String(dateInput.value || '').trim() : '';
+    var branch = branchInput ? String(branchInput.value || '').trim() : '';
+    if (!date && !branch) return '';
+    return date + (branch ? ' · ' + branch : '');
+  }
+
+  /**
+   * 캔버스 오른쪽 아래에 반투명 어두운 배경 + 흰 글씨로 작게 박는다.
+   *  · 추가 서버 부하 없이 올리기 전에 끝난다 (800×600 기준 약 21px)
+   *  · 글자 폭을 못 재는 브라우저는 글자 수로 어림한다 (캔버스가 없는 검사 환경도 안전)
+   */
+  function drawWatermark_(ctx, width, height, text) {
+    if (!ctx || !text) return;
+    try {
+      var size = Math.max(11, Math.round(width * 0.026));
+      var padX = Math.round(size * 0.55);
+      var padY = Math.round(size * 0.34);
+      if ('font' in ctx) {
+        ctx.font = '600 ' + size + 'px -apple-system, "Malgun Gothic", "Apple SD Gothic Neo", sans-serif';
+      }
+      var tw = 0;
+      try { if (typeof ctx.measureText === 'function') tw = ctx.measureText(text).width || 0; } catch (measureErr) { tw = 0; }
+      if (!tw) tw = text.length * size * 0.62;
+      var margin = Math.round(width * 0.016) + 2;
+      var boxW = Math.min(width - margin * 2, Math.round(tw + padX * 2));
+      var boxH = Math.round(size + padY * 2);
+      var x = width - margin - boxW;
+      var y = height - margin - boxH;
+      if (typeof ctx.save === 'function') ctx.save();
+      if ('globalAlpha' in ctx) ctx.globalAlpha = 0.55;
+      ctx.fillStyle = '#0f172a';
+      if (typeof ctx.fillRect === 'function') ctx.fillRect(x, y, boxW, boxH);
+      if (typeof ctx.fillText === 'function') {
+        ctx.fillStyle = '#ffffff';
+        if ('textAlign' in ctx) ctx.textAlign = 'right';
+        if ('textBaseline' in ctx) ctx.textBaseline = 'middle';
+        ctx.fillText(text, x + boxW - padX, y + boxH / 2 + 1);
+      }
+      if (typeof ctx.restore === 'function') ctx.restore();
+    } catch (ignore) {}
+  }
+
+  /* 올린 사진을 가로 800 × 세로 600 픽셀 JPEG로 바꾸고 오른쪽 아래에 날짜·지점명을 박는다. (비율은 유지하고 남는 곳은 흰색) */
+  function compressImage(file, width, height, watermark) {
     width = width || PHOTO_W;
     height = height || PHOTO_H;
     var sourcePromise;
@@ -4795,7 +5011,48 @@
       ctx.drawImage(source, Math.round((width - dw) / 2), Math.round((height - dh) / 2), dw, dh);
       if (source.close) { try { source.close(); } catch (e) {} }
 
+      // 📸 무조건 날짜·지점명 워터마크 (업무일지 사진만 — 매장 요청·예정작업 사진은 그대로)
+      if (watermark) drawWatermark_(ctx, width, height, watermark);
+
       return packJpeg_(canvas, width, height, file);
+    });
+  }
+
+  /**
+   * 🧾 영수증 사진 — 글씨가 보여야 하므로 1200px 까지 크게(비율 유지) 줄이고 워터마크는 넣지 않는다.
+   *  품질도 조금 높여(0.85) 숫자가 뭉개지지 않게 한다.
+   */
+  function compressReceiptImage(file) {
+    var maxSide = 1200;
+    var sourcePromise;
+    if (window.createImageBitmap) {
+      sourcePromise = createImageBitmap(file, { imageOrientation: 'from-image' })
+        .catch(function () { return loadImageElement(file); });
+    } else {
+      sourcePromise = loadImageElement(file);
+    }
+    return sourcePromise.then(function (source) {
+      var w = source.width, h = source.height;
+      if (!w || !h) throw new Error('사진 크기를 알 수 없습니다.');
+      var scale = Math.min(1, maxSide / Math.max(w, h));
+      var cw = Math.max(1, Math.round(w * scale));
+      var ch = Math.max(1, Math.round(h * scale));
+      var canvas;
+      if (typeof OffscreenCanvas === 'function') {
+        canvas = new OffscreenCanvas(cw, ch);
+      } else {
+        canvas = document.createElement('canvas');
+        canvas.width = cw;
+        canvas.height = ch;
+      }
+      var ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, cw, ch);
+      if ('imageSmoothingEnabled' in ctx) ctx.imageSmoothingEnabled = true;
+      if ('imageSmoothingQuality' in ctx) ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(source, 0, 0, cw, ch);
+      if (source.close) { try { source.close(); } catch (e) {} }
+      return packJpeg_(canvas, cw, ch, file, RECEIPT_QUALITY);
     });
   }
 
@@ -4805,7 +5062,8 @@
    *   · 미리보기용 주소는 object URL 로 만든다(메모리도 가볍고 즉시 뜬다)
    *   · toDataURL 밖에 못 쓰는 예전 브라우저만 base64 를 함께 들고 있는다
    */
-  function packJpeg_(canvas, width, height, file) {
+  function packJpeg_(canvas, width, height, file, quality) {
+    var q = quality || PHOTO_QUALITY;
     var name = (file.name || 'photo').replace(/\.[^.]+$/, '') + '.jpg';
     function pack(blob, base64) {
       var url = '';
@@ -4822,11 +5080,11 @@
       };
     }
     if (typeof canvas.convertToBlob === 'function') {
-      return canvas.convertToBlob({ type: 'image/jpeg', quality: PHOTO_QUALITY }).then(function (blob) {
+      return canvas.convertToBlob({ type: 'image/jpeg', quality: q }).then(function (blob) {
         return pack(blob, '');
       });
     }
-    var dataUrl = canvas.toDataURL('image/jpeg', PHOTO_QUALITY);
+    var dataUrl = canvas.toDataURL('image/jpeg', q);
     return Promise.resolve(pack(dataUrlToBlob(dataUrl), dataUrl.split(',')[1] || ''));
   }
 
@@ -4890,6 +5148,163 @@
   }
 
   /* ================================================================
+   * 5-2. 🧾 영수증 사진 (2026-11-28 지시)
+   *   · 워터마크 없이 1200px 로 선명하게 따로 저장한다
+   *   · 사진을 올리면 서버(구글 AI)가 품명·수량·금액을 읽어 지출내역 칸에 채운다
+   *   · 영수증·지출내역은 선택 — 없어도 등록·수정된다
+   * ============================================================== */
+  var RECEIPT_MAX_SIDE = 1200;
+  var receiptKeyWarned = false;
+
+  /** 영수증 한 칸 (사진 + ✕ + 작은 글씨) */
+  function receiptPhotoItem_(photo, badge, onRemove) {
+    var d = document.createElement('div');
+    d.className = 'photo-item receipt';
+    var src = photo.dataUrl || photo.thumb || photo.original || '';
+    d.innerHTML =
+      '<img src="' + esc(src) + '" alt="영수증 사진">' +
+      '<button type="button" class="del" aria-label="영수증 빼기">✕</button>' +
+      '<span class="badge-size">' + esc(badge) + '</span>';
+    var btn = d.querySelector('.del');
+    if (btn) btn.addEventListener('click', onRemove);
+    return d;
+  }
+
+  function renderReceipts() {
+    var grid = $('receiptGrid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    var list = state.receipts || [];
+    list.forEach(function (p) {
+      grid.appendChild(receiptPhotoItem_(p, p.state === 'reading' ? '🧾 읽는 중' : '🧾 영수증', function () {
+        state.receipts = list.filter(function (x) { return x.key !== p.key; });
+        renderReceipts();
+      }));
+    });
+    var reading = list.some(function (p) { return p.state === 'reading'; });
+    var failed = list.some(function (p) { return p.state === 'fail'; });
+    $('receiptSummary').textContent = !list.length
+      ? '영수증 없이도 등록할 수 있습니다.'
+      : '영수증 ' + list.length + '장 · ' + RECEIPT_MAX_SIDE + 'px 선명 저장' +
+        (reading ? ' · 글씨 읽는 중…' : (failed ? ' · 글씨는 직접 적어 주세요' : ''));
+  }
+
+  function renderEditReceipts() {
+    var grid = $('editReceiptGrid');
+    var edit = state.edit;
+    if (!grid || !edit) return;
+    grid.innerHTML = '';
+    (edit.receiptKeep || []).forEach(function (p) {
+      grid.appendChild(receiptPhotoItem_(p, '기존', function () {
+        edit.receiptKeep = edit.receiptKeep.filter(function (x) { return x !== p; });
+        renderEditReceipts();
+      }));
+    });
+    (edit.receiptNew || []).forEach(function (p) {
+      grid.appendChild(receiptPhotoItem_(p, p.state === 'reading' ? '🧾 읽는 중' : '🧾 새 영수증', function () {
+        edit.receiptNew = edit.receiptNew.filter(function (x) { return x.key !== p.key; });
+        renderEditReceipts();
+      }));
+    });
+    var keep = (edit.receiptKeep || []).length;
+    var added = (edit.receiptNew || []).length;
+    $('editReceiptSummary').textContent = (keep + added)
+      ? '영수증 ' + (keep + added) + '장 (기존 ' + keep + '장 · 새로 ' + added + '장)'
+      : '영수증 없이도 저장됩니다.';
+  }
+
+  /** 사진에서 글자를 읽어 지출내역 칸에 채운다 (실패해도 등록은 그대로) */
+  function photoBase64(photo) {
+    if (!photo) return Promise.resolve('');
+    if (photo.base64) return Promise.resolve(String(photo.base64));
+    if (photo.blob) return blobToBase64(photo.blob);
+    return Promise.resolve('');
+  }
+
+  function appendExpenses(text, kind) {
+    var t = String(text || '').trim();
+    if (!t) return;
+    var box = kind === 'edit' ? $('editExpenses') : $('inputExpenses');
+    if (!box) return;
+    var lines = String(box.value || '').split('\n')
+      .map(function (line) { return line.trim(); })
+      .filter(function (line) { return line; });
+    t.split('\n').forEach(function (line) {
+      var s = String(line || '').trim();
+      if (s && lines.indexOf(s) === -1) lines.push(s);
+    });
+    box.value = lines.join('\n');
+  }
+
+  function readReceiptText(photo, kind) {
+    if (!photo) return;
+    photo.state = 'reading';
+    photoBase64(photo).then(function (base64) {
+      if (!base64) throw new Error('영수증 사진을 읽지 못했습니다.');
+      return API.readReceipt({ base64: base64, mimeType: photo.mimeType || 'image/jpeg' });
+    }).then(function (res) {
+      if (!res || res.ok === false) {
+        photo.state = 'fail';
+        if (res && res.code === 'no-key') {
+          if (!receiptKeyWarned) {
+            receiptKeyWarned = true;
+            toast(res.error || '영수증 자동 변환은 관리자가 구글 AI 키를 넣으면 바로 됩니다. 지금은 지출내역을 직접 적어 주세요.', 'err');
+          }
+        } else if (res && res.error) {
+          toast(res.error, 'err');
+        }
+      } else {
+        photo.state = 'done';
+        appendExpenses(res.text, kind);
+        if (!String(res.text || '').trim()) toast('영수증에서 글씨를 찾지 못했습니다. 지출내역을 직접 적어 주세요.', 'err');
+      }
+      renderReceipts();
+      renderEditReceipts();
+    }).catch(function (err) {
+      photo.state = 'fail';
+      renderReceipts();
+      renderEditReceipts();
+      console.warn('receipt read failed', err);
+    });
+  }
+
+  /** 영수증 사진을 줄여(1200px) 목록에 넣고 글씨 읽기를 시작한다 — 화면은 막지 않는다 */
+  function addReceipts(files, kind) {
+    var accepted = (files || []).filter(function (f) { return !f.size || f.size <= MAX_FILE_MB * 1024 * 1024; });
+    if (!accepted.length) return Promise.resolve();
+    if (accepted.length < (files || []).length) toast('너무 큰 영수증 사진은 제외했어요.', 'err');
+    var next = 0;
+    function store(photo) {
+      if (kind === 'edit') {
+        if (!state.edit) return false;
+        state.edit.receiptNew = state.edit.receiptNew || [];
+        state.edit.receiptNew.push(photo);
+        return true;
+      }
+      if (!state.receipts) state.receipts = [];
+      state.receipts.push(photo);
+      return true;
+    }
+    function worker() {
+      if (next >= accepted.length) return Promise.resolve();
+      var file = accepted[next++];
+      return compressReceiptImage(file).then(function (photo) {
+        photo.key = 'r' + Date.now() + Math.random().toString(36).slice(2, 7);
+        if (!store(photo)) return;
+        if (kind === 'edit') renderEditReceipts(); else renderReceipts();
+        readReceiptText(photo, kind);      // 글씨 읽기는 뒤에서 (첫 사진부터 차례로)
+      }).catch(function (err) {
+        console.warn('receipt photo failed', err);
+      }).then(worker);
+    }
+    var pool = [];
+    for (var k = 0; k < Math.min(2, accepted.length); k++) pool.push(worker());
+    return Promise.all(pool).then(function () {
+      if (kind === 'edit') renderEditReceipts(); else renderReceipts();
+    });
+  }
+
+  /* ================================================================
    * 6. 등록
    * ============================================================== */
   function onSubmit(e) {
@@ -4919,6 +5334,8 @@
       workHours: $('inputWorkHours').value.trim(),
       materials: $('inputMaterials').value.trim(),
       laborCost: $('inputLaborCost').value.trim(),
+      // 🧾 지출내역·영수증 — 선택이라 비어 있어도 그대로 저장한다
+      expenses: String($('inputExpenses').value || '').trim(),
       copyPhotoIds: (state.copyPhotos || []).map(function (p) { return p.id || ''; }).filter(function (v) { return v; }),
       scheduleId: (state.prefill && state.prefill.kind !== 'work' && state.prefill.id) || '',
       workScheduleId: (state.prefill && state.prefill.kind === 'work' && state.prefill.id) || '',
@@ -4926,6 +5343,10 @@
       images: []
     };
     var queuedPhotos = state.photos.map(function (p) {
+      return { name: p.name, mimeType: p.mimeType, base64: p.base64 || '', blob: p.blob || null };
+    });
+    // 🧾 영수증도 글을 먼저 저장한 뒤 따로 올린다 (작업사진과 섞이지 않게 target 'receipt')
+    var queuedReceipts = (state.receipts || []).map(function (p) {
       return { name: p.name, mimeType: p.mimeType, base64: p.base64 || '', blob: p.blob || null };
     });
 
@@ -4957,6 +5378,18 @@
           photos: queuedPhotos
         });
       }
+      // 🧾 영수증은 따로 올려 영수증 칸에 붙는다
+      if (queuedReceipts.length) {
+        enqueuePhotoUpload({
+          kind: 'record',
+          target: 'receipt',
+          id: (res && res.record && res.record.id) || '',
+          date: date,
+          branch: branch,
+          author: author,
+          photos: queuedReceipts
+        });
+      }
       var photoNotice = queuedPhotos.length ? queuedPhotos.length : saved;
       toast('등록 완료! ' + (photoNotice ? '사진 ' + photoNotice + '장은 뒤에서 올리고 있어요.' : '공사완료 업무일지를 저장했습니다.'), 'ok');
       if (warnings.length) setTimeout(function () { toast(warnings[0], 'err'); }, 1800);
@@ -4964,8 +5397,10 @@
       reviveBranch(branch);
       state.photos = [];
       state.copyPhotos = [];
+      state.receipts = [];
       renderPhotos();
-      ['inputMemo', 'inputWorkPeople', 'inputWorkHours', 'inputMaterials', 'inputLaborCost'].forEach(function (id) {
+      renderReceipts();
+      ['inputMemo', 'inputWorkPeople', 'inputWorkHours', 'inputMaterials', 'inputLaborCost', 'inputExpenses'].forEach(function (id) {
         if ($(id)) $(id).value = '';
       });
       state.listDirty = true;
@@ -5076,6 +5511,14 @@
         return '<button type="button" class="thumb" data-record="' + ri + '" data-photo="' + pi + '" aria-label="사진 크게 보기">' +
           '<img loading="lazy" src="' + esc(p.thumb) + '" alt="작업사진" onerror="this.style.opacity=.15">' + more + '</button>';
       }).join('');
+      // 🧾 영수증 사진 — 작업사진과 따로 보여 준다
+      var receipts = r.receipts || [];
+      var receiptThumbs = receipts.slice(0, 6).map(function (p, pi) {
+        var more = (pi === 5 && receipts.length > 6) ? '<span class="more">+' + (receipts.length - 5) + '</span>' : '';
+        return '<button type="button" class="thumb receipt-thumb" data-record="' + ri + '" data-receipt="' + pi + '" aria-label="영수증 사진 크게 보기">' +
+          '<img loading="lazy" src="' + esc(p.thumb) + '" alt="영수증 사진" onerror="this.style.opacity=.15">' + more + '</button>';
+      }).join('');
+      var expenses = String(r.expenses || '').trim();
 
       return '<article class="record">' +
         '<div class="record-top">' +
@@ -5085,6 +5528,7 @@
           '<span class="record-time">' + esc(timeLabel(r.registeredAt)) + '</span>' +
         '</div>' +
         (r.memo ? '<p class="record-memo">' + esc(r.memo) + '</p>' : '') +
+        (expenses ? '<p class="record-memo rec-expenses">🧾 지출내역: ' + esc(expenses) + '</p>' : '') +
         (function () {
           var facts = [['작업인원', r.workPeople], ['작업소요시간', r.workHours], ['소요자재', r.materials], ['노무비', r.laborCost]]
             .filter(function (f) { return String(f[1] || '').trim(); });
@@ -5094,9 +5538,10 @@
           }).join('') + '</div>';
         })() +
         (thumbs ? '<div class="thumbs">' + thumbs + '</div>' : '') +
+        (receiptThumbs ? '<div class="thumbs receipts"><span class="thumbs-label">🧾 영수증</span>' + receiptThumbs + '</div>' : '') +
         '<div class="record-actions">' +
           (canEditRecord(r) ? '<button type="button" class="rec-edit" data-record="' + ri + '" aria-label="이 공사완료 업무일지 수정">✏️ 수정</button>' : '') +
-          (canEditRecord(r) ? '<button type="button" class="rec-del" data-record="' + ri + '" aria-label="이 공사완료 업무일지 삭제">🗑️ 삭제</button>' : '') +
+          (isSuperAdmin() ? '<button type="button" class="rec-del" data-record="' + ri + '" aria-label="이 공사완료 업무일지 삭제">🗑️ 삭제</button>' : '') +
         '</div>' +
       '</article>';
     }).join('');
@@ -5106,6 +5551,15 @@
         var r = state.records[Number(btn.getAttribute('data-record'))];
         var pi = Number(btn.getAttribute('data-photo'));
         openLightbox(r, pi);
+      });
+    });
+    body.querySelectorAll('.receipt-thumb').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        if (e && e.stopPropagation) e.stopPropagation();
+        var r = state.records[Number(btn.getAttribute('data-record'))];
+        if (!r) return;
+        // 크게 보기는 영수증 사진 목록으로 연다
+        openLightbox({ photos: r.receipts || [], branch: r.branch, date: r.date, author: r.author, receipts: [] }, Number(btn.getAttribute('data-receipt')));
       });
     });
     body.querySelectorAll('.rec-del').forEach(function (btn) {
@@ -5694,9 +6148,9 @@
   }
 
   // 날짜 칸 배지 — 아이콘 + 지점명 (건수·말줄임 없이 이름만), 완료면 작은 '완료' 표시
-  function calBadgeEl(kind, icon, name, tag) {
+  /** 달력 칸 안 지점 뱃지 — 2026-11-28 지시: 아이콘 없이 **색으로만** 구분한다 */
+  function calBadgeEl(kind, name, tag) {
     var badge = el('span', 'cal-badge ' + kind);
-    badge.appendChild(el('span', 'cal-badge-ico', icon));
     badge.appendChild(el('span', 'cal-badge-name', name));
     if (tag) badge.appendChild(el('span', 'cal-badge-tag', tag));
     return badge;
@@ -5850,14 +6304,14 @@
       // 작업사진(등록기록)과 작업 일정(작업일정 시트)만 — 기간 안의 날짜만, 아이콘 + 지점명으로
       var recs = recordsOn(dateStr).filter(function () { return inCalendarRange(dateStr); });
       branchNamesOf(recs).forEach(function (branch) {
-        cell.appendChild(calBadgeEl('photo', '📷', branch));
+        cell.appendChild(calBadgeEl('photo', branch));
       });
 
       var plans = plansOn(dateStr).filter(function () { return inCalendarRange(dateStr); });
       branchNamesOf(plans).forEach(function (branch) {
         var mine = plans.filter(function (p) { return String(p.branch || '지점 미지정') === branch; });
         var allDone = mine.every(function (p) { return p.status === '완료'; });
-        cell.appendChild(calBadgeEl('work' + (allDone ? ' done' : ''), '📋', branch, allDone ? '✓완료' : ''));
+        cell.appendChild(calBadgeEl('work' + (allDone ? ' done' : ''), branch, allDone ? '✓완료' : ''));
       });
 
       (function (ds) {
@@ -6028,10 +6482,13 @@
         actions.appendChild(undo);
       }
 
-      var del = el('button', 'danger do-work-delete', '🗑️ 삭제');
-      del.setAttribute('type', 'button');
-      del.addEventListener('click', function () { removeWorkSchedule(plan); });
-      actions.appendChild(del);
+      // 🔒 삭제는 최고관리자만 (2026-11-28 지시)
+      if (isSuperAdmin()) {
+        var del = el('button', 'danger do-work-delete', '🗑️ 삭제');
+        del.setAttribute('type', 'button');
+        del.addEventListener('click', function () { removeWorkSchedule(plan); });
+        actions.appendChild(del);
+      }
     }
 
     item.appendChild(actions);
@@ -6335,6 +6792,9 @@
     top.appendChild(el('span', 'record-time', timeLabel(record.registeredAt)));
     card.appendChild(top);
     if (record.memo) card.appendChild(el('p', 'rec-memo', record.memo));
+    if (String(record.expenses || '').trim()) {
+      card.appendChild(el('p', 'rec-memo rec-expenses', '🧾 지출내역: ' + String(record.expenses).trim()));
+    }
     var facts = recordFactsEl(record);
     if (facts) card.appendChild(facts);
 
@@ -6357,6 +6817,24 @@
       card.appendChild(thumbs);
     }
 
+    // 🧾 영수증 사진 — 작업사진과 따로 보여 준다
+    var receipts = record.receipts || [];
+    if (receipts.length) {
+      card.appendChild(el('div', 'thumbs-label', '🧾 영수증 ' + receipts.length + '장'));
+      var rThumbs = el('div', 'rec-thumbs receipts');
+      receipts.slice(0, 8).forEach(function (p, i) {
+        var btn = el('button', 'rec-thumb');
+        btn.setAttribute('type', 'button');
+        btn.setAttribute('aria-label', '영수증 사진 크게 보기');
+        btn.innerHTML = '<img loading="lazy" src="' + esc(p.thumb) + '" alt="영수증 사진" onerror="this.style.opacity=.15">';
+        btn.addEventListener('click', function () {
+          openLightbox({ photos: receipts, branch: record.branch, date: record.date, author: record.author, receipts: [] }, i);
+        });
+        rThumbs.appendChild(btn);
+      });
+      card.appendChild(rThumbs);
+    }
+
     var actions = el('div', 'rec-actions');
     if (canEditRecord(record)) {
       var editBtn = el('button', 'edit do-rec-edit', '✏️ 수정');
@@ -6366,12 +6844,14 @@
       editBtn.addEventListener('click', function () { withDayRecord(record, openEditModal); });
       actions.appendChild(editBtn);
 
-      // 직원도 본인이 쓴 글은 지울 수 있고, 관리자는 전체를 지울 수 있다.
-      var del = el('button', 'danger do-rec-delete', '🗑️ 삭제');
-      del.setAttribute('type', 'button');
-      del.setAttribute('aria-label', '이 공사완료 업무일지 삭제');
-      del.addEventListener('click', function () { withDayRecord(record, removeWorkRecord); });
-      actions.appendChild(del);
+      // 🔒 삭제는 최고관리자만 (2026-11-28 지시) — 수정은 기존대로
+      if (isSuperAdmin()) {
+        var del = el('button', 'danger do-rec-delete', '🗑️ 삭제');
+        del.setAttribute('type', 'button');
+        del.setAttribute('aria-label', '이 공사완료 업무일지 삭제');
+        del.addEventListener('click', function () { withDayRecord(record, removeWorkRecord); });
+        actions.appendChild(del);
+      }
     }
     if (actions.children.length) card.appendChild(actions);
     return card;
@@ -6498,7 +6978,7 @@
       branchNamesOf(plans).forEach(function (branch) {
         var mine = plans.filter(function (p) { return String(p.branch || '지점 미지정') === branch; });
         var allDone = mine.every(function (p) { return p.status === '완료'; });
-        cell.appendChild(calBadgeEl('plan' + (allDone ? ' done' : ''), '📝', branch));
+        cell.appendChild(calBadgeEl('plan' + (allDone ? ' done' : ''), branch));
       });
 
       (function (ds) {
@@ -6764,10 +7244,13 @@
       });
       actions.appendChild(toggle);
 
-      var del = el('button', 'danger do-delete', '🗑️ 삭제');
-      del.setAttribute('type', 'button');
-      del.addEventListener('click', function () { removeRequest(plan); });
-      actions.appendChild(del);
+      // 🔒 삭제는 최고관리자만 (2026-11-28 지시)
+      if (isSuperAdmin()) {
+        var del = el('button', 'danger do-delete', '🗑️ 삭제');
+        del.setAttribute('type', 'button');
+        del.addEventListener('click', function () { removeRequest(plan); });
+        actions.appendChild(del);
+      }
     }
 
     item.appendChild(actions);
@@ -6908,7 +7391,7 @@
     function worker() {
       if (next >= accepted.length) return Promise.resolve();
       var file = accepted[next++];
-      return compressImage(file).then(function (photo) {
+      return compressImage(file).then(function (photo) {   // 매장 요청·예정작업 사진은 워터마크 없음
         photo.key = kind + Date.now() + Math.random().toString(36).slice(2, 7);
         bag.newPhotos.push(photo);
         renderModalPhotos(kind);
@@ -7175,6 +7658,8 @@
       record: record,
       keep: (record.photos || []).slice(),
       newPhotos: [],
+      receiptKeep: (record.receipts || []).slice(),   // 🧾 이미 붙어 있는 영수증
+      receiptNew: [],                                // 🧾 새로 올린 영수증
       saving: false
     };
     $('editDate').value = record.date || todayStr();
@@ -7185,12 +7670,14 @@
     $('editWorkHours').value = record.workHours || '';
     $('editMaterials').value = record.materials || '';
     $('editLaborCost').value = record.laborCost || '';
+    $('editExpenses').value = record.expenses || '';
     $('editMeta').textContent = formatDateLabel(record.date) + ' ' + (record.branch || '') +
       (record.author ? ' · ' + record.author + ' 님이 등록' : '') +
       ' · 사진 ' + (record.photos || []).length + '장';
     $('editSave').disabled = false;
     renderEditBranchChips();
     renderEditPhotos();
+    renderEditReceipts();
     $('editModal').hidden = false;
   }
 
@@ -7198,6 +7685,7 @@
     $('editModal').hidden = true;
     state.edit = null;
     clearNode($('editPhotoGrid'));
+    if ($('editReceiptGrid')) clearNode($('editReceiptGrid'));
   }
 
   function renderEditBranchChips() {
@@ -7288,7 +7776,8 @@
     function worker() {
       if (next >= accepted.length) return Promise.resolve();
       var file = accepted[next++];
-      return compressImage(file).then(function (photo) {
+      // 📸 무조건 날짜·지점명 워터마크 (수정 창에 적힌 날짜·지점)
+      return compressImage(file, PHOTO_W, PHOTO_H, watermarkTextFor('edit')).then(function (photo) {
         photo.key = 'e' + Date.now() + Math.random().toString(36).slice(2, 7);
         if (state.edit) state.edit.newPhotos.push(photo);
         renderEditPhotos();
@@ -7328,6 +7817,9 @@
     var queuedPhotos = edit.newPhotos.map(function (p) {
       return { name: p.name, mimeType: p.mimeType, base64: p.base64 || '', blob: p.blob || null };
     });
+    var queuedReceipts = (edit.receiptNew || []).map(function (p) {
+      return { name: p.name, mimeType: p.mimeType, base64: p.base64 || '', blob: p.blob || null };
+    });
     var payload = {
       id: record.id,
       expect: { date: record.date, branch: record.branch, author: record.author, registeredAt: record.registeredAt },
@@ -7339,8 +7831,11 @@
       workHours: $('editWorkHours').value.trim(),
       materials: $('editMaterials').value.trim(),
       laborCost: $('editLaborCost').value.trim(),
+      expenses: String($('editExpenses').value || '').trim(),
       keepPhotoUrls: edit.keep.map(function (p) { return p.id || p.original || ''; }),
-      newPhotos: []          // v30: 새 사진은 수정을 먼저 저장한 뒤 3장씩 뒤에서 올린다
+      keepReceiptUrls: (edit.receiptKeep || []).map(function (p) { return p.id || p.original || ''; }),
+      newPhotos: [],          // v30: 새 사진은 수정을 먼저 저장한 뒤 3장씩 뒤에서 올린다
+      newReceipts: []         // 🧾 영수증도 뒤에서 따로 올린다
     };
 
     edit.saving = true;
@@ -7355,6 +7850,12 @@
       if (queuedPhotos.length) {
         enqueuePhotoUpload({
           kind: 'edit', target: 'record', id: record.id, date: date, branch: branch, author: author, more: compressBusy > 0, photos: queuedPhotos
+        });
+      }
+      // 🧾 새 영수증도 뒤에서 따로 올린다
+      if (queuedReceipts.length) {
+        enqueuePhotoUpload({
+          kind: 'edit', target: 'receipt', id: record.id, date: date, branch: branch, author: author, photos: queuedReceipts
         });
       }
 
