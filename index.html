@@ -3025,15 +3025,15 @@
   }
 
   /* ================================================================
-   * 2-9. 사진 뒤에서 올리기 (v40 — 폰 → 구글 드라이브 직접 업로드)
-   *   ① 글 먼저 저장 ② 업로드 토큰 1번 ③ 사진 6장씩 구글 드라이브로 직접
-   *   ④ 파일 ID만 서버에 1번 전달 ⑤ 서버가 시트에 잠금 1번으로 기록
+   * 2-9. 사진 뒤에서 올리기 (v40 — 폰 → 구글 드라이브 직접 업로드 · v44 12장 병렬)
+   *   ① 글 먼저 저장 ② 업로드 토큰 1번 ③ 사진 12장씩 구글 드라이브로 직접
+   *   ④ 파일 ID만 서버에 1번 전달 ⑤ 서버가 시트에 잠금 1번으로 기록(링크 공유는 폴더에 1번)
    *   · 기록별 큐(IndexedDB) — 사진이 다른 기록에 섞이지 않고, 앱을 다시 열면 이어 올린다
    *   · 진행 표시는 구석의 작은 칩(#upBar)만 — 전체 화면 로딩·스피너는 쓰지 않는다
    *   · 실패는 지수 백오프로 3번까지 스스로 다시, 그래도 실패하면 [다시 올리기]
    *   · 서버가 'gas'(연결 전·롤백 스위치)면 예전처럼 한 장씩 서버로 올린다
    * ============================================================== */
-  var UPLOAD_BATCH = 6;             // 드라이브로 6장씩 동시에 직접 올린다
+  var UPLOAD_BATCH = 12;            // 드라이브로 12장씩 동시에 직접 올린다 (v44 — 6장에서 2배로)
   var PHOTO_POOL = 3;               // 사진 압축도 3장씩 동시에 (한 장씩 줄 세우지 않는다)
   var UPLOAD_MAX_TRIES = 3;         // 사진 1장당 최대 시도 횟수 (0.6초 → 1.8초 → 5초 쉬었다 다시)
   var UPLOAD_BACKOFF = [600, 1800, 5000];
@@ -3238,6 +3238,7 @@
     if (DRIVE.mode === 'gas') return '사진 ' + uploadDone + '/' + uploadTotal + '장 올리는 중…';
     var left = Math.max(0, uploadTotal - uploadDone);
     if (!left) return '사진 ' + uploadDone + '장 마무리 중…';
+    // 12장 병렬 — 한 묶음이 대략 1초(실측 36장 12장 병렬 5.3초)
     var secs = Math.max(1, Math.ceil(left / UPLOAD_BATCH) + 1);
     return '사진 ' + uploadDone + '/' + uploadTotal + '장 · 약 ' + secs + '초';
   }
@@ -3735,14 +3736,14 @@
       if (!res || res.ok === false) throw new Error((res && res.error) || '연결 상태를 확인하지 못했습니다.');
       var lines = [];
       if (res.connected && res.mode === 'drive') {
-        lines.push('✅ 연결됨 — 사진은 폰에서 구글 드라이브로 직접 올라갑니다(3~6초).');
+        lines.push('✅ 연결됨 — 사진은 폰에서 구글 드라이브로 직접 올라갑니다(36장 약 13초).');
         if (res.linkedAt) lines.push('연결한 때: ' + res.linkedAt);
         if (res.clientHint) lines.push('클라이언트: ' + res.clientHint);
         if ($('driveSetup')) $('driveSetup').hidden = true;
         if ($('driveCodeBox')) $('driveCodeBox').hidden = true;
       } else if (res.mode === 'gas') {
         lines.push('지금은 사진을 예전 방식(한 장씩 서버로)으로 올리고 있습니다.');
-        lines.push('연결하면 36장이 85초 → 3~6초로 빨라집니다.');
+        lines.push('연결하면 36장이 85초 → 약 13초로 빨라집니다.');
         if ($('driveSetup')) $('driveSetup').hidden = true;
         if ($('driveCodeBox')) $('driveCodeBox').hidden = true;
         lines.push('※ 서버 설정이 예전 방식(UPLOAD_MODE=gas)으로 되어 있어 연결해도 지금은 예전 방식으로 올라갑니다.');
@@ -3820,7 +3821,7 @@
         stopDrivePoll();
         driveLinkState.linkToken = '';
         if ($('driveCodeBox')) $('driveCodeBox').hidden = true;
-        toast('사진 빠른 업로드 연결이 끝났습니다. 이제 사진이 3~6초에 올라갑니다.', 'ok');
+        toast('사진 빠른 업로드 연결이 끝났습니다. 이제 사진 36장이 13초 안팎에 올라갑니다.', 'ok');
         refreshDriveStatus();
         return;
       }
