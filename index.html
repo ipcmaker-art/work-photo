@@ -1090,7 +1090,7 @@
       <h2 id="printTitle">📄 공사완료 업무일지 출력</h2>
       <button type="button" class="modal-close" id="printClose" aria-label="닫기">✕</button>
     </div>
-    <div class="edit-meta">고른 지점·기간의 업무일지만 <b>날짜 최신순</b>으로 워드(.docx)에 담습니다.<br>사진 없이 <b>건마다 상자(카드)</b>로 나가고, 상자마다 날짜·지점(12pt) → 작업내용 → 소요자재 → 작업인원 | 작업시간 | 노무비(10pt) 순서입니다.</div>
+    <div class="edit-meta">고른 지점·기간의 업무일지만 <b>1일부터 날짜 순서(오름차순)</b>로 워드(.docx)에 담습니다.<br>첫 줄(날짜·지점·작성자) 바탕은 날짜가 바뀔 때마다 <b>아이보리 ↔ 연회색</b>으로 번갈아 나갑니다. 사진 없이 <b>건마다 상자(카드)</b>로 나가고, 상자마다 날짜·지점(12pt) → 작업내용 → 소요자재 → 작업인원 | 작업시간 | 노무비(10pt) 순서입니다.</div>
     <div class="field">
       <div class="label"><span>기간</span><span class="optional">시작일 ~ 종료일</span></div>
       <div class="filter-grid">
@@ -5570,7 +5570,7 @@
       : (from && to ? (from === to ? formatDateLabel(from) : formatDateLabel(from) + ' ~ ' + formatDateLabel(to))
         : formatDateLabel(from || to) + ' 부터');
     $('printSummary').textContent = '선택: ' + period + ' · ' + (branch || '전체 지점') +
-      ' — 이 조건의 공사완료 업무일지만 날짜 최신순으로 나갑니다.';
+      ' — 이 조건의 공사완료 업무일지만 1일부터 날짜 순서로 나갑니다.';
   }
 
   // 📄 인쇄 — 고른 지점·기간의 공사완료 업무일지를 워드(.docx)로 내려받는다
