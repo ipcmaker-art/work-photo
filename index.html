@@ -201,6 +201,9 @@
     .pb-dates input[type="date"]{min-height:32px; height:32px; font-size:12.5px;}
     .btn-period{padding:7px 12px; font-size:12px;}
     .period-sep{font-size:11px;}
+    /* 넚은 화면에서 출력 버튼이 화면을 가로지르지 않게 — 지점은 왼쪽, 출력은 오른쪽 끝 */
+    .pb-row-2 .btn-period.print{flex:0 0 auto; margin-left:auto; min-width:200px;}
+    .filter-card .pb-row-2 #exportBtn{margin-left:auto;}
   }
 
   /* 📝 매장 요청 — 인쇄 상태 칩 (달력 아래 얇은 줄) */
