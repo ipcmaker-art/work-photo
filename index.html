@@ -1162,7 +1162,7 @@
   var IS_REMOTE = !IS_GAS && !IS_PREVIEW && !!APPS_SCRIPT_URL;
   var REMOTE_TIMEOUT = 90000;          // 조회 응답 대기 (ms)
   var REMOTE_UPLOAD_TIMEOUT = 240000;  // 사진 등록·워드 출력 대기 (ms)
-  var MAX_PHOTOS = 15;
+  // 사진 장수 제한 없음 (2026-11-27 지시: "제한은 없애") — 파일 한 장 크기만 본다
   var MAX_FILE_MB = 25;
   var PHOTO_W = 800;        // 저장할 사진 가로(픽셀) — v30: 업로드 속도를 위해 800×600 으로 줄였다
   var PHOTO_H = 600;        // 저장할 사진 세로(픽셀)
@@ -2102,7 +2102,7 @@
   function mockPhotosFromImages_(images, tag) {
     return (images || []).filter(function (img) {
       return img && String(img.base64 || '').trim();
-    }).slice(0, MAX_PHOTOS).map(function (img, i) {
+    }).map(function (img, i) {
       var src = 'data:' + (img.mimeType || 'image/jpeg') + ';base64,' + img.base64;
       return {
         id: 'local-' + (tag || 'p') + '-' + Date.now() + '-' + i,
@@ -3008,6 +3008,8 @@
       .then(function (res) {
         if (!res || res.ok === false) throw new Error((res && res.error) || '사진을 올리지 못했습니다.');
         uploadDone++;
+        // 한 장 끝날 때마다 바로 숫자를 올려 준다 (3장 묶음이 다 끝날 때까지 0/N 으로 멈춰 보이지 않게)
+        showUploadBar();
         markUploadedPhoto(item);
         return true;
       })
@@ -3886,11 +3888,7 @@
    * 5. 사진 선택 · 압축
    * ============================================================== */
   function addPhotos(files) {
-    var room = MAX_PHOTOS - state.photos.length;
-    if (room <= 0) { toast('사진은 한 번에 ' + MAX_PHOTOS + '장까지 올릴 수 있어요.', 'err'); return; }
-
-    var accepted = files.slice(0, room);
-    if (files.length > room) toast('사진은 최대 ' + MAX_PHOTOS + '장까지라 ' + room + '장만 추가했어요.', 'err');
+    var accepted = files.slice(0);
 
     var tooBig = accepted.filter(function (f) { return f.size > MAX_FILE_MB * 1024 * 1024; });
     accepted = accepted.filter(function (f) { return f.size <= MAX_FILE_MB * 1024 * 1024; });
@@ -6000,10 +5998,7 @@
 
   function addModalPhotos(kind, files) {
     var bag = photoBag(kind);
-    var room = MAX_PHOTOS - (bag.keep.length + bag.newPhotos.length);
-    if (room <= 0) { toast('사진은 ' + MAX_PHOTOS + '장까지입니다.', 'err'); return; }
-    var accepted = files.slice(0, room);
-    if (files.length > room) toast('사진은 최대 ' + MAX_PHOTOS + '장까지라 ' + room + '장만 추가했어요.', 'err');
+    var accepted = files.slice(0);
     accepted = accepted.filter(function (f) { return !f.size || f.size <= MAX_FILE_MB * 1024 * 1024; });
     if (!accepted.length) return;
 
@@ -6375,10 +6370,7 @@
   function addEditPhotos(files) {
     var edit = state.edit;
     if (!edit) return;
-    var room = MAX_PHOTOS - (edit.keep.length + edit.newPhotos.length);
-    if (room <= 0) { toast('사진은 ' + MAX_PHOTOS + '장까지입니다.', 'err'); return; }
-    var accepted = files.slice(0, room);
-    if (files.length > room) toast('사진은 최대 ' + MAX_PHOTOS + '장까지라 ' + room + '장만 추가했어요.', 'err');
+    var accepted = files.slice(0);
     accepted = accepted.filter(function (f) { return !f.size || f.size <= MAX_FILE_MB * 1024 * 1024; });
     if (!accepted.length) return;
 
