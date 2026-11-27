@@ -414,6 +414,7 @@
     background:var(--brand-soft); color:var(--brand);
   }
   .role-pill.staff{background:#fff4e5; color:#b54708;}
+  .role-pill.super{background:#ecfdf3; color:#067647; border:1px solid #a6f4c5;}
   .btn-mini{
     padding:4px 8px; border-radius:8px; border:1px solid var(--line); background:#fff;
     font-size:11px; font-weight:700; color:#475467; white-space:nowrap;
@@ -1289,7 +1290,13 @@
   var AUTH = { token: '', no: '', name: '', role: '', checked: false };
 
   function authToken() { return AUTH && AUTH.token ? AUTH.token : ''; }
-  function isAdmin() { return AUTH.role === '관리자'; }
+  // 🏅 권한 3단계 (2026-11-27): 최고관리자 > 관리자 > 직원
+  var ROLE_SUPER = '최고관리자';
+  function roleLevel(role) {
+    return role === ROLE_SUPER ? 3 : (role === '관리자' ? 2 : 1);
+  }
+  function isAdmin() { return roleLevel(AUTH.role) >= 2; }          // 관리자 이상
+  function isSuperAdmin() { return roleLevel(AUTH.role) >= 3; }     // 최고관리자만
   function isLoggedIn() { return !!authToken(); }
 
   // 보낼 내용에 토큰을 붙인 사본 (원래 객체는 건드리지 않는다)
@@ -1304,7 +1311,8 @@
     AUTH.token = session.token || '';
     AUTH.no = session.no || '';
     AUTH.name = session.name || '';
-    AUTH.role = session.role === '관리자' ? '관리자' : '직원';
+    // 🏅 최고관리자 > 관리자 > 직원 — 서버가 준 권한을 그대로 쓴다
+    AUTH.role = (session.role === '관리자' || session.role === '최고관리자') ? session.role : '직원';
     AUTH.checked = true;
     store.set(LS.session, { token: AUTH.token, no: AUTH.no, name: AUTH.name, role: AUTH.role });
   }
@@ -1315,7 +1323,7 @@
     AUTH.token = saved.token;
     AUTH.no = saved.no || '';
     AUTH.name = saved.name || '';
-    AUTH.role = saved.role === '관리자' ? '관리자' : '직원';
+    AUTH.role = (saved.role === '관리자' || saved.role === '최고관리자') ? saved.role : '직원';
     AUTH.checked = false;
     return true;
   }
@@ -1665,7 +1673,7 @@
     if (Array.isArray(custom) && custom.length) return custom;
     var given = window.__PREVIEW_STAFF__;
     if (Array.isArray(given) && given.length) return given.slice();
-    return [{ no: '0000', role: '관리자', name: '미리보기 사용자' }];
+    return [{ no: '0000', role: ROLE_SUPER, name: '미리보기 사용자' }];
   }
 
   function mockLogin(pin) {
@@ -1680,7 +1688,7 @@
       token: 'preview-' + no + '-' + Date.now(),
       no: String(hit.no),
       name: hit.name,
-      role: hit.role === '관리자' ? '관리자' : '직원'
+      role: (hit.role === '관리자' || hit.role === ROLE_SUPER) ? hit.role : '직원'
     });
   }
 
@@ -3125,7 +3133,15 @@
     $('whoBar').hidden = false;
     $('whoName').textContent = AUTH.name || '';
     $('whoRole').textContent = AUTH.role || '';
-    $('whoRole').className = 'role-pill' + (admin ? '' : ' staff');
+    $('whoRole').className = 'role-pill' + (isSuperAdmin() ? ' super' : (admin ? '' : ' staff'));
+
+    // 🔐 전체 내역 조회의 워드 출력은 최고관리자만, 일지출력은 관리자 이상만 (2026-11-27 지시)
+    ['exportBtn', 'exportFullBtn'].forEach(function (id) {
+      var node = $(id);
+      if (node) node.hidden = !isSuperAdmin();
+    });
+    var printBtn = $('calPrint');
+    if (printBtn) printBtn.hidden = !admin;
 
     // 관리자 전용 버튼은 id 로도 한 번 더 확실히 숨긴다 (클래스 표시 + id 두 겹)
     ['dayPlanAddBtn', 'topBranchManageBtn', 'branchManageBtn', 'calBranchManageBtn', 'staffManageBtn'].forEach(function (id) {
@@ -3307,7 +3323,7 @@
         return;
       }
       AUTH.name = res.name || AUTH.name;
-      AUTH.role = res.role === '관리자' ? '관리자' : '직원';
+      AUTH.role = (res.role === '관리자' || res.role === '최고관리자') ? res.role : '직원';
       AUTH.no = res.no || AUTH.no;
       AUTH.checked = true;
       saveSession({ token: AUTH.token, no: AUTH.no, name: AUTH.name, role: AUTH.role });
@@ -4133,6 +4149,7 @@
    * 7-1. 워드 파일 출력
    * ============================================================== */
   function onExport() {
+    if (!isSuperAdmin()) { toast('전체 내역 출력은 최고관리자만 할 수 있습니다.', 'err'); return; }
     if (state.loading) return;
     var records = state.records || [];
     // 조회하기를 누르지 않아도 지금 필터 조건 그대로 출력할 수 있다.
@@ -4160,6 +4177,7 @@
 
   // 📄 전체 상세 워드 — 지점·날짜·작업내용·작업인원·작업소요시간·소요자재·노무비 + 사진
   function onExportFull() {
+    if (!isSuperAdmin()) { toast('전체 내역 출력은 최고관리자만 할 수 있습니다.', 'err'); return; }
     if (state.loading) return;
     var records = state.records || [];
     if (state.listSearched && !records.length) { toast('출력할 내역이 없습니다.', 'err'); return; }
@@ -4500,6 +4518,7 @@
    *    그 조건의 공사완료 업무일지만 날짜 내림차순으로 워드에 담는다(사진 없음).
    * ------------------------------------------------------------------ */
   function openPrintModal() {
+    if (!isAdmin()) { toast('일지출력은 관리자만 할 수 있습니다.', 'err'); return; }
     var cal = state.cal;
     $('printFrom').value = $('calFrom').value || cal.from || '';
     $('printTo').value = $('calTo').value || cal.to || '';
