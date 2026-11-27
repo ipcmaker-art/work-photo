@@ -765,10 +765,10 @@
 
           <div class="card">
             <div class="field" style="margin:0">
-              <div class="label"><span>🧾 영수증 사진</span><span class="optional">선택 · 여러 장 가능</span></div>
+              <div class="label"><span>📄 영수증 사진</span><span class="optional">선택 · 여러 장 가능</span></div>
               <div class="photo-actions">
                 <label class="picker" id="receiptPickLabel">
-                  <span>🧾 영수증 찍기 / 올리기</span>
+                  <span>📄 영수증 찍기 / 올리기</span>
                   <input type="file" id="receiptInput" accept="image/*" multiple hidden>
                 </label>
               </div>
@@ -1078,11 +1078,11 @@
       <div class="hint">사진의 ✕ 를 누르면 그 사진이 이 기록에서 빠집니다(드라이브 휴지통으로 이동). 새로 추가한 사진은 자동으로 <b>가로 800 × 세로 600픽셀</b> JPEG로 변환하고 오른쪽 아래에 <b>날짜 · 지점명</b>을 박아 저장합니다.</div>
     </div>
     <div class="field">
-      <div class="label"><span>🧾 영수증 사진</span><span class="optional">선택 · 0장 가능</span></div>
+      <div class="label"><span>📄 영수증 사진</span><span class="optional">선택 · 0장 가능</span></div>
       <div class="photo-grid" id="editReceiptGrid"></div>
       <div class="summary" id="editReceiptSummary">영수증 없이도 저장됩니다.</div>
       <label class="picker" id="editReceiptPickLabel" style="margin-top:10px">
-        <span>🧾 영수증 추가</span>
+        <span>📄 영수증 추가</span>
         <input type="file" id="editReceiptInput" accept="image/*" multiple hidden>
       </label>
       <div class="hint">영수증은 워터마크 없이 1200px 로 선명하게 저장하고, 지출내역 칸에 품명·수량·금액을 읽어 채웁니다.</div>
@@ -5176,7 +5176,7 @@
     grid.innerHTML = '';
     var list = state.receipts || [];
     list.forEach(function (p) {
-      grid.appendChild(receiptPhotoItem_(p, p.state === 'reading' ? '🧾 읽는 중' : '🧾 영수증', function () {
+      grid.appendChild(receiptPhotoItem_(p, p.state === 'reading' ? '📄 읽는 중' : '📄 영수증', function () {
         state.receipts = list.filter(function (x) { return x.key !== p.key; });
         renderReceipts();
       }));
@@ -5201,7 +5201,7 @@
       }));
     });
     (edit.receiptNew || []).forEach(function (p) {
-      grid.appendChild(receiptPhotoItem_(p, p.state === 'reading' ? '🧾 읽는 중' : '🧾 새 영수증', function () {
+      grid.appendChild(receiptPhotoItem_(p, p.state === 'reading' ? '📄 읽는 중' : '📄 새 영수증', function () {
         edit.receiptNew = edit.receiptNew.filter(function (x) { return x.key !== p.key; });
         renderEditReceipts();
       }));
@@ -5528,7 +5528,7 @@
           '<span class="record-time">' + esc(timeLabel(r.registeredAt)) + '</span>' +
         '</div>' +
         (r.memo ? '<p class="record-memo">' + esc(r.memo) + '</p>' : '') +
-        (expenses ? '<p class="record-memo rec-expenses">🧾 지출내역: ' + esc(expenses) + '</p>' : '') +
+        (expenses ? '<p class="record-memo rec-expenses">📄 지출내역: ' + esc(expenses) + '</p>' : '') +
         (function () {
           var facts = [['작업인원', r.workPeople], ['작업소요시간', r.workHours], ['소요자재', r.materials], ['노무비', r.laborCost]]
             .filter(function (f) { return String(f[1] || '').trim(); });
@@ -5538,7 +5538,7 @@
           }).join('') + '</div>';
         })() +
         (thumbs ? '<div class="thumbs">' + thumbs + '</div>' : '') +
-        (receiptThumbs ? '<div class="thumbs receipts"><span class="thumbs-label">🧾 영수증</span>' + receiptThumbs + '</div>' : '') +
+        (receiptThumbs ? '<div class="thumbs receipts"><span class="thumbs-label">📄 영수증</span>' + receiptThumbs + '</div>' : '') +
         '<div class="record-actions">' +
           (canEditRecord(r) ? '<button type="button" class="rec-edit" data-record="' + ri + '" aria-label="이 공사완료 업무일지 수정">✏️ 수정</button>' : '') +
           (isSuperAdmin() ? '<button type="button" class="rec-del" data-record="' + ri + '" aria-label="이 공사완료 업무일지 삭제">🗑️ 삭제</button>' : '') +
@@ -6793,7 +6793,7 @@
     card.appendChild(top);
     if (record.memo) card.appendChild(el('p', 'rec-memo', record.memo));
     if (String(record.expenses || '').trim()) {
-      card.appendChild(el('p', 'rec-memo rec-expenses', '🧾 지출내역: ' + String(record.expenses).trim()));
+      card.appendChild(el('p', 'rec-memo rec-expenses', '📄 지출내역: ' + String(record.expenses).trim()));
     }
     var facts = recordFactsEl(record);
     if (facts) card.appendChild(facts);
@@ -6820,7 +6820,7 @@
     // 🧾 영수증 사진 — 작업사진과 따로 보여 준다
     var receipts = record.receipts || [];
     if (receipts.length) {
-      card.appendChild(el('div', 'thumbs-label', '🧾 영수증 ' + receipts.length + '장'));
+      card.appendChild(el('div', 'thumbs-label', '📄 영수증 ' + receipts.length + '장'));
       var rThumbs = el('div', 'rec-thumbs receipts');
       receipts.slice(0, 8).forEach(function (p, i) {
         var btn = el('button', 'rec-thumb');
