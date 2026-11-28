@@ -715,6 +715,13 @@
     #panel-requests > .cal-card{grid-column:1; margin-bottom:0;}
     #panel-requests > .day-card{grid-column:2; margin-bottom:0; position:sticky; top:12px; max-height:calc(100vh - 24px); overflow:auto;}
     #panel-list{max-width:1240px; margin:0 auto;}
+    /* 오른쪽 날짜 상세 칸 — 제목과 버튼을 위아래로 놓아 좁은 칸에서도 안 접힌다 */
+    #panel-calendar > .day-card .day-head,
+    #panel-requests > .day-card .day-head{flex-direction:column; align-items:stretch; gap:8px;}
+    #panel-calendar > .day-card .day-head-actions,
+    #panel-requests > .day-card .day-head-actions{flex-direction:row; flex-wrap:wrap; justify-content:flex-start;}
+    #panel-calendar > .day-card .day-head h2{white-space:nowrap;}
+    #panel-requests > .day-card .day-head h2{white-space:nowrap;}
     .write-cols{display:grid; grid-template-columns:minmax(0,1.3fr) minmax(0,1fr); gap:14px; align-items:start;}
     .write-side{display:flex; flex-direction:column; gap:12px;}
     .cal-cell{min-height:118px;}
@@ -5731,6 +5738,25 @@
     return has ? sum : null;
   }
 
+  /** 옛 글 한 줄을 표 행으로 — ‘품명 14개 60,200원’ 처럼 한 품목이 또렷할 때만 (여러 품목이 섮인 줄은 그대로 둔다) */
+  function expenseLegacyRow_(s) {
+    var text = String(s || '').trim();
+    if (!text || text.indexOf('·') > -1) return null;
+    var m = text.match(/^(.*?)\s*(\d[\d,]*)\s*(?:개|EA|ea|매|장|봉|포|박스|BOX|box)\s*([\d,]+)\s*원$/);
+    if (!m) return null;
+    var name = String(m[1] || '').trim().replace(/[,]+$/, '').trim();
+    var qty = expenseNum_(m[2]);
+    var amount = expenseNum_(m[3]);
+    if (!name || amount == null) return null;
+    if (qty && qty >= 2 && amount % qty === 0) {
+      return newExpenseRow_({ name: name, qty: String(qty), price: String(amount / qty), total: String(amount) });
+    }
+    if (qty && qty >= 2) {
+      return newExpenseRow_({ name: name + ' (' + qty + '개)', qty: '1', price: String(amount), total: String(amount) });
+    }
+    return newExpenseRow_({ name: name, qty: String(qty || 1), price: String(amount), total: String(amount) });
+  }
+
   /** 지출내역 글 -> 표 행들 (옛 일반 글이면 품명 한 칸짜리 행) */
   function parseExpenseRows(text) {
     var out = [];
@@ -5741,7 +5767,7 @@
       if (parts.length >= 3) {
         out.push(newExpenseRow_({ name: parts[0], qty: parts[1], price: parts[2], total: parts[3] || '' }));
       } else {
-        out.push(newExpenseRow_({ name: s }));
+        out.push(expenseLegacyRow_(s) || newExpenseRow_({ name: s }));
       }
     });
     return out;
