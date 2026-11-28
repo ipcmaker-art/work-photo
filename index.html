@@ -1101,7 +1101,7 @@
       <h2 id="staffTitle">👥 직원 관리</h2>
       <button type="button" class="modal-close" id="staffClose" aria-label="닫기">✕</button>
     </div>
-    <div class="edit-meta">비밀번호는 각자 정합니다(휴대폰 뒷번호 4자리 또는 <b>영문·숫자·특수문자 4~40자</b>). 여기에 등록된 비밀번호만 로그인할 수 있고,<br>직원은 <b>작업사진 등록과 본인 글 수정</b>만 할 수 있습니다. 삭제는 <b>최고관리자</b>만 가능합니다.</div>
+    <div class="edit-meta">비밀번호는 각자 정합니다(휴대폰 뒷번호 4자리 또는 <b>영문·숫자·특수문자 4~40자</b>). 여기에 등록된 비밀번호만 로그인할 수 있고,<br>직원은 <b>작업사진 등록과 본인 글 수정</b>만 할 수 있습니다. 삭제는 <b>최고관리자</b>만 가능하고, 최고관리자는 여기서 <b>다른 직원에게도 최고관리자</b>를 줄 수 있습니다.</div>
     <div class="field">
       <div class="staff-add">
         <div>
@@ -1117,7 +1117,7 @@
           <select id="staffRole" aria-label="직원 권한">
             <option value="직원">직원</option>
             <option value="관리자">관리자</option>
-            <option value="최고관리자" disabled>최고관리자</option>
+            <option value="최고관리자">최고관리자</option>
           </select>
         </div>
         <button type="button" class="staff-save" id="staffSave">➕ 직원 등록</button>
@@ -1252,7 +1252,7 @@
   var PHOTO_W = 800;        // 저장할 사진 가로(픽셀) — v30: 업로드 속도를 위해 800×600 으로 줄였다
   var PHOTO_H = 600;        // 저장할 사진 세로(픽셀)
   var PHOTO_QUALITY = 0.7;  // JPEG 품질(선명도와 업로드 속도의 절충) — 6×4cm 인쇄에는 충분하다
-  var RECEIPT_QUALITY = 0.85; // 🧾 영수증은 글씨가 보여야 해서 조금 더 선명하게
+  var RECEIPT_QUALITY = 0.88; // 🧾 영수증은 글씨가 보여야 해서 더 선명하게 (v48: 0.85 → 0.88)
   var DEFAULT_BRANCHES = ['진천점', '월성점', '본리점', '중리점', '봉무점'];
   var WEEKDAY = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -1930,16 +1930,18 @@
     list.forEach(function (s, i) { if (s.no === no) clash = i; });
     if (clash > -1 && clash !== at) return Promise.resolve({ ok: false, error: '이미 등록된 번호·비밀번호입니다. (값: ' + no + ')' });
     if (at > -1) {
-      // 최고관리자 자리는 비밀번호를 바꿔도 유지한다
-      if (list[at].role === ROLE_SUPER) role = ROLE_SUPER;
-      else if (role === ROLE_SUPER) return Promise.resolve({ ok: false, error: '최고관리자 권한은 다른 계정으로 옮길 수 없습니다.' });
-      if (list[at].role === '관리자' && role !== '관리자' &&
+      // v48: 3653 은 비밀번호를 바꿔도 최고관리자, 다른 최고관리자는 '마지막 한 명'일 때만 강등을 막는다
+      if (String(list[at].no) === '3653') role = ROLE_SUPER;
+      else if (list[at].role === ROLE_SUPER && role !== ROLE_SUPER &&
+               list.filter(function (s) { return s.role === ROLE_SUPER; }).length <= 1) {
+        return Promise.resolve({ ok: false, error: '마지막 최고관리자는 권한을 내릴 수 없습니다.' });
+      }
+      if (list[at].role === '관리자' && role === '직원' &&
           list.filter(function (s) { return s.role === '관리자'; }).length <= 1) {
         return Promise.resolve({ ok: false, error: '마지막 관리자는 직원으로 바꿀 수 없습니다.' });
       }
       list[at] = { no: no, role: role, name: name };
     } else {
-      if (role === ROLE_SUPER) return Promise.resolve({ ok: false, error: '최고관리자 권한은 다른 계정으로 옮길 수 없습니다.' });
       list.push({ no: no, role: role, name: name });
     }
     store.set(LS.mockStaff, list);
@@ -1952,7 +1954,11 @@
     var list = previewStaffList().map(function (s) { return { no: String(s.no), role: s.role, name: s.name }; });
     var hit = list.filter(function (s) { return s.no === target; })[0];
     if (!hit) return Promise.resolve({ ok: false, error: '그 번호로 등록된 직원이 없습니다.' });
-    if (hit.role === ROLE_SUPER) return Promise.resolve({ ok: false, error: '최고관리자 계정은 지울 수 없습니다.' });
+    if (hit.role === ROLE_SUPER && String(hit.no) !== '3653' &&
+        list.filter(function (s) { return s.role === ROLE_SUPER; }).length <= 1) {
+      return Promise.resolve({ ok: false, error: '마지막 최고관리자 계정은 지울 수 없습니다.' });
+    }
+    if (String(hit.no) === '3653') return Promise.resolve({ ok: false, error: '최고관리자(3653) 계정은 지울 수 없습니다.' });
     if (hit.role === '관리자' && list.filter(function (s) { return s.role === '관리자'; }).length <= 1) {
       return Promise.resolve({ ok: false, error: '마지막 관리자는 지울 수 없습니다.' });
     }
@@ -4318,7 +4324,8 @@
     // v46: 영문·숫자·특수문자 비밀번호도 그대로 쓴다 (앞뒤 공백만 지운다)
     var no = String($('staffNo').value || '').trim();
     var name = String($('staffName').value || '').trim();
-    var role = $('staffRole').value === '관리자' ? '관리자' : '직원';
+    var role = $('staffRole').value === ROLE_SUPER ? ROLE_SUPER :
+      ($('staffRole').value === '관리자' ? '관리자' : '직원');
     if (no.length < 4) { toast('비밀번호는 4자 이상으로 넣어 주세요.', 'err'); $('staffNo').focus(); return; }
     if (no.length > 40) { toast('비밀번호는 40자 이내로 넣어 주세요.', 'err'); $('staffNo').focus(); return; }
     if (!name) { toast('이름을 입력해 주세요.', 'err'); $('staffName').focus(); return; }
@@ -5038,11 +5045,12 @@
   }
 
   /**
-   * 🧾 영수증 사진 — 글씨가 보여야 하므로 1200px 까지 크게(비율 유지) 줄이고 워터마크는 넣지 않는다.
-   *  품질도 조금 높여(0.85) 숫자가 뭉개지지 않게 한다.
+   * 🧾 영수증 사진 — 글씨가 보여야 하므로 2000px 까지 크게(비율 유지) 줄이고 워터마크는 넣지 않는다.
+   *  v48: 1200px 로 줄이면 한 장에 여러 영수증이 겹쳤거나 세로로 긴 영수증의 글씨가 불어서 못 읽었다.
+   *  품질도 0.88 로 높여 숫자가 뜨지 않게 한다 (그래도 한 장 보통 1MB 안쪽).
    */
   function compressReceiptImage(file) {
-    var maxSide = 1200;
+    var maxSide = RECEIPT_MAX_SIDE;
     var sourcePromise;
     if (window.createImageBitmap) {
       sourcePromise = createImageBitmap(file, { imageOrientation: 'from-image' })
@@ -5168,11 +5176,11 @@
 
   /* ================================================================
    * 5-2. 🧾 영수증 사진 (2026-11-28 지시)
-   *   · 워터마크 없이 1200px 로 선명하게 따로 저장한다
+   *   · 워터마크 없이 2000px 로 선명하게 따로 저장한다 (v48: 1200 → 2000)
    *   · 사진을 올리면 서버(구글 AI)가 품명·수량·금액을 읽어 지출내역 칸에 채운다
    *   · 영수증·지출내역은 선택 — 없어도 등록·수정된다
    * ============================================================== */
-  var RECEIPT_MAX_SIDE = 1200;
+  var RECEIPT_MAX_SIDE = 2000;
   var receiptKeyWarned = false;
 
   /** 영수증 한 칸 (사진 + ✕ + 작은 글씨) */
@@ -5287,7 +5295,7 @@
     });
   }
 
-  /** 영수증 사진을 줄여(1200px) 목록에 넣고 글씨 읽기를 시작한다 — 화면은 막지 않는다 */
+  /** 영수증 사진을 줄여(2000px) 목록에 넣고 글씨 읽기를 시작한다 — 화면은 막지 않는다 */
   function addReceipts(files, kind) {
     var accepted = (files || []).filter(function (f) { return !f.size || f.size <= MAX_FILE_MB * 1024 * 1024; });
     if (!accepted.length) return Promise.resolve();
