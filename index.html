@@ -221,6 +221,7 @@
   .record-memo{margin:8px 0 0; font-size:14px; color:#344054; white-space:pre-wrap; word-break:break-word;}
   /* 🧾 지출내역·영수증 (v46) */
   .rec-expenses{color:#0f766e; font-size:13px; background:#f0fdfa; border:1px solid #ccfbf1; border-radius:8px; padding:6px 8px;}
+  .rec-expense-sum{display:inline-block; margin-top:7px; font-size:11.5px; font-weight:800; color:#0f766e; background:#f0fdfa; border:1px solid #ccfbf1; border-radius:999px; padding:2px 9px;}
   .thumbs.receipts{margin-top:6px; grid-template-columns:repeat(auto-fill,minmax(66px,1fr));}
   .thumbs-label{display:block; margin:10px 0 0; font-size:11.5px; font-weight:800; color:#0f766e;}
   .thumbs .receipt-thumb img{border:1px solid #ccfbf1;}
@@ -576,9 +577,177 @@
     .cal-cell{min-height:112px; padding:6px 5px;}
     .cal-num{font-size:13px;}
     .cal-badge{font-size:10px; padding:2px 4px;}
-    #schedModal,#workModal,#editModal,#printModal,#branchModal,#driveModal{align-items:center; padding:20px;}
+    #schedModal,#workModal,#editModal,#printModal,#branchModal,#driveModal,#recordModal,#staffModal{align-items:center; padding:20px;}
     .modal-card{border-radius:18px;}
   }
+
+  /* ================================================================
+   * v49 (2026-11-28)
+   *   ① 🧾 지출내역 표 (품명 | 수량 | 금액 | 합계 + 총합계)
+   *   ② 🖥️ 화면출력 · 📋 업무일지 상세 보기 창
+   *   ③ 🏷️ 지점 관리 목록 (직원 관리처럼)
+   *   ④ 📷 공사완료 업무일지 등록 영역 — 은은한 파란 바탕 + 입력칸 흰색
+   *   ⑤ PC(960px 이상) — 전체 폭 1200~1360px · 달력/날짜 상세 좌우 배치 · 넓은 모달
+   * ============================================================== */
+
+  /* ④ 공사완료 업무일지 등록 영역 — 은은한 파란 톤, 안쪽 글 입력칸은 흰색 */
+  .write-card{background:#eef4ff; border:1px solid #dbe5ff; border-radius:18px; padding:10px 10px 14px;}
+  .write-card .card{background:#fbfdff; border:1px solid #dce7fb; margin-bottom:12px;}
+  .write-card .card:last-of-type{margin-bottom:0;}
+  #writeForm input[type="date"],
+  #writeForm input[type="text"],
+  #writeForm textarea,
+  #writeForm select{background:#ffffff; border-color:#cddaf2;}
+  #writeForm input[type="date"]:focus,
+  #writeForm input[type="text"]:focus,
+  #writeForm textarea:focus{background:#ffffff; border-color:var(--brand);}
+  .write-actions{margin-top:12px;}
+
+  /* ① 🧾 지출내역 표 */
+  .exp-table{border:1px solid #cfe0f6; border-radius:12px; overflow:hidden; background:#fff;}
+  .exp-head,.exp-row{display:grid; grid-template-columns:minmax(0,1fr) 58px 92px 92px 30px; gap:0; align-items:center;}
+  .exp-head{background:#eef4ff; border-bottom:1px solid #dbe5ff;}
+  .exp-head span{font-size:11px; font-weight:800; color:#344054; padding:6px 5px; text-align:center;}
+  .exp-head span:first-child{text-align:left; padding-left:9px;}
+  .exp-row{border-bottom:1px solid #eef2f7;}
+  .exp-row:last-child{border-bottom:0;}
+  .exp-row input{
+    width:100%; border:0; border-right:1px solid #eef2f7; border-radius:0; background:#fff;
+    padding:9px 6px; font-size:13px; min-height:38px; text-align:center;
+  }
+  .exp-row input.name{text-align:left; padding-left:9px;}
+  .exp-row input:focus{background:#f8fbff; box-shadow:inset 0 0 0 1px var(--brand);}
+  .exp-row .sum{font-size:13px; font-weight:700; color:#0f766e; text-align:right; padding:0 7px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .exp-row .del{width:26px; height:26px; margin:0 auto; border-radius:50%; background:#fef3f2; color:#b42318; font-size:12px; font-weight:800; line-height:1;}
+  .exp-total{display:flex; align-items:center; justify-content:space-between; gap:8px; background:#f0fdfa; border-top:1px solid #ccfbf1; padding:9px 10px;}
+  .exp-total b{font-size:13px; color:#0f766e;}
+  .exp-total .amount{font-size:15px; font-weight:800; color:#0f766e; letter-spacing:-.3px;}
+  .exp-add{margin-top:8px; width:100%; padding:9px; border-radius:10px; border:1px dashed #b8c6e6; background:#f8faff; color:var(--brand); font-weight:800; font-size:12.5px;}
+  .exp-empty{padding:12px 10px; font-size:12.5px; color:var(--muted); text-align:center;}
+
+  /* 지출내역 — 상세 보기(읽기 전용) 표 */
+  .exp-view{border:1px solid #ccfbf1; border-radius:10px; overflow:hidden; background:#fff; margin-top:8px;}
+  .exp-view table{width:100%; border-collapse:collapse; font-size:12px;}
+  .exp-view th,.exp-view td{border-bottom:1px solid #e6f7f4; padding:6px 7px; text-align:center;}
+  .exp-view th{background:#f0fdfa; color:#0f766e; font-weight:800; font-size:11px;}
+  .exp-view td.name{text-align:left;}
+  .exp-view td.num{text-align:right; font-variant-numeric:tabular-nums;}
+  .exp-view tr.total td{background:#f0fdfa; font-weight:800; color:#0f766e; border-bottom:0;}
+
+  /* ② 📋 업무일지 상세 보기 — 누르면 열리는 전체 보기 */
+  #recordModal{position:fixed; inset:0; background:rgba(16,24,40,.5); z-index:118; display:flex; align-items:flex-end; justify-content:center;}
+  #recordModal[hidden]{display:none;}
+  .rec-modal-meta{font-size:12.5px; color:var(--muted); margin:-4px 0 10px; line-height:1.55;}
+  .rec-block{margin-top:14px;}
+  .rec-block-title{font-size:12px; font-weight:800; color:#475467; margin:0 0 6px;}
+  .rec-photos{display:grid; grid-template-columns:repeat(auto-fill,minmax(84px,1fr)); gap:6px;}
+  .day-record{cursor:pointer; transition:border-color .12s, background .12s;}
+  .day-record:hover{border-color:#c7d7fe; background:#fbfdff;}
+  .day-record .rec-thumb .more{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    background:rgba(17,24,39,.58); color:#fff; font-size:12.5px; font-weight:800;
+  }
+  .day-record .rec-thumb{position:relative;}
+  .rec-open-hint{font-size:11px; font-weight:700; color:var(--brand); margin:8px 0 0; text-align:right;}
+
+  /* ③ 🏷️ 지점 관리 — 직원 관리와 같은 목록 + 새 지점·이름 수정·삭제 */
+  #branchModal{position:fixed; inset:0; background:rgba(16,24,40,.5); z-index:115; display:flex; align-items:flex-end; justify-content:center;}
+  #branchModal[hidden]{display:none;}
+  .branch-add{display:grid; grid-template-columns:1fr auto; gap:6px; align-items:end;}
+  .branch-add input{
+    width:100%; border:1px solid var(--line); background:#fbfcfd; border-radius:10px; padding:10px; font-size:14px; outline:none;
+  }
+  .branch-add input:focus{border-color:var(--brand); background:#fff;}
+  .branch-add button{padding:11px 14px; border-radius:11px; background:var(--brand); color:#fff; font-weight:800; font-size:13.5px; white-space:nowrap;}
+  .branch-list{margin-top:12px; border-top:1px solid #eef2f7; max-height:52vh; overflow:auto;}
+  .branch-row{display:flex; align-items:center; gap:8px; padding:9px 2px; border-bottom:1px solid #f2f4f7;}
+  .branch-row .idx{font-size:11.5px; font-weight:800; color:#667085; background:#f2f4f7; border-radius:7px; padding:3px 7px; min-width:28px; text-align:center;}
+  .branch-row .nm{flex:1 1 auto; min-width:0; font-size:13.5px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .branch-row .act{display:flex; gap:4px; flex:0 0 auto;}
+  .branch-row .act button{padding:5px 8px; border-radius:8px; font-size:11.5px; font-weight:700; background:#f2f4f7; color:#344054; border:1px solid var(--line);}
+  .branch-row .act button.danger{color:#b42318; border-color:#fecdca; background:#fef3f2;}
+  .branch-row.on{background:#f8faff;}
+
+  /* ⑥ 🖥️ 화면출력 — 일지 양식 그대로 화면에 펼친다 */
+  #screenPrint{position:fixed; inset:0; z-index:180; background:#e9edf3; overflow:auto; display:flex; flex-direction:column;}
+  #screenPrint[hidden]{display:none;}
+  .sp-bar{
+    position:sticky; top:0; z-index:2; display:flex; align-items:center; gap:8px; padding:10px 12px;
+    background:#fff; border-bottom:1px solid var(--line); box-shadow:0 2px 8px rgba(16,24,40,.06);
+  }
+  .sp-bar .title{flex:1 1 auto; font-size:13px; font-weight:800; color:#344054; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .sp-bar button{padding:9px 14px; border-radius:10px; font-size:13px; font-weight:800; background:#f2f4f7; color:#344054;}
+  .sp-bar button.primary{background:var(--brand); color:#fff;}
+  .sp-paper{
+    width:190mm; max-width:calc(100vw - 20px); margin:14px auto 40px; background:#fff; padding:10mm; border-radius:2px;
+    box-shadow:0 6px 24px rgba(16,24,40,.14); font-size:10pt; line-height:1.45;
+  }
+  .sp-paper h1{font-size:20pt; margin:0 0 10pt; font-weight:800; letter-spacing:-.5px;}
+  .sp-card{border:1px solid #595959; margin:0 0 6mm;}
+  .sp-card .head{background:#faf7f0; border-bottom:1px solid #595959; padding:2.2mm 3mm; font-size:12pt; font-weight:800;}
+  .sp-card .head .author{font-size:10pt; font-weight:500; color:#4b5563; margin-left:6pt;}
+  .sp-card .line{padding:1.6mm 3mm; border-bottom:1px solid #d9d9d9; font-size:10pt; white-space:pre-wrap; word-break:break-word;}
+  .sp-card .line:last-child{border-bottom:0;}
+  .sp-card .line b{font-weight:800; color:#101828;}
+  .sp-card .three{display:grid; grid-template-columns:1fr 1fr 1fr; gap:0; border-bottom:1px solid #d9d9d9;}
+  .sp-card .three div{padding:1.6mm 3mm; border-right:1px solid #d9d9d9; font-size:10pt;}
+  .sp-card .three div:last-child{border-right:0;}
+  .sp-exp{width:calc(100% - 6mm); margin:1mm 3mm 2mm; border-collapse:collapse; font-size:9.5pt;}
+  .sp-exp th,.sp-exp td{border:1px solid #b0b7c3; padding:1mm 1.5mm;}
+  .sp-exp th{background:#eef4ff; font-weight:800;}
+  .sp-exp td.num{text-align:right;}
+  .sp-exp tr.total td{background:#f0fdfa; font-weight:800; color:#0f766e;}
+
+  /* ⑤ PC(960px 이상) — 폭 1200~1360px, 달력과 날짜 상세 좌우 배치, 넓은 모달 */
+  @media (min-width:960px){
+    .app{max-width:1320px; padding-left:16px; padding-right:16px;}
+    .app-header h1{font-size:20px;}
+    .tab{font-size:14px; padding:11px 8px;}
+    main{padding:14px 18px;}
+    #panel-calendar{display:grid; grid-template-columns:minmax(0,1.65fr) minmax(0,1fr); gap:14px; align-items:start;}
+    #panel-calendar > .write-card,
+    #panel-calendar > .period-bar{grid-column:1 / -1;}
+    #panel-calendar > .cal-card{grid-column:1; margin-bottom:0;}
+    #panel-calendar > .day-card{grid-column:2; margin-bottom:0; position:sticky; top:12px; max-height:calc(100vh - 24px); overflow:auto;}
+    #panel-requests{display:grid; grid-template-columns:minmax(0,1.65fr) minmax(0,1fr); gap:14px; align-items:start;}
+    #panel-requests > .period-bar,
+    #panel-requests > .cal-subbar{grid-column:1 / -1;}
+    #panel-requests > .cal-card{grid-column:1; margin-bottom:0;}
+    #panel-requests > .day-card{grid-column:2; margin-bottom:0; position:sticky; top:12px; max-height:calc(100vh - 24px); overflow:auto;}
+    #panel-list{max-width:1240px; margin:0 auto;}
+    .write-cols{display:grid; grid-template-columns:minmax(0,1.3fr) minmax(0,1fr); gap:14px; align-items:start;}
+    .write-side{display:flex; flex-direction:column; gap:12px;}
+    .cal-cell{min-height:118px;}
+    .cal-badge{font-size:10.5px;}
+    .cal-week span{font-size:12px;}
+    .day-head h2{font-size:17px;}
+    /* 넓은 모달 — 지점·직원 관리·수정·출력·상세 보기 */
+    .modal-card{max-width:1080px;}
+    #editModal .modal-card,
+    #printModal .modal-card,
+    #branchModal .modal-card,
+    #staffModal .modal-card,
+    #recordModal .modal-card{max-width:1080px;}
+    #editModal .modal-card{display:grid; grid-template-columns:1fr 1fr; column-gap:18px; align-items:start;}
+    #editModal .modal-card > .modal-head,
+    #editModal .modal-card > .edit-meta,
+    #editModal .modal-card > .edit-actions,
+    #editModal .modal-card > .field.wide{grid-column:1 / -1;}
+    #schedModal .modal-card,
+    #workModal .modal-card{max-width:760px;}
+    .photo-grid{grid-template-columns:repeat(auto-fill,minmax(96px,1fr));}
+    .rec-photos{grid-template-columns:repeat(auto-fill,minmax(96px,1fr));}
+    .exp-head,.exp-row{grid-template-columns:minmax(0,1fr) 70px 110px 110px 34px;}
+  }
+  @media print{
+    .app, #loginScreen, #toast, #upBar, #loading, #lightbox,
+    #schedModal, #workModal, #editModal, #staffModal, #printModal, #branchModal, #driveModal, #recordModal{display:none !important;}
+    #screenPrint{position:static !important; background:#fff !important; overflow:visible !important;}
+    .sp-bar{display:none !important;}
+    .sp-paper{width:auto; margin:0; padding:0; box-shadow:none; border-radius:0;}
+    @page{size:A4; margin:10mm;}
+  }
+
   @media (prefers-color-scheme: dark){
     :root{
       --bg:#0f1115; --card:#181b21; --line:#2a2f3a; --text:#f2f4f7; --muted:#98a2b3;
@@ -640,6 +809,23 @@
     .dl-card h3{color:#f2f4f7;}
     .dl-btn{background:#232833; color:#e4e7ec; border-color:#2a2f3a;}
     .dl-btn.primary{background:var(--brand); color:#fff; border-color:var(--brand);}
+    /* v49 — 새 영역도 어두운 화면에 맞춘다 (입력칸은 지시대로 흰색 유지) */
+    .write-card{background:#151d2e; border-color:#26355a;}
+    .write-card .card{background:#181b21; border-color:#2a3350;}
+    .exp-head{background:#1d2740; border-color:#2a3350;}
+    .exp-row input{background:#12151b; border-color:#232a38; color:#f2f4f7;}
+    .exp-row input:focus{background:#151922;}
+    .exp-table{background:#181b21; border-color:#2a3350;}
+    .exp-total{background:#12312a; border-color:#1f4a40;}
+    .exp-add{background:#131a29; border-color:#2f4370; color:#93b4ff;}
+    .exp-view{background:#181b21; border-color:#1f4a40;}
+    .exp-view th{background:#12312a;}
+    .branch-add input{background:#12151b; border-color:#2a2f3a; color:#f2f4f7;}
+    .branch-row .nm{color:#e4e7ec;}
+    .branch-row .act button{background:#232833; color:#e4e7ec; border-color:#2a2f3a;}
+    .branch-list{border-color:#2a2f3a;}
+    .day-record:hover{background:#1b2231;}
+    .sp-paper{background:#fff;}
   }
 </style>
 </head>
@@ -686,6 +872,7 @@
       <!-- 날짜를 골라 [📷 이 날 작업사진 등록]을 누르면 여기에 등록 칸이 열린다 -->
       <div id="writeCard" class="write-card" hidden>
         <form id="writeForm" autocomplete="off">
+          <div class="write-cols">
           <div class="card">
             <div class="write-head">
               <div>
@@ -741,14 +928,9 @@
               <input type="text" id="inputLaborCost" maxlength="40" inputmode="numeric" placeholder="예) 150000 → 150,000원">
               <div class="hint">숫자만 적으면 <b>150,000원</b> 처럼 자동으로 바꿉니다. 글자(예: 일당 15만)로 적어도 됩니다.</div>
             </div>
-
-            <div class="field">
-              <div class="label"><span>지출내역</span><span class="optional">선택</span></div>
-              <textarea id="inputExpenses" rows="3" maxlength="1000" placeholder="예) 철판 1장 32,000원 · 용접봉 2봉 8,000원"></textarea>
-              <div class="hint">영수증 사진을 올리면 품명·수량·금액을 읽어 이 칸에 채워 줍니다(고쳐도 됩니다). 비워 두어도 등록됩니다.</div>
-            </div>
           </div>
 
+          <div class="write-side">
           <div class="card">
             <div class="field" style="margin:0">
               <div class="label"><span>작업사진</span><span class="optional">선택 · 여러 장 가능</span></div>
@@ -775,11 +957,26 @@
               </div>
               <div class="photo-grid" id="receiptGrid"></div>
               <div class="summary" id="receiptSummary">영수증 없이도 등록할 수 있습니다.</div>
-              <div class="hint">영수증은 글씨가 보이도록 <b>워터마크 없이 2000px</b> 로 선명하게 따로 저장합니다. 사진을 올리면 품명·수량·금액을 지출내역 칸에 자동으로 적어 줍니다.</div>
+              <div class="hint">영수증은 글씨가 보이도록 <b>워터마크 없이 2000px</b> 로 선명하게 따로 저장합니다. 사진을 올리면 품명·수량·금액을 지출내역 표에 자동으로 적어 줍니다.</div>
             </div>
           </div>
 
-          <button type="submit" class="btn-primary" id="submitBtn">등록하기</button>
+          <!-- 🧾 지출내역 — v49: 영수증 사진 바로 아래에 표로 (품명 | 수량 | 금액 | 합계 + 총합계) -->
+          <div class="card expense-card" id="expenseCard">
+            <div class="field" style="margin:0">
+              <div class="label"><span>지출내역</span><span class="optional">선택</span></div>
+              <div class="exp-table" id="expenseTable"></div>
+              <button type="button" class="exp-add" id="expenseAddBtn">+ 항목 추가</button>
+              <div class="summary" id="expenseSummary">지출 항목이 없습니다. 영수증을 올리거나 [+ 항목 추가]로 직접 적을 수 있습니다.</div>
+              <div class="hint"><b>금액은 단가</b>입니다. 합계 = 수량 × 금액 이고, 맨 아래 <b>총합계</b> 는 합계의 합입니다. 비워 두어도 등록됩니다.</div>
+            </div>
+          </div>
+          </div>
+          </div>
+
+          <div class="write-actions">
+            <button type="submit" class="btn-primary" id="submitBtn">등록하기</button>
+          </div>
           <p class="footer-note">사진은 회사 구글 드라이브 ‘작업사진_등록시스템’ 폴더에 저장되고,<br>등록 내용은 ‘작업사진_등록기록’ 시트에 함께 기록됩니다.</p>
         </form>
       </div>
@@ -814,7 +1011,7 @@
         <div class="cal-summary" id="calSummary"></div>
       </div>
 
-      <div class="card">
+      <div class="card day-card" id="dayCard">
         <div class="day-head">
           <div>
             <h2 id="dayTitle">오늘</h2>
@@ -865,7 +1062,7 @@
         <div class="cal-summary" id="reqSummary"></div>
       </div>
 
-      <div class="card">
+      <div class="card day-card" id="reqDayCard">
         <div class="day-head">
           <div>
             <h2 id="reqDayTitle">오늘</h2>
@@ -1065,10 +1262,6 @@
       <input type="text" id="editLaborCost" maxlength="40" inputmode="numeric" placeholder="예) 150000 → 150,000원">
     </div>
     <div class="field">
-      <div class="label"><span>지출내역</span><span class="optional">선택</span></div>
-      <textarea id="editExpenses" rows="3" maxlength="1000" placeholder="예) 철판 1장 32,000원 · 용접봉 2봉 8,000원"></textarea>
-    </div>
-    <div class="field">
       <div class="label"><span>작업사진</span><span class="optional">선택 · 0장 가능</span></div>
       <div class="photo-grid" id="editPhotoGrid"></div>
       <div class="summary" id="editPhotoSummary">사진을 불러오는 중…</div>
@@ -1086,7 +1279,14 @@
         <span>📄 영수증 추가</span>
         <input type="file" id="editReceiptInput" accept="image/*" multiple hidden>
       </label>
-      <div class="hint">영수증은 워터마크 없이 2000px 로 선명하게 저장하고, 지출내역 칸에 품명·수량·금액을 읽어 채웁니다.</div>
+      <div class="hint">영수증은 워터마크 없이 2000px 로 선명하게 저장하고, 품명·수량·금액을 지출내역 표에 읽어 채웁니다.</div>
+    </div>
+    <!-- 🧾 지출내역 표 — v49: 영수증 사진 바로 아래 -->
+    <div class="field wide" id="editExpenseField">
+      <div class="label"><span>지출내역</span><span class="optional">선택</span></div>
+      <div class="exp-table" id="editExpenseTable"></div>
+      <button type="button" class="exp-add" id="editExpenseAddBtn">+ 항목 추가</button>
+      <div class="summary" id="editExpenseSummary">지출 항목이 없습니다.</div>
     </div>
     <div class="edit-actions">
       <button type="button" class="btn-ghost" id="editCancel">취소</button>
@@ -1154,8 +1354,11 @@
         <option value="">전체 지점</option>
       </select>
     </div>
-    <div class="summary" id="printSummary">기간과 지점을 고른 뒤 [워드로 내려받기]를 눌러 주세요.</div>
-    <button type="button" class="btn-primary" id="printGo">📄 워드로 내려받기</button>
+    <div class="summary" id="printSummary">기간과 지점을 고른 뒤 [워드로 내려받기]나 [🖥️ 화면출력]을 눌러 주세요.</div>
+    <div class="print-actions" style="display:flex; gap:8px; margin-top:8px">
+      <button type="button" class="btn-primary" id="printGo" style="flex:1 1 auto">📄 워드로 내려받기</button>
+      <button type="button" class="btn-ghost" id="printScreen" style="flex:0 0 auto; white-space:nowrap; padding:15px 16px; font-size:15px" title="워드 다운로드 없이 일지 양식 그대로 화면에 펼쳐 열람·인쇄합니다">🖥️ 화면출력</button>
+    </div>
   </div>
 </div>
 
@@ -1165,10 +1368,41 @@
       <h2 id="branchTitle">🏷️ 지점 관리</h2>
       <button type="button" class="modal-close" id="branchClose" aria-label="닫기">✕</button>
     </div>
-    <div class="edit-meta">지점 칩의 <b>✕</b> 를 누르면 목록에서 지워집니다.<br>이미 등록된 업무일지·예정작업·매장 요청 기록은 그대로 남고, 같은 이름을 새 기록에 다시 쓰면 목록에 돌아옵니다.</div>
-    <div class="chips manage" id="branchManageChips"></div>
+    <div class="edit-meta">새 지점을 더하고, <b>이름을 고치고</b>, 목록에서 지울 수 있습니다.<br>이름을 고치거나 지워도 <b>이미 등록된 업무일지·예정작업·매장 요청 기록은 그대로</b> 남고, 같은 이름을 새 기록에 다시 쓰면 목록에 돌아옵니다.</div>
+    <div class="field">
+      <div class="label"><span>지점명</span><span class="optional" id="branchModeLabel">새 지점</span></div>
+      <div class="branch-add">
+        <input type="text" id="branchName" maxlength="40" placeholder="예) 진천점" autocomplete="off" aria-label="지점명">
+        <button type="button" id="branchSave">➕ 지점 추가</button>
+      </div>
+      <div class="hint" id="branchEditHint" hidden style="color:#1d4ed8">이름 수정 중입니다. 새 이름을 적고 [💾 이름 저장]을 누르세요.</div>
+    </div>
+    <div class="branch-list" id="branchManageList"></div>
     <div class="hint" id="branchManageEmpty" hidden>등록된 지점이 없습니다.</div>
   </div>
+</div>
+
+<!-- 📋 업무일지 상세 보기 — 날짜 카드를 누르면 열린다 (v49) -->
+<div id="recordModal" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="recordTitle">
+    <div class="modal-head">
+      <h2 id="recordTitle">📋 공사완료 업무일지</h2>
+      <button type="button" class="modal-close" id="recordClose" aria-label="닫기">✕</button>
+    </div>
+    <div class="rec-modal-meta" id="recordMeta"></div>
+    <div id="recordBody"></div>
+    <div class="edit-actions" id="recordActions"></div>
+  </div>
+</div>
+
+<!-- 🖥️ 화면출력 — 워드 없이 일지 양식 그대로 화면에 펼쳐 열람·인쇄 (v49) -->
+<div id="screenPrint" hidden>
+  <div class="sp-bar">
+    <span class="title" id="spTitle">공사완료 업무일지</span>
+    <button type="button" class="primary" id="spDoPrint">🖨️ 인쇄</button>
+    <button type="button" id="spClose">닫기</button>
+  </div>
+  <div class="sp-paper" id="spPaper"></div>
 </div>
 
 <div id="driveModal" hidden>
@@ -1276,6 +1510,9 @@
     listDirty: true,
     listSearched: false,  // 🔍 조회하기를 눌러 내역을 불러왔는지 (누르기 전에는 사진을 보여 주지 않는다)
     lightbox: { photos: [], index: 0, meta: '' },
+    recordView: null,    // 📋 상세 보기 중인 기록 (v49)
+    expenseRows: [],     // 🧾 등록 폼의 지출내역 표 행들 (v49)
+    submitQueued: false, // 📄 영수증 글씨를 읽는 동안 누른 [등록하기] — 읽기가 끝나면 이어서 저장
     edit: null,          // 수정 중인 기록 { record, keep:[기존 사진], newPhotos:[], saving }
     // 매장 요청 카드에서 [📷 작업완료(사진등록)]으로 넘어온 요청 { id, date, branch, task }
     prefill: null,
@@ -1807,6 +2044,12 @@
       if (IS_GAS) return gasCall('deleteBranch', branch, { token: authToken() });
       if (IS_REMOTE) return remotePost({ action: 'deleteBranch', branch: branch, token: authToken() });
       return Promise.resolve(mockDeleteBranch(branch));
+    },
+    // 🏷️ 지점 추가 · 이름 수정 (v49)
+    saveBranch: function (payload) {
+      if (IS_GAS) return gasCall('saveBranch', withToken(payload || {}));
+      if (IS_REMOTE) return remotePost(withAction('saveBranch', withToken(payload || {})));
+      return Promise.resolve(mockSaveBranch(payload || {}));
     },
     // 작업사진 기록 삭제 (시트 행 + 드라이브 사진 파일)
     deleteRecord: function (id, expect) {
@@ -2481,6 +2724,34 @@
     return { ok: true, branch: name, status: '삭제', recordsKept: kept, branches: mockBranchNames() };
   }
 
+  /** 🏷️ 새 지점 추가·이름 수정 (미리보기) — v49. 서버(Code.gs saveBranch)와 같은 규칙 */
+  function mockSaveBranch(payload) {
+    payload = payload || {};
+    var name = String(payload.name || '').trim();
+    var newName = String(payload.newName || '').trim();
+    if (!name) return { ok: false, error: '지점명을 입력해 주세요.' };
+    if (name.length > 40 || newName.length > 40) return { ok: false, error: '지점명은 40자 이내로 입력해 주세요.' };
+    if (name.replace(/\s+/g, '') === '전체지점' || name === '전체') {
+      return { ok: false, error: "'전체' 는 지점이 아니므로 쓸 수 없습니다." };
+    }
+    var deleted = mockDeletedBranches();
+    var local = store.get(LS.branches, []);
+    var target = newName || name;
+
+    if (newName) {
+      if (newName === name) return { ok: false, error: '이름이 같습니다.' };
+      if (deleted.indexOf(name) === -1) deleted.push(name);
+      store.set(LS.mockBranchesDeleted, deleted);
+      local = local.filter(function (v) { return v !== name; });
+    }
+    deleted = deleted.filter(function (v) { return v !== target; });
+    store.set(LS.mockBranchesDeleted, deleted);
+    local = local.filter(function (v) { return v !== target; });
+    local.unshift(target);
+    store.set(LS.branches, local.slice(0, 30));
+    return { ok: true, branch: target, renamedFrom: newName ? name : '', branches: mockBranchNames() };
+  }
+
   function mockBranchNames() {
     var out = [];
     var deleted = mockDeletedBranches();
@@ -2492,6 +2763,7 @@
     store.get(LS.mock, []).forEach(function (r) { add(r.branch); });
     store.get(LS.schedules, []).forEach(function (s) { add(s.branch); });
     store.get(LS.workSchedules, []).forEach(function (s) { add(s.branch); });
+    store.get(LS.branches, []).forEach(function (b) { add(b); });
     DEFAULT_BRANCHES.forEach(add);
     return out;
   }
@@ -2682,7 +2954,7 @@
         '<td>' + esc(koreanDate(r.date)) + '</td>' +
         '<td>' + esc(r.branch || '') + '</td>' +
         '<td>' + esc(singleLineMemo(r.memo)) + '</td>' +
-        '<td>' + esc(singleLineMemo(r.expenses)) + '</td>' +
+        '<td>' + esc(expenseBrief_(r.expenses)) + '</td>' +
         '<td>' + esc(r.workPeople || '') + '</td>' +
         '<td>' + esc(r.workHours || '') + '</td>' +
         '<td>' + esc(singleLineMemo(r.materials)) + '</td>' +
@@ -2728,7 +3000,7 @@
         '<p style="font-size:10pt; font-weight:700; margin:0 0 2pt 0">' +
           esc(String(g.branch || '').trim() || '(지점 미지정)') + ' · ' + esc(koreanDate(g.date)) + '</p>' +
         '<p style="font-size:10pt; margin:0 0 4pt 0">' + esc(g.memos.length ? g.memos.join(', ') : '(작업내용 없음)') + '</p>' +
-        ((g.expenses || []).length ? '<p style="font-size:10pt; margin:0 0 4pt 0">지출내역: ' + esc(g.expenses.join(', ')) + '</p>' : '') +
+        ((g.expenses || []).length ? '<p style="font-size:10pt; margin:0 0 4pt 0">지출내역: ' + esc(expenseBrief_(g.expenses.join('\n'))) + '</p>' : '') +
         (facts ? '<p style="font-size:10pt; margin:0 0 6pt 0">' + esc(facts) + '</p>' : '') +
         '<p style="margin:0; font-size:0">' + (imgs || '<span style="font-size:10pt">(사진 없음)</span>') + '</p>' +
         (expenseImgs ? '<p style="font-size:10pt; margin:6pt 0 0 0">지출영수증 (' + g.receipts.length + '장)</p>' +
@@ -2807,7 +3079,8 @@
       (r.receipts || []).forEach(function (p) { g.receipts.push(p); });
       [['workPeople', r.workPeople], ['workHours', r.workHours], ['materials', r.materials], ['laborCost', r.laborCost], ['expenses', r.expenses]]
         .forEach(function (pair) {
-          var text = singleLineMemo(pair[1]);
+          var raw = String(pair[1] == null ? '' : pair[1]).trim();
+          var text = pair[0] === 'expenses' ? raw : singleLineMemo(raw);
           if (text && g[pair[0]].indexOf(text) === -1) g[pair[0]].push(text);
         });
     });
@@ -4162,6 +4435,7 @@
     seedBranchesFromCache();
     renderBranchChips();
     renderDatalists();
+    renderExpenseTable('record');   // 🧾 지출내역 표 (빈 표 + 총합계)
     renderPlanLink();
     refreshBranchPicks();
     showWriteCard(false);   // 사진 등록 칸은 [📷 이 날 작업사진 등록]을 눌렀을 때만 펼친다
@@ -4460,39 +4734,107 @@
     renderDatalists();
   }
 
-  // 🏷️ 지점 관리 (관리자 · 직원관리 옆 버튼) — 잘못 등록된 지점을 목록에서 지운다.
+  // 🏷️ 지점 관리 (관리자 · 직원관리 옆 버튼) — 직원 관리처럼 목록 + 새 지점 추가 / 이름 수정 / 삭제
   //    기존 기록은 그대로 두고, 같은 이름을 새 기록에 다시 쓰면 목록에 돌아온다.
+  var branchState = { renaming: null };
+
   function openBranchModal() {
     if (!isAdmin()) { toast('지점 관리는 관리자만 할 수 있습니다.', 'err'); return; }
     $('branchModal').hidden = false;
-    renderBranchManageChips();
+    setBranchMode_(null);
   }
 
   function closeBranchModal() {
     $('branchModal').hidden = true;
+    branchState.renaming = null;
   }
 
-  function renderBranchManageChips() {
-    var box = $('branchManageChips');
+  /** 이름 수정 중이면 안내·버튼 글자를 바꾼다 (v49) */
+  function setBranchMode_(name) {
+    branchState.renaming = name || null;
+    if ($('branchSave')) { $('branchSave').textContent = name ? '💾 이름 저장' : '➕ 지점 추가'; $('branchSave').disabled = false; }
+    if ($('branchEditHint')) $('branchEditHint').hidden = !name;
+    if ($('branchModeLabel')) $('branchModeLabel').textContent = name ? ('이름 수정: ' + name) : '새 지점';
+    if ($('branchName')) {
+      $('branchName').value = name || '';
+      if (name && $('branchName').focus) $('branchName').focus();
+    }
+    renderBranchManageList();
+  }
+
+  function renderBranchManageList() {
+    var box = $('branchManageList');
     if (!box) return;
     clearNode(box);
-    var names = (state.branches || []).slice(0, 40);
-    $('branchManageEmpty').hidden = names.length > 0;
-    names.forEach(function (name) {
-      var b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'chip';
-      b.setAttribute('data-branch', name);
-      // 🔒 지점 삭제는 최고관리자만 — 관리자·직원은 목록만 본다 (2026-11-28 지시)
-      b.setAttribute('aria-label', isSuperAdmin() ? (name + ' 지점 목록에서 지우기') : name);
-      b.textContent = name;
-      if (isSuperAdmin()) {
-        b.appendChild(el('span', 'chip-x', '✕'));
-        b.addEventListener('click', function () { askDeleteBranch(name); });
-      } else {
-        b.addEventListener('click', function () { toast('지점 삭제는 최고관리자만 할 수 있습니다.', 'err'); });
+    var names = (state.branches || []).slice(0, 60);
+    if ($('branchManageEmpty')) $('branchManageEmpty').hidden = names.length > 0;
+    names.forEach(function (name, i) {
+      var row = el('div', 'branch-row' + (branchState.renaming === name ? ' on' : ''));
+      row.setAttribute('data-branch', name);
+      row.appendChild(el('span', 'idx', String(i + 1)));
+      row.appendChild(el('span', 'nm', name));
+
+      var act = el('div', 'act');
+      var ren = el('button', 'b-rename', '✏️ 이름 수정');
+      ren.setAttribute('type', 'button');
+      ren.setAttribute('aria-label', name + ' 지점 이름 수정');
+      ren.addEventListener('click', function () { setBranchMode_(name); });
+      act.appendChild(ren);
+
+      var del = el('button', 'b-delete danger', '🗑️');
+      del.setAttribute('type', 'button');
+      del.setAttribute('aria-label', name + ' 지점 목록에서 지우기');
+      del.addEventListener('click', function () {
+        // 🔒 지점 삭제는 최고관리자만 — 관리자·직원은 목록만 본다 (2026-11-28 지시)
+        if (!isSuperAdmin()) { toast('지점 삭제는 최고관리자만 할 수 있습니다.', 'err'); return; }
+        askDeleteBranch(name);
+      });
+      act.appendChild(del);
+      row.appendChild(act);
+      box.appendChild(row);
+    });
+  }
+
+  /** 새 지점 추가 / 이름 수정 (v49 — 직원 관리와 같은 방식) */
+  function saveBranchFromForm() {
+    if (!isAdmin()) { toast('지점 관리는 관리자만 할 수 있습니다.', 'err'); return; }
+    var typed = String(($('branchName') && $('branchName').value) || '').trim();
+    var oldName = branchState.renaming;
+    if (!typed) { toast('지점명을 입력해 주세요.', 'err'); return; }
+    if (typed.length > 40) { toast('지점명은 40자 이내로 입력해 주세요.', 'err'); return; }
+    if (oldName && oldName === typed) { toast('이름이 같습니다. 새 이름을 적어 주세요.', 'err'); return; }
+    if (state.branches.indexOf(typed) > -1) {
+      toast("'" + typed + "' 지점이 이미 목록에 있습니다.", 'err');
+      return;
+    }
+
+    var payload = oldName ? { name: oldName, newName: typed } : { name: typed };
+    if ($('branchSave')) $('branchSave').disabled = true;
+    API.saveBranch(payload).then(function (res) {
+      if (!res || res.ok === false) throw new Error((res && res.error) || '지점을 저장하지 못했습니다.');
+      var server = Array.isArray(res.branches) ? res.branches : [];
+      var local = store.get(LS.branches, []).filter(function (v) { return v !== typed && v !== oldName; });
+      store.set(LS.branches, [typed].concat(local).slice(0, 30));
+      state.branches = mergeBranches(state.branches.concat([typed]), server);
+      if (oldName) {
+        state.branches = state.branches.filter(function (v) { return v !== oldName; });
+        var deleted = (state.deletedBranches || []).slice();
+        if (deleted.indexOf(oldName) === -1) deleted.push(oldName);
+        state.deletedBranches = deleted;
+        store.set(LS.branchesDeleted, deleted);
       }
-      box.appendChild(b);
+      if ($('inputBranch') && String($('inputBranch').value || '').trim() === oldName) $('inputBranch').value = typed;
+      renderBranchChips();
+      renderDatalists();
+      refreshBranchPicks();
+      setBranchMode_(null);
+      toast(oldName
+        ? "'" + oldName + "' → '" + typed + "' 로 이름을 바꿨습니다. 기존 기록은 그대로입니다."
+        : "'" + typed + "' 지점을 추가했습니다.", 'ok');
+    }).catch(function (err) {
+      toast((err && err.message) || '지점을 저장하지 못했습니다.', 'err');
+    }).then(function () {
+      if ($('branchSave')) $('branchSave').disabled = false;
     });
   }
 
@@ -4570,7 +4912,7 @@
       renderBranchChips();
       renderDatalists();
       refreshBranchPicks();
-      renderBranchManageChips();
+      renderBranchManageList();
 
       var kept = Number((res && res.recordsKept) || 0);
       toast("'" + name + "' 지점을 목록에서 지웠습니다." + (kept ? ' 기존 기록 ' + kept + '건은 그대로입니다.' : ''), 'ok');
@@ -4725,10 +5067,34 @@
     $('dayPlanAddBtn').addEventListener('click', function () { openWorkScheduleModal(null, state.cal.selected); });
     $('topBranchManageBtn').addEventListener('click', openBranchModal);
     $('branchClose').addEventListener('click', closeBranchModal);
+    $('branchSave').addEventListener('click', saveBranchFromForm);
+    if ($('branchName')) {
+      $('branchName').addEventListener('keydown', function (e) {
+        if (e && e.key === 'Enter') { e.preventDefault(); saveBranchFromForm(); }
+      });
+    }
     $('branchModal').addEventListener('click', function (e) {
       if (e && e.target === $('branchModal')) closeBranchModal();
     });
     $('inputBranch').addEventListener('input', renderBranchChips);
+
+    // 🧾 지출내역 표 — [+ 항목 추가] (등록·수정)
+    if ($('expenseAddBtn')) $('expenseAddBtn').addEventListener('click', function () { addExpenseRow('record'); });
+    if ($('editExpenseAddBtn')) $('editExpenseAddBtn').addEventListener('click', function () { addExpenseRow('edit'); });
+
+    // 📋 업무일지 상세 보기 창
+    if ($('recordClose')) $('recordClose').addEventListener('click', closeRecordModal);
+    if ($('recordModal')) {
+      $('recordModal').addEventListener('click', function (e) {
+        if (e && e.target === $('recordModal')) closeRecordModal();
+      });
+    }
+    // 🖥️ 화면출력 — 인쇄·닫기
+    if ($('printScreen')) $('printScreen').addEventListener('click', onScreenPrintWorkLogs);
+    if ($('spDoPrint')) $('spDoPrint').addEventListener('click', function () {
+      if (typeof window.print === 'function') window.print();
+    });
+    if ($('spClose')) $('spClose').addEventListener('click', closeScreenPrint);
 
     // 작업 일정 등록·수정 창
     $('workClose').addEventListener('click', closeWorkScheduleModal);
@@ -4876,6 +5242,8 @@
       if (!$('editModal').hidden && e.key === 'Escape') { closeEditModal(); return; }
       if (!$('schedModal').hidden && e.key === 'Escape') { closeRequestModal(); return; }
       if (!$('staffModal').hidden && e.key === 'Escape') { closeStaffModal(); return; }
+      if (!$('recordModal').hidden && e.key === 'Escape') { closeRecordModal(); return; }
+      if (!$('screenPrint').hidden && e.key === 'Escape') { closeScreenPrint(); return; }
       if ($('lightbox').hidden) return;
       if (e.key === 'Escape') closeLightbox();
       if (e.key === 'ArrowLeft') stepLightbox(-1);
@@ -5000,7 +5368,11 @@
     } catch (ignore) {}
   }
 
-  /* 올린 사진을 가로 800 × 세로 600 픽셀 JPEG로 바꾸고 오른쪽 아래에 날짜·지점명을 박는다. (비율은 유지하고 남는 곳은 흰색) */
+  /**
+   * 올린 사진을 가로 800 × 세로 600 픽셀 JPEG로 바꾸고 오른쪽 아래에 날짜·지점명을 박는다.
+   *   v49 (2026-11-28 지시): 비율 유지 + 흰 여백 대신 **사진 자체를 800×600 에 꽉 차게 늘려** 저장한다.
+   *   (세로 사진의 양쪽 흰 여백이 사라진다. 영수증 2000px 압축은 비율 유지 그대로다)
+   */
   function compressImage(file, width, height, watermark) {
     width = width || PHOTO_W;
     height = height || PHOTO_H;
@@ -5029,12 +5401,10 @@
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, width, height);
 
-      var scale = Math.min(width / w, height / h);
-      var dw = Math.max(1, Math.round(w * scale));
-      var dh = Math.max(1, Math.round(h * scale));
       if ('imageSmoothingEnabled' in ctx) ctx.imageSmoothingEnabled = true;
       if ('imageSmoothingQuality' in ctx) ctx.imageSmoothingQuality = 'high';
-      ctx.drawImage(source, Math.round((width - dw) / 2), Math.round((height - dh) / 2), dw, dh);
+      // v49: 여백 없이 800×600 에 꽉 차게 (drawImage(source, 0, 0, width, height))
+      ctx.drawImage(source, 0, 0, width, height);
       if (source.close) { try { source.close(); } catch (e) {} }
 
       // 📸 무조건 날짜·지점명 워터마크 (업무일지 사진만 — 매장 요청·예정작업 사진은 그대로)
@@ -5171,7 +5541,49 @@
       $('photoSummary').textContent = '사진 ' + (copies + state.photos.length) + '장 (' + parts.join(' · ') + ')';
     }
     var count = copies + state.photos.length;
-    $('submitBtn').textContent = count ? '사진 ' + count + '장 포함해 등록하기' : '등록하기';
+    updateSubmitBtn();
+  }
+
+  /** 영수증 글씨를 아직 읽는 중인지 (등록 폼 · 수정 폼) */
+  function receiptsReading(kind) {
+    var list = kind === 'edit'
+      ? ((state.edit && state.edit.receiptNew) || [])
+      : (state.receipts || []);
+    return list.some(function (p) { return p && p.state === 'reading'; });
+  }
+
+  /** 등록하기 버튼 — 읽는 동안은 '📄 영수증 글씨 읽는 중…' 으로 잠그고, 끝나면 바로 원래대로 (v49) */
+  function updateSubmitBtn() {
+    var btn = $('submitBtn');
+    if (!btn) return;
+    var count = (state.copyPhotos || []).length + (state.photos || []).length;
+    if (receiptsReading('record')) {
+      btn.textContent = '📄 영수증 글씨 읽는 중…';
+      btn.disabled = true;
+      btn.classList.add('reading');
+      return;
+    }
+    btn.classList.remove('reading');
+    btn.disabled = !!state.loading;
+    btn.textContent = count ? '사진 ' + count + '장 포함해 등록하기' : '등록하기';
+  }
+
+  /** 읽기가 끝나면 대기 중인 저장을 이어서 한다 */
+  function afterReceiptRead(kind) {
+    if (kind === 'edit') {
+      if (!state.edit) return;
+      updateEditSummary();
+      if (state.edit.saveQueued && !receiptsReading('edit')) {
+        state.edit.saveQueued = false;
+        saveEditFromForm();
+      }
+      return;
+    }
+    updateSubmitBtn();
+    if (state.submitQueued && !receiptsReading('record')) {
+      state.submitQueued = false;
+      submitWriteForm();
+    }
   }
 
   /* ================================================================
@@ -5240,7 +5652,22 @@
       : '영수증 없이도 저장됩니다.';
   }
 
-  /** 사진에서 글자를 읽어 지출내역 칸에 채운다 (실패해도 등록은 그대로) */
+  /** 지출내역 글 -> 출력용 한 줄 ('품명 2개 8,600원, … (총 12,300원)') */
+  function expenseBrief_(text) {
+    var rows = parseExpenseRows(text);
+    if (!rows.length) return '';
+    var parts = rows.map(function (r) {
+      var name = String(r.name || '').trim();
+      var qty = String(r.qty || '').trim();
+      var t = expenseRowTotal_(r);
+      var money = t == null ? '' : expenseMoney_(t) + '원';
+      return [name, qty ? qty + '개' : '', money].filter(function (v) { return v; }).join(' ');
+    });
+    var total = expenseRowsTotal_(rows);
+    return parts.join(', ') + (total == null ? '' : ' (총 ' + expenseMoney_(total) + '원)');
+  }
+
+  /** 사진 바이트를 base64 로 (이미 base64 면 그대로) */
   function photoBase64(photo) {
     if (!photo) return Promise.resolve('');
     if (photo.base64) return Promise.resolve(String(photo.base64));
@@ -5248,24 +5675,256 @@
     return Promise.resolve('');
   }
 
+  /* ================================================================
+   * 5-2-1. 🧾 지출내역 표 (v49, 2026-11-28 지시)
+   *   · 등록/수정 화면: 품명 | 수량 | 금액 | 합계 | ✕  + [+ 항목 추가] + 맨 아래 **총합계**
+   *   · 금액 = 단가, 합계 = 수량 × 금액(자동), 총합계 = 합계의 합
+   *   · 시트 13열(`지출내역`)에는 한 줄에 `품명 | 수량 | 금액 | 합계` 로 저장한다
+   *     — 숫자가 없는 옛 글(예: ‘철판 1장 32,000원 · 용접봉 2봉 8,000원’)은 그대로 품명 한 줄로 읽어
+   *       수정·상세·워드 출력에서 깨지지 않는다 (하위 호환)
+   * ============================================================== */
+  function expenseNum_(value) {
+    var s = String(value == null ? '' : value).replace(/,/g, '').replace(/원/g, '').replace(/\s+/g, '');
+    if (!s) return null;
+    var n = Number(s);
+    return isFinite(n) ? n : null;
+  }
+
+  /** 12345 -> '12,345' (숫자가 아니면 빈 글) */
+  function expenseMoney_(value) {
+    var n = expenseNum_(value);
+    if (n == null) return '';
+    return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  }
+
+  function newExpenseRow_(row) {
+    row = row || {};
+    return {
+      name: String(row.name == null ? '' : row.name).trim(),
+      qty: row.qty == null ? '' : String(row.qty).trim(),
+      price: row.price == null ? '' : String(row.price).trim(),
+      total: row.total == null ? '' : String(row.total).trim()
+    };
+  }
+
+  function expenseRowEmpty_(row) {
+    return !row || (!String(row.name || '').trim() && !String(row.qty || '').trim() &&
+      !String(row.price || '').trim() && !String(row.total || '').trim());
+  }
+
+  /** 한 줄의 합계 = 수량 × 금액 (금액만 있으면 금액) */
+  function expenseRowTotal_(row) {
+    if (!row) return null;
+    var unit = expenseNum_(row.price);
+    if (unit == null) return null;
+    var qty = expenseNum_(row.qty);
+    if (qty == null) return Math.round(unit);
+    return Math.round(qty * unit);
+  }
+
+  function expenseRowsTotal_(rows) {
+    var sum = 0, has = false;
+    (rows || []).forEach(function (r) {
+      var t = expenseRowTotal_(r);
+      if (t != null) { sum += t; has = true; }
+    });
+    return has ? sum : null;
+  }
+
+  /** 지출내역 글 -> 표 행들 (옛 일반 글이면 품명 한 칸짜리 행) */
+  function parseExpenseRows(text) {
+    var out = [];
+    String(text == null ? '' : text).split(/\r?\n/).forEach(function (line) {
+      var s = String(line || '').trim();
+      if (!s) return;
+      var parts = s.split(/\s*[|｜]\s*/);
+      if (parts.length >= 3) {
+        out.push(newExpenseRow_({ name: parts[0], qty: parts[1], price: parts[2], total: parts[3] || '' }));
+      } else {
+        out.push(newExpenseRow_({ name: s }));
+      }
+    });
+    return out;
+  }
+
+  /** 표 행들 -> 시트에 저장할 글 (빈 행은 빼고, 숫자가 없는 옛 글은 품명만 남긴다) */
+  function expenseRowsText(rows) {
+    var lines = [];
+    (rows || []).forEach(function (r) {
+      if (expenseRowEmpty_(r)) return;
+      var name = String(r.name || '').trim();
+      var qty = String(r.qty || '').trim();
+      var price = String(r.price || '').trim();
+      var computed = expenseRowTotal_(r);
+      var total = computed == null ? String(r.total || '').trim() : String(computed);
+      if (!qty && !price && !total) { if (name) lines.push(name); return; }
+      lines.push([name, qty, price, total].join(' | '));
+    });
+    return lines.join('\n');
+  }
+
+  /**
+   * 영수증에서 읽은 글(‘품명 14개 60,200원’) -> 표 행
+   *   · 수량으로 나누어떨어지면 금액을 **단가**로 넣고 합계는 영수증 금액 그대로(정확)
+   *   · 나누어떨어지지 않으면 수량 1 + 이름에 수량을 덧붙여 금액이 틀어지지 않게 한다
+   */
+  function expenseRowsFromOcr(text) {
+    var rows = [];
+    String(text || '').split(/\r?\n/).forEach(function (line) {
+      var s = String(line || '').trim();
+      if (!s) return;
+      if (/[|｜]/.test(s)) { rows = rows.concat(parseExpenseRows(s)); return; }
+      var m = s.match(/^(.*?)\s*(\d[\d,]*)\s*(?:개|EA|ea|매|장|봉|포|박스|BOX|box)?\s*([\d,]+)\s*원?$/);
+      if (!m) {
+        var only = s.match(/^(.*?)\s+([\d,]+)\s*원$/);
+        if (only) {
+          var amt0 = expenseNum_(only[2]);
+          rows.push(newExpenseRow_({ name: only[1], qty: '1', price: String(amt0 == null ? '' : amt0), total: String(amt0 == null ? '' : amt0) }));
+        } else {
+          rows.push(newExpenseRow_({ name: s }));
+        }
+        return;
+      }
+      var name = String(m[1] || '').trim().replace(/[,·]+$/, '').trim();
+      var qty = expenseNum_(m[2]);
+      var amount = expenseNum_(m[3]);
+      if (amount == null) { rows.push(newExpenseRow_({ name: name || s })); return; }
+      if (qty && qty >= 2 && amount % qty === 0) {
+        rows.push(newExpenseRow_({ name: name || s, qty: String(qty), price: String(amount / qty), total: String(amount) }));
+      } else if (qty && qty >= 2) {
+        rows.push(newExpenseRow_({ name: (name || s) + ' (' + qty + '개)', qty: '1', price: String(amount), total: String(amount) }));
+      } else {
+        rows.push(newExpenseRow_({ name: name || s, qty: '1', price: String(amount), total: String(amount) }));
+      }
+    });
+    return rows;
+  }
+
+  function expenseRowsOf(kind) {
+    if (kind === 'edit') {
+      if (!state.edit) return [];
+      if (!state.edit.expenses) state.edit.expenses = [];
+      return state.edit.expenses;
+    }
+    if (!state.expenseRows) state.expenseRows = [];
+    return state.expenseRows;
+  }
+
+  function expenseDomId(kind, what) {
+    return (kind === 'edit' ? 'editExpense' : 'expense') + what;
+  }
+
+  /** 표의 합계 칸·총합계만 다시 계산해 넣는다 (글자를 칠 때마다 화면을 다시 그리지 않는다) */
+  function updateExpenseTotals(kind) {
+    var rows = expenseRowsOf(kind);
+    var table = $(expenseDomId(kind, 'Table'));
+    if (table && table.querySelectorAll) {
+      var cells = table.querySelectorAll('.exp-row .sum');
+      Array.prototype.forEach.call(cells, function (cell, i) {
+        var t = expenseRowTotal_(rows[i]);
+        cell.textContent = t == null ? '–' : expenseMoney_(t);
+        cell.setAttribute('data-total', t == null ? '' : String(t));
+      });
+    }
+    var total = expenseRowsTotal_(rows);
+    var foot = $(expenseDomId(kind, 'Total'));
+    if (foot) foot.textContent = total == null ? '–' : expenseMoney_(total) + '원';
+    var sum = $(expenseDomId(kind, 'Summary'));
+    if (sum) {
+      var kept = rows.filter(function (r) { return !expenseRowEmpty_(r); });
+      sum.textContent = kept.length
+        ? '지출 ' + kept.length + '건' + (total == null ? '' : ' · 총합계 ' + expenseMoney_(total) + '원') +
+          ' (금액은 단가, 합계 = 수량 × 금액)'
+        : '지출 항목이 없습니다. 영수증을 올리거나 [+ 항목 추가]로 직접 적을 수 있습니다.';
+    }
+    return total;
+  }
+
+  /** 지출내역 표를 그린다 (등록·수정 공통) */
+  function renderExpenseTable(kind) {
+    var box = $(expenseDomId(kind, 'Table'));
+    if (!box) return;
+    var rows = expenseRowsOf(kind);
+    clearNode(box);
+
+    var head = el('div', 'exp-head');
+    ['품명', '수량', '금액', '합계', ''].forEach(function (label) {
+      head.appendChild(el('span', '', label));
+    });
+    box.appendChild(head);
+
+    if (!rows.length) {
+      box.appendChild(el('div', 'exp-empty', '아직 지출 항목이 없습니다. 아래 [+ 항목 추가]를 누르거나 영수증 사진을 올려 주세요.'));
+    }
+
+    rows.forEach(function (row, index) {
+      var line = el('div', 'exp-row');
+      line.setAttribute('data-index', String(index));
+
+      function makeInput(cls, field, placeholder, mode) {
+        var input = document.createElement('input');
+        input.setAttribute('type', 'text');
+        input.className = cls;
+        if (mode) input.setAttribute('inputmode', mode);
+        input.setAttribute('placeholder', placeholder);
+        input.value = String(row[field] || '');
+        input.addEventListener('input', function () {
+          rows[index][field] = String(input.value || '');
+          updateExpenseTotals(kind);
+        });
+        return input;
+      }
+
+      line.appendChild(makeInput('name', 'name', '예) T5 18W LED'));
+      line.appendChild(makeInput('qty', 'qty', '14', 'numeric'));
+      line.appendChild(makeInput('price', 'price', '4,300', 'numeric'));
+      var sum = el('span', 'sum', '');
+      var t = expenseRowTotal_(row);
+      sum.textContent = t == null ? '–' : expenseMoney_(t);
+      line.appendChild(sum);
+      var del = el('button', 'del', '✕');
+      del.setAttribute('type', 'button');
+      del.setAttribute('aria-label', '이 지출 항목 빼기');
+      del.addEventListener('click', function () {
+        rows.splice(index, 1);
+        renderExpenseTable(kind);
+      });
+      line.appendChild(del);
+      box.appendChild(line);
+    });
+
+    var total = expenseRowsTotal_(rows);
+    var foot = el('div', 'exp-total');
+    foot.appendChild(el('b', '', '총합계'));
+    var amount = el('span', 'amount', total == null ? '–' : expenseMoney_(total) + '원');
+    amount.id = expenseDomId(kind, 'Total');
+    foot.appendChild(amount);
+    box.appendChild(foot);
+    updateExpenseTotals(kind);
+  }
+
+  function addExpenseRow(kind) {
+    var rows = expenseRowsOf(kind);
+    rows.push(newExpenseRow_({ name: '', qty: '', price: '', total: '' }));
+    renderExpenseTable(kind);
+  }
+
+  /** 사진에서 글자를 읽어 지출내역 **표**에 채운다 (실패해도 등록은 그대로) */
   function appendExpenses(text, kind) {
     var t = String(text || '').trim();
     if (!t) return;
-    var box = kind === 'edit' ? $('editExpenses') : $('inputExpenses');
-    if (!box) return;
-    var lines = String(box.value || '').split('\n')
-      .map(function (line) { return line.trim(); })
-      .filter(function (line) { return line; });
-    t.split('\n').forEach(function (line) {
-      var s = String(line || '').trim();
-      if (s && lines.indexOf(s) === -1) lines.push(s);
+    var rows = expenseRowsOf(kind);
+    var incoming = expenseRowsFromOcr(t);
+    incoming.forEach(function (row) {
+      if (!expenseRowEmpty_(row)) rows.push(row);
     });
-    box.value = lines.join('\n');
+    renderExpenseTable(kind);
   }
 
   function readReceiptText(photo, kind) {
     if (!photo) return;
     photo.state = 'reading';
+    if (kind === 'edit') { renderEditReceipts(); updateEditSummary(); } else { renderReceipts(); updateSubmitBtn(); }
     photoBase64(photo).then(function (base64) {
       if (!base64) throw new Error('영수증 사진을 읽지 못했습니다.');
       return API.readReceipt({ base64: base64, mimeType: photo.mimeType || 'image/jpeg' });
@@ -5287,10 +5946,12 @@
       }
       renderReceipts();
       renderEditReceipts();
+      afterReceiptRead(kind);
     }).catch(function (err) {
       photo.state = 'fail';
       renderReceipts();
       renderEditReceipts();
+      afterReceiptRead(kind);
       console.warn('receipt read failed', err);
     });
   }
@@ -5335,8 +5996,20 @@
    * 6. 등록
    * ============================================================== */
   function onSubmit(e) {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
+    submitWriteForm();
+  }
+
+  /** 실제 등록 — 영수증 글씨를 읽는 중이면 읽기가 끝난 뒤 이어서 저장한다 (v49) */
+  function submitWriteForm() {
     if (state.loading) return;
+    if (receiptsReading('record')) {
+      state.submitQueued = true;
+      updateSubmitBtn();
+      toast('📄 영수증 글씨를 읽는 중입니다. 다 읽으면 바로 등록합니다.', 'ok');
+      return;
+    }
+    state.submitQueued = false;
 
     var date = $('inputDate').value;
     var branch = $('inputBranch').value.trim();
@@ -5361,8 +6034,8 @@
       workHours: $('inputWorkHours').value.trim(),
       materials: $('inputMaterials').value.trim(),
       laborCost: $('inputLaborCost').value.trim(),
-      // 🧾 지출내역·영수증 — 선택이라 비어 있어도 그대로 저장한다
-      expenses: String($('inputExpenses').value || '').trim(),
+      // 🧾 지출내역 표 — 선택이라 비어 있어도 그대로 저장한다 (옛 글 형식과 하위 호환)
+      expenses: expenseRowsText(state.expenseRows),
       copyPhotoIds: (state.copyPhotos || []).map(function (p) { return p.id || ''; }).filter(function (v) { return v; }),
       scheduleId: (state.prefill && state.prefill.kind !== 'work' && state.prefill.id) || '',
       workScheduleId: (state.prefill && state.prefill.kind === 'work' && state.prefill.id) || '',
@@ -5425,9 +6098,11 @@
       state.photos = [];
       state.copyPhotos = [];
       state.receipts = [];
+      state.expenseRows = [];
       renderPhotos();
       renderReceipts();
-      ['inputMemo', 'inputWorkPeople', 'inputWorkHours', 'inputMaterials', 'inputLaborCost', 'inputExpenses'].forEach(function (id) {
+      renderExpenseTable('record');
+      ['inputMemo', 'inputWorkPeople', 'inputWorkHours', 'inputMaterials', 'inputLaborCost'].forEach(function (id) {
         if ($(id)) $(id).value = '';
       });
       state.listDirty = true;
@@ -6076,6 +6751,92 @@
       if (btn) btn.disabled = false;
       toast((err && err.message) || '업무일지를 만들지 못했습니다.', 'err');
     });
+  }
+
+  /* ================================================================
+   * 6-2. 🖥️ 화면출력 (v49, 2026-11-28 지시)
+   *   워드(.docx) 다운로드 없이, 일지 양식 그대로 화면에 펼쳐 바로 열람·인쇄한다.
+   *   들어가는 내용은 일지출력 워드와 같다 — 날짜·지점(작성자) → 작업내용 →
+   *   지출내역 표(총합계) → 소요자재 → 작업인원 | 작업시간 | 노무비, 사진 없음, 날짜 오름차순
+   * ============================================================== */
+  function spEsc_(text) { return esc(text); }
+
+  function screenExpenseTableHtml(text) {
+    var rows = parseExpenseRows(text);
+    if (!rows.length) return '';
+    var total = expenseRowsTotal_(rows);
+    var html = '<table class="sp-exp"><tr><th style="width:52%">품명</th><th>수량</th><th>금액</th><th>합계</th></tr>';
+    rows.forEach(function (r) {
+      var t = expenseRowTotal_(r);
+      html += '<tr><td>' + spEsc_(r.name || '') + '</td>' +
+        '<td class="num">' + spEsc_(r.qty || '') + '</td>' +
+        '<td class="num">' + (r.price === '' ? '' : spEsc_(expenseMoney_(r.price))) + '</td>' +
+        '<td class="num">' + (t == null ? '' : spEsc_(expenseMoney_(t))) + '</td></tr>';
+    });
+    html += '<tr class="total"><td colspan="3">총합계</td><td class="num">' +
+      (total == null ? '–' : spEsc_(expenseMoney_(total)) + '원') + '</td></tr></table>';
+    return html;
+  }
+
+  /** 화면출력 본문 HTML — 일지 양식(카드) 그대로 */
+  function screenWorkLogsHtml(records, title) {
+    var sorted = (records || []).slice().sort(function (a, b) {
+      var ad = String(a.date || ''), bd = String(b.date || '');
+      if (ad !== bd) return ad < bd ? -1 : 1;
+      var ar = String(a.registeredAt || ''), br = String(b.registeredAt || '');
+      return ar < br ? -1 : (ar > br ? 1 : 0);
+    });
+    var html = '<h1>' + spEsc_(title) + '</h1>';
+    sorted.forEach(function (r) {
+      var wd = WEEKDAY[weekdayOf(r.date)] || '';
+      var head = esc(r.date || '') + (wd ? ' (' + wd + ')' : '') + '  ' + esc(String(r.branch || '').trim() || '(지점 미지정)');
+      var author = String(r.author || '').trim();
+      html += '<div class="sp-card">' +
+        '<div class="head">' + head + (author ? '<span class="author">(작성: ' + esc(author) + ')</span>' : '') + '</div>' +
+        '<div class="line"><b>작업내용:</b> ' + esc(singleLineMemo(r.memo) || '-') + '</div>' +
+        (String(r.expenses || '').trim() ? '<div class="line"><b>지출내역</b>' + screenExpenseTableHtml(r.expenses) + '</div>' : '') +
+        '<div class="line"><b>소요자재:</b> ' + esc(String(r.materials || '').trim() || '-') + '</div>' +
+        '<div class="three">' +
+          '<div><b>작업인원:</b> ' + esc(String(r.workPeople || '').trim() || '-') + '</div>' +
+          '<div><b>작업시간:</b> ' + esc(String(r.workHours || '').trim() || '-') + '</div>' +
+          '<div><b>노무비:</b> ' + esc(String(r.laborCost || '').trim() || '-') + '</div>' +
+        '</div>' +
+      '</div>';
+    });
+    return html;
+  }
+
+  /** [🖥️ 화면출력] — 고른 기간·지점의 업무일지를 화면에 펼친다 */
+  function onScreenPrintWorkLogs() {
+    if (!isAdmin()) { toast('일지출력은 관리자만 할 수 있습니다.', 'err'); return; }
+    var from = $('printFrom').value || '';
+    var to = $('printTo').value || '';
+    if (from && to && from > to) { var t = from; from = to; to = t; $('printFrom').value = from; $('printTo').value = to; }
+    var branch = $('printBranch').value || '';
+    var btn = $('printScreen');
+    if (btn) btn.disabled = true;
+    showLoading('일지 화면으로 펼치는 중…', (branch || '전체 지점') + ' · ' + (from && to ? from + ' ~ ' + to : '전체 기간'));
+    API.list({ from: from, to: to, branch: branch }).then(function (res) {
+      if (!res || res.ok === false) throw new Error((res && res.error) || '업무일지를 불러오지 못했습니다.');
+      var records = res.records || [];
+      if (!records.length) throw new Error('출력할 공사완료 업무일지가 없습니다.');
+      var title = (branch || '전체') + ' 공사완료 업무일지';
+      $('spTitle').textContent = title + ' (' + records.length + '건)';
+      $('spPaper').innerHTML = screenWorkLogsHtml(records, title);
+      $('screenPrint').hidden = false;
+      hideLoading();
+      if (btn) btn.disabled = false;
+      toast('일지를 화면에 펼쳤습니다. [🖨️ 인쇄]를 누르면 그대로 인쇄됩니다.', 'ok');
+    }).catch(function (err) {
+      hideLoading();
+      if (btn) btn.disabled = false;
+      toast((err && err.message) || '업무일지를 불러오지 못했습니다.', 'err');
+    });
+  }
+
+  function closeScreenPrint() {
+    $('screenPrint').hidden = true;
+    clearNode($('spPaper'));
   }
 
   /**
@@ -6813,17 +7574,30 @@
 
   function dayRecordEl(record, pending) {
     var card = el('div', 'day-record' + (pending ? ' pending' : ''));
+    card.setAttribute('role', 'button');
+    card.setAttribute('tabindex', '0');
+    card.setAttribute('aria-label', '공사완료 업무일지 상세 보기 (전체 사진·영수증·지출내역)');
+    // 카드를 누르면 상세 보기 창 — 사진·영수증·지출내역 표(총합계)까지 모두 (v49)
+    card.addEventListener('click', function (ev) {
+      if (ev && ev.stopPropagation) ev.stopPropagation();
+      openRecordModal(record, pending);
+    });
     var top = el('div', 'rec-top');
     top.appendChild(el('span', 'badge-branch', record.branch));
     if (record.author) top.appendChild(el('span', 'record-author', record.author));
     top.appendChild(el('span', 'record-time', timeLabel(record.registeredAt)));
     card.appendChild(top);
     if (record.memo) card.appendChild(el('p', 'rec-memo', record.memo));
-    if (String(record.expenses || '').trim()) {
-      card.appendChild(el('p', 'rec-memo rec-expenses', '📄 지출내역: ' + String(record.expenses).trim()));
-    }
     var facts = recordFactsEl(record);
     if (facts) card.appendChild(facts);
+
+    // 🧾 지출은 미리보기에서는 한 줄로만 (표·영수증 사진은 카드를 눌렀을 때)
+    var expRows = parseExpenseRows(record.expenses);
+    if (expRows.length) {
+      var expTotal = expenseRowsTotal_(expRows);
+      card.appendChild(el('span', 'rec-expense-sum',
+        '🧾 지출 ' + expRows.length + '건' + (expTotal == null ? '' : ' · 총 ' + expenseMoney_(expTotal) + '원')));
+    }
 
     var photos = record.photos || [];
     if (pending) {
@@ -6832,35 +7606,26 @@
       wait.appendChild(el('span', 'thumb-wait', '사진 불러오는 중… (' + (record.photoCount || 0) + '장)'));
       card.appendChild(wait);
     } else if (photos.length) {
+      // v49 — 작업사진은 **최대 2장**만, 3장 이상이면 두 번째 칸에 '+N장 더'
       var thumbs = el('div', 'rec-thumbs');
-      photos.slice(0, 8).forEach(function (p, i) {
+      photos.slice(0, 2).forEach(function (p, i) {
         var btn = el('button', 'rec-thumb');
         btn.setAttribute('type', 'button');
         btn.setAttribute('aria-label', '사진 크게 보기');
         btn.innerHTML = '<img loading="lazy" src="' + esc(p.thumb) + '" alt="작업사진" onerror="this.style.opacity=.15">';
-        btn.addEventListener('click', function () { openLightbox(record, i); });
+        if (i === 1 && photos.length > 2) {
+          btn.appendChild(el('span', 'more', '+' + (photos.length - 2) + '장 더'));
+        }
+        btn.addEventListener('click', function (ev) {
+          if (ev && ev.stopPropagation) ev.stopPropagation();
+          openLightbox(record, i);
+        });
         thumbs.appendChild(btn);
       });
       card.appendChild(thumbs);
     }
 
-    // 🧾 영수증 사진 — 작업사진과 따로 보여 준다
-    var receipts = record.receipts || [];
-    if (receipts.length) {
-      card.appendChild(el('div', 'thumbs-label', '📄 영수증 ' + receipts.length + '장'));
-      var rThumbs = el('div', 'rec-thumbs receipts');
-      receipts.slice(0, 8).forEach(function (p, i) {
-        var btn = el('button', 'rec-thumb');
-        btn.setAttribute('type', 'button');
-        btn.setAttribute('aria-label', '영수증 사진 크게 보기');
-        btn.innerHTML = '<img loading="lazy" src="' + esc(p.thumb) + '" alt="영수증 사진" onerror="this.style.opacity=.15">';
-        btn.addEventListener('click', function () {
-          openLightbox({ photos: receipts, branch: record.branch, date: record.date, author: record.author, receipts: [] }, i);
-        });
-        rThumbs.appendChild(btn);
-      });
-      card.appendChild(rThumbs);
-    }
+    // 🧾 영수증 사진은 미리보기 카드에 띄우지 않는다 (카드를 누른 상세 창에서만)
 
     var actions = el('div', 'rec-actions');
     if (canEditRecord(record)) {
@@ -6868,7 +7633,10 @@
       editBtn.setAttribute('type', 'button');
       editBtn.setAttribute('aria-label', '이 공사완료 업무일지 수정');
       // 사진까지 받은 기록으로 수정 창을 연다 (아직이면 그 날 사진을 먼저 받는다)
-      editBtn.addEventListener('click', function () { withDayRecord(record, openEditModal); });
+      editBtn.addEventListener('click', function (ev) {
+        if (ev && ev.stopPropagation) ev.stopPropagation();
+        withDayRecord(record, openEditModal);
+      });
       actions.appendChild(editBtn);
 
       // 🔒 삭제는 최고관리자만 (2026-11-28 지시) — 수정은 기존대로
@@ -6876,12 +7644,157 @@
         var del = el('button', 'danger do-rec-delete', '🗑️ 삭제');
         del.setAttribute('type', 'button');
         del.setAttribute('aria-label', '이 공사완료 업무일지 삭제');
-        del.addEventListener('click', function () { withDayRecord(record, removeWorkRecord); });
+        del.addEventListener('click', function (ev) {
+          if (ev && ev.stopPropagation) ev.stopPropagation();
+          withDayRecord(record, removeWorkRecord);
+        });
         actions.appendChild(del);
       }
     }
     if (actions.children.length) card.appendChild(actions);
+    card.appendChild(el('p', 'rec-open-hint', '카드를 누르면 전체 사진 · 영수증 · 지출내역 표를 봅니다 ▸'));
     return card;
+  }
+
+  /* ================================================================
+   * 7-2-1. 📋 업무일지 상세 보기 창 (v49)
+   *   달력 날짜 카드를 누르면 전체 작업사진 + 영수증 사진 + 지출내역 표(총합계) + 전체 내용
+   * ============================================================== */
+  function recordExpenseTableEl(text) {
+    var rows = parseExpenseRows(text);
+    if (!rows.length) return null;
+    var wrap = el('div', 'exp-view');
+    var table = document.createElement('table');
+    var head = document.createElement('tr');
+    ['품명', '수량', '금액', '합계'].forEach(function (label) {
+      var th = document.createElement('th');
+      th.textContent = label;
+      head.appendChild(th);
+    });
+    table.appendChild(head);
+    rows.forEach(function (r) {
+      var tr = document.createElement('tr');
+      var name = document.createElement('td');
+      name.className = 'name';
+      name.textContent = r.name || '';
+      tr.appendChild(name);
+      var qty = document.createElement('td');
+      qty.className = 'num';
+      qty.textContent = r.qty || '';
+      tr.appendChild(qty);
+      var price = document.createElement('td');
+      price.className = 'num';
+      price.textContent = r.price === '' ? '' : expenseMoney_(r.price) + '원';
+      tr.appendChild(price);
+      var sum = document.createElement('td');
+      sum.className = 'num';
+      var t = expenseRowTotal_(r);
+      sum.textContent = t == null ? '' : expenseMoney_(t) + '원';
+      tr.appendChild(sum);
+      table.appendChild(tr);
+    });
+    var total = expenseRowsTotal_(rows);
+    var foot = document.createElement('tr');
+    foot.className = 'total';
+    var label = document.createElement('td');
+    label.className = 'name';
+    label.setAttribute('colspan', '3');
+    label.textContent = '총합계';
+    foot.appendChild(label);
+    var amount = document.createElement('td');
+    amount.className = 'num';
+    amount.textContent = total == null ? '–' : expenseMoney_(total) + '원';
+    foot.appendChild(amount);
+    table.appendChild(foot);
+    wrap.appendChild(table);
+    return wrap;
+  }
+
+  function recordPhotoGridEl(photos, record, labelText) {
+    if (!photos || !photos.length) return null;
+    var grid = el('div', 'rec-photos');
+    photos.forEach(function (p, i) {
+      var btn = el('button', 'rec-thumb');
+      btn.setAttribute('type', 'button');
+      btn.setAttribute('aria-label', labelText + ' 크게 보기');
+      btn.innerHTML = '<img loading="lazy" src="' + esc(p.thumb || p.original || '') + '" alt="' + esc(labelText) + '">';
+      btn.addEventListener('click', function () {
+        openLightbox({ photos: photos, branch: record.branch, date: record.date, author: record.author, receipts: [] }, i);
+      });
+      grid.appendChild(btn);
+    });
+    return grid;
+  }
+
+  function openRecordModal(record, pending) {
+    if (!record) return;
+    if (pending) {
+      withDayRecord(record, function (full) { openRecordModal(full, false); });
+      return;
+    }
+    state.recordView = record;
+    $('recordMeta').textContent = koreanDate(record.date) + ' (' + WEEKDAY[weekdayOf(record.date)] + ')' +
+      ' · ' + (record.branch || '') + (record.author ? ' · ' + record.author : '') +
+      (record.registeredAt ? ' · ' + timeLabel(record.registeredAt) : '');
+
+    var body = $('recordBody');
+    clearNode(body);
+    if (record.memo) body.appendChild(el('p', 'rec-memo', record.memo));
+    var facts = recordFactsEl(record);
+    if (facts) body.appendChild(facts);
+
+    var photos = record.photos || [];
+    var pTitle = el('div', 'rec-block');
+    pTitle.appendChild(el('div', 'rec-block-title', '📷 작업사진 ' + photos.length + '장'));
+    var pGrid = recordPhotoGridEl(photos, record, '작업사진');
+    pTitle.appendChild(pGrid || el('div', 'day-empty', '작업사진이 없습니다.'));
+    body.appendChild(pTitle);
+
+    var receipts = record.receipts || [];
+    if (receipts.length) {
+      var rTitle = el('div', 'rec-block');
+      rTitle.appendChild(el('div', 'rec-block-title', '📄 영수증 사진 ' + receipts.length + '장'));
+      rTitle.appendChild(recordPhotoGridEl(receipts, record, '영수증 사진'));
+      body.appendChild(rTitle);
+    }
+
+    var exp = recordExpenseTableEl(record.expenses);
+    if (exp) {
+      var eTitle = el('div', 'rec-block');
+      eTitle.appendChild(el('div', 'rec-block-title', '🧾 지출내역'));
+      eTitle.appendChild(exp);
+      body.appendChild(eTitle);
+    }
+
+    var actions = $('recordActions');
+    clearNode(actions);
+    if (canEditRecord(record)) {
+      var edit = el('button', 'btn-ghost', '✏️ 수정');
+      edit.setAttribute('type', 'button');
+      edit.addEventListener('click', function () {
+        closeRecordModal();
+        openEditModal(record);
+      });
+      actions.appendChild(edit);
+      if (isSuperAdmin()) {
+        var del = el('button', 'btn-ghost', '🗑️ 삭제');
+        del.setAttribute('type', 'button');
+        del.style.color = 'var(--danger)';
+        del.addEventListener('click', function () {
+          closeRecordModal();
+          removeWorkRecord(record);
+        });
+        actions.appendChild(del);
+      }
+    }
+    $('recordModal').hidden = false;
+  }
+
+  function closeRecordModal() {
+    $('recordModal').hidden = true;
+    state.recordView = null;
+    clearNode($('recordBody'));
+    clearNode($('recordActions'));
   }
 
   /* ================================================================
@@ -7687,7 +8600,9 @@
       newPhotos: [],
       receiptKeep: (record.receipts || []).slice(),   // 🧾 이미 붙어 있는 영수증
       receiptNew: [],                                // 🧾 새로 올린 영수증
-      saving: false
+      expenses: parseExpenseRows(record.expenses),   // 🧾 지출내역 표 행들 (옛 일반 글도 안전하게 읽는다)
+      saving: false,
+      saveQueued: false
     };
     $('editDate').value = record.date || todayStr();
     $('editBranch').value = record.branch || '';
@@ -7697,7 +8612,6 @@
     $('editWorkHours').value = record.workHours || '';
     $('editMaterials').value = record.materials || '';
     $('editLaborCost').value = record.laborCost || '';
-    $('editExpenses').value = record.expenses || '';
     $('editMeta').textContent = formatDateLabel(record.date) + ' ' + (record.branch || '') +
       (record.author ? ' · ' + record.author + ' 님이 등록' : '') +
       ' · 사진 ' + (record.photos || []).length + '장';
@@ -7705,6 +8619,7 @@
     renderEditBranchChips();
     renderEditPhotos();
     renderEditReceipts();
+    renderExpenseTable('edit');
     $('editModal').hidden = false;
   }
 
@@ -7713,6 +8628,7 @@
     state.edit = null;
     clearNode($('editPhotoGrid'));
     if ($('editReceiptGrid')) clearNode($('editReceiptGrid'));
+    if ($('editExpenseTable')) clearNode($('editExpenseTable'));
   }
 
   function renderEditBranchChips() {
@@ -7782,7 +8698,17 @@
       ? '사진 ' + total + '장 (기존 ' + kept + '장' +
         (added ? ' · 새로 추가 ' + added + '장 · ' + PHOTO_W + '×' + PHOTO_H + ' 변환됨' : '') + ')'
       : '사진 0장 — 사진 없이도 저장됩니다.';
-    $('editSave').textContent = total ? '💾 수정 저장 (사진 ' + total + '장)' : '💾 수정 저장';
+    // 🧾 영수증 글씨를 읽는 동안은 저장을 잠그고, 끝나면 원래대로 (v49)
+    var btn = $('editSave');
+    if (btn) {
+      if (receiptsReading('edit')) {
+        btn.textContent = '📄 영수증 글씨 읽는 중…';
+        btn.disabled = true;
+      } else {
+        btn.disabled = !!edit.saving;
+        btn.textContent = total ? '💾 수정 저장 (사진 ' + total + '장)' : '💾 수정 저장';
+      }
+    }
   }
 
   function addEditPhotos(files) {
@@ -7829,6 +8755,13 @@
   function saveEditFromForm() {
     var edit = state.edit;
     if (!edit || edit.saving) return;
+    if (receiptsReading('edit')) {
+      edit.saveQueued = true;
+      updateEditSummary();
+      toast('📄 영수증 글씨를 읽는 중입니다. 다 읽으면 바로 저장합니다.', 'ok');
+      return;
+    }
+    edit.saveQueued = false;
 
     var date = $('editDate').value;
     var branch = $('editBranch').value.trim();
@@ -7858,7 +8791,7 @@
       workHours: $('editWorkHours').value.trim(),
       materials: $('editMaterials').value.trim(),
       laborCost: $('editLaborCost').value.trim(),
-      expenses: String($('editExpenses').value || '').trim(),
+      expenses: expenseRowsText(edit.expenses),
       keepPhotoUrls: edit.keep.map(function (p) { return p.id || p.original || ''; }),
       keepReceiptUrls: (edit.receiptKeep || []).map(function (p) { return p.id || p.original || ''; }),
       newPhotos: [],          // v30: 새 사진은 수정을 먼저 저장한 뒤 3장씩 뒤에서 올린다
@@ -8087,6 +9020,19 @@
   if (!IS_GAS && typeof window !== 'undefined' && window) {
     window.__previewApp = {
       api: API,
+      // 🧾 지출내역 표·상세 보기·화면출력 (v49) — 확인용
+      state: state,
+      renderExpenseTable: renderExpenseTable,
+      addExpenseRow: addExpenseRow,
+      expenseRowsText: expenseRowsText,
+      receiptsReading: receiptsReading,
+      updateSubmitBtn: updateSubmitBtn,
+      afterReceiptRead: afterReceiptRead,
+      submitWriteForm: submitWriteForm,
+      openRecordModal: openRecordModal,
+      closeRecordModal: closeRecordModal,
+      screenWorkLogsHtml: screenWorkLogsHtml,
+      openBranchModal: openBranchModal,
       // 🔗 사진 빠른 업로드 연결 창 — 화면 상단 버튼은 v45 에서 뺐지만(2026-11-27 지시),
       //    연결 상태·다시 연결은 이 함수로 그대로 쓸 수 있다.
       openDriveModal: openDriveModal,
